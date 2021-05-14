@@ -1,0 +1,19 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.ts",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "Bruce",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "koa": "^2.13.1",
+    "ws": "^7.4.5"
+  },
+  "devDependencies": {
+    "@types/koa": "^2.13.1",
+    "@types/ws": "^7.4.4"
+  }
+}
