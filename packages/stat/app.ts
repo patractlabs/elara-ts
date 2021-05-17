@@ -5,7 +5,7 @@ import KoaBody from 'koa-body'
 import Kstatic from 'koa-static'
 import Session from 'koa-session'
 import { accessLogger, getAppLogger } from 'lib/utils/log'
-import { accessControl, dashboard, errHanldle, responseTime } from './src/middleware'
+import { accessControl, authCheck, dashboard, errHanldle, responseTime } from './src/middleware'
 import Passport from './lib/passport'
 
 import routerCompose  from './src/routerCompose'
@@ -13,6 +13,7 @@ import routerCompose  from './src/routerCompose'
 Dotenv.config()    // init dot env
 const app = new Koa()
 export const log = getAppLogger('stat', true)
+
 const session = {
     key: 'elarasid',
     signed: false,
@@ -22,7 +23,6 @@ const session = {
 
 app
     .use(accessLogger(true))
-    .use(errHanldle)
     .use(dashboard)
     .use(Kstatic(path.join(__dirname, './static/html')))
     .use(Session(session, app))
@@ -30,6 +30,8 @@ app
     .use(Passport.initialize())
     .use(Passport.session())
     .use(responseTime)
+    .use(errHanldle)
+    .use(authCheck)
     .use(accessControl)
     .use(routerCompose())
 

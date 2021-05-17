@@ -4,7 +4,8 @@
 
 export enum Code {
     Ok = 0,
-    unknown,
+    Unknown,
+    Whocare,
     // 1000 - 1999 
     // NOTE: something system error, shouldn't post the Msg to customer
 
@@ -16,6 +17,7 @@ export enum Code {
     Auth_Fail = 2001,
     Access_Deny,
 
+    Pro_Num_Limit,
     Pro_Name_Err,
     Pro_Stat_Err,
 
@@ -33,7 +35,8 @@ export enum Code {
 export enum Msg {
 
     Ok = 'ok',
-    unknown = 'unknown',
+    Unknown = 'unknown error',
+    Whocare = 'dont care',
 
     // Auth
     Auth_Fail = 'Authenticated failed',
@@ -41,6 +44,7 @@ export enum Msg {
 
     // project
     Pro_Err = 'project error',
+    Pro_Num_Limit = 'project created number out of limit',
     Pro_Name_Error = 'project name empty or invalid',
     Pro_Stat_Err = 'project status is inactive or unavailable',
 

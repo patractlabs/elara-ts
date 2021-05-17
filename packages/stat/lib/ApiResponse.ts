@@ -19,6 +19,14 @@ export = class Result {
         return new Result(code, msg, data)
     }
 
+    static Unknown = (data: any = {}) => {
+        return new Result(Code.Unknown, Msg.Unknown, data)
+    }
+
+    static Whocare = (data: any = {}) => {
+        return new Result(Code.Whocare, Msg.Whocare, data)
+    }
+
     toString() {
         return JSON.stringify(this)
     }

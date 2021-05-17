@@ -2,17 +2,16 @@ import Project from '../src/service/project'
 import {Code, Msg} from './ApiCode'
 import Result from './ApiResponse'
 
-export const checkAuthenticated = (ctx: any) => {
+export const checkAuthenticated = (ctx: any): Result => {
     console.log('NO_AUTHenv: ', process.env.NO_AUTH)
-    if (process.env.NO_AUTH) {
-        ctx.state.user = 'Only For Test'
-        return true
+    if (process.env.NO_AUTH?.toLowerCase() === 'true') {
+        ctx.state.user = 'Test_Auth_User'
+        return Result.Ok()
     }
     if (!ctx.isAuthenticated()) {
-        ctx.response.body = Result.Fail(Code.Auth_Fail, Msg.Auth_Fail).toString()
-        return false
+        return Result.Fail(Code.Auth_Fail, Msg.Auth_Fail)
     }
-    return true
+    return Result.Ok()
 }
 
 /**

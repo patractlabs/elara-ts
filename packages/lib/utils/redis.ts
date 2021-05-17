@@ -1,7 +1,7 @@
 var Redis = require('ioredis')
 import { getAppLogger } from './log'
 
-const log = getAppLogger('redis')
+const log = getAppLogger('redis', true)
 const client = new Redis({
     port: 6379,
     host: '127.0.0.1',

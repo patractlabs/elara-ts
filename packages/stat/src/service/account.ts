@@ -1,5 +1,5 @@
 const redis = require('../../../lib/utils/redis')
-const Result = require('../../lib/result')
+const Result = require('../../lib/ApiResponse')
 const KEY = require('../../lib/KEY')
 
 class Account {
@@ -19,14 +19,13 @@ class Account {
     static async info(uid) {
         let reply = await redis.hgetall(KEY.UID(uid))
         let projects = await Account.projects(uid)
-
-        let account 
-        if (reply && reply.uid) {
-            account = new Account(reply.uid, reply.vip, reply.cratetime, { 'projects': projects })
+        
+        if (reply?.uid) {
+            let account = new Account(reply.uid, reply.vip, reply.cratetime, { 'projects': projects })
+            return Result.Ok(account)
         }
-
-        return Result.WrapResult(account)
-    };
+        return Result.Whocare()
+    }
 }
 
 export = Account

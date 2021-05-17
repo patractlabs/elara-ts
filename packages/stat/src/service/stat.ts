@@ -14,6 +14,7 @@ class Stat {
         await redis.sadd(KEY.PROJECT(uid), pid);
         await redis.sadd(KEY.PROJECTS(), pid);
     }
+    
     static async request(info: any) {
 
         let protocol = info.protocol

@@ -71,8 +71,8 @@ export const setConfig = (options?: StatConfig): StatConfig => {
                 '1': 5000000//团队
             },
             project: {//账户下最多项目数
-                '0': 20,
-                '1': 100
+                '0': 10,
+                '1': 1
             }
         },
         maxProjectNum: 100,

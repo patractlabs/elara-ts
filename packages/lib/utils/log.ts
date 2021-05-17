@@ -41,5 +41,5 @@ export const getAppLogger = (head: string, out: boolean = false): any => {
         level: 'info'
     }
     Logger.configure(config)
-    return Logger.getLogger(`${head}`)
+    return Logger.getLogger(heads)
 }

@@ -1,11 +1,12 @@
 import koa from "koa"
 import { getAppLogger } from 'lib/utils/log'
+import { Code, Msg } from "../lib/ApiCode"
 import Result from '../lib/ApiResponse'
 
 type NextT = () => Promise<any>
 type KCtxT = koa.Context
 
-const log = getAppLogger('stat', true)
+const log = getAppLogger('stat-midware', true)
 
 export const dashboard = async (ctx: KCtxT, next: NextT) => {
     if ('/dashboard' == ctx.path) {
@@ -22,20 +23,25 @@ export const responseTime = async (ctx: KCtxT, next: NextT) => {
     log.info(ctx.method, ctx.originalUrl, ctx.request.body, ctx.response.status || 404, ctx.response.length, 'byte', (Date.now() - start), 'ms')
 }
 
+export const authCheck = async (ctx: KCtxT, next: NextT) => {
+    log.info('NO_AUTH env: ', process.env.NO_AUTH)
+    if (process.env.NO_AUTH?.toLowerCase() === 'true') {
+        ctx.state.user = 'Only for test'
+        return next()
+    }
+    if (!ctx.isAuthenticated()) {
+        throw Result.Fail(Code.Auth_Fail, Msg.Auth_Fail)
+    }
+    return next()
+}
+
 export const errHanldle = async (ctx: KCtxT, next: NextT) => {
     return next().catch((error: any) => {
-        let code = 500
-        let message = 'unknown error'
-        let data=''
-        log.error(error)
+        log.error('Catch request error: ', error)
         if (error instanceof Result) {
-            code = error.code
-            message = error.msg
-        }
-        ctx.body = {
-            code,
-            message,
-            data
+            ctx.body = error
+        } else {
+            ctx.body = Result.Fail(Code.Unknown, Msg.Unknown)
         }
     })
 }

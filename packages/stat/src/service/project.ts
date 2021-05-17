@@ -5,8 +5,10 @@ import { now } from '../../lib/date'
 import Stat from './stat'
 import KEY from '../../lib/KEY'
 import { setConfig } from '../../config/config'
+import { getAppLogger } from 'lib/utils/log'
 
 const config = setConfig()
+const log = getAppLogger('stat-pro', true)
 
 class Project {
     id; status; chain; name; uid; secret; 
@@ -31,12 +33,11 @@ class Project {
     static async info(pid) {
         let reply = await redis.hgetall(KEY.PROJECTINFO(pid))
         let project
-        if (reply && reply.id) {
+        if (reply?.id) {
             project = new Project(reply.id, reply.status, reply.chain, reply.name, reply.uid, reply.secret, reply.cratetime, reply.lasttime, reply.allowlist)
         }
-
         return Result.Ok(project)
-    };
+    }
 
     //获取账户下按链统计的项目计数
     static async getAllCountByAccount(uid) {
@@ -82,7 +83,6 @@ class Project {
     }
     //判断是否存在同名
     static async isExist(uid, chain, name) {
-        let list = [];
         let projects: any = [];
         let members = await redis.smembers(KEY.PROJECT(uid))
         for (var i = 0; i < members.length && i < config.maxProjectNum; i++) {
@@ -95,6 +95,7 @@ class Project {
     }
     //创建新项目
     static async create(uid, chain, name) {
+        log.info('Into projec create!')
         const timestamp = now()
 
         let id = crypto.randomBytes(16).toString('hex');
