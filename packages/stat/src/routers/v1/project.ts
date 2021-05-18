@@ -1,8 +1,8 @@
 import Project from '../../service/project'
 import Stat from'../../service/stat'
 import Limit from '../../service/limit'
-import { KCtxT, NextT, getAppLogger, Code, Result, Msg } from 'lib'
-import { isErr } from '../../lib/result'
+import { KCtxT, NextT, getAppLogger, Code, Resp, Msg } from 'lib'
+import { isErr } from 'lib'
 
 const log = getAppLogger('stat-pro', true)
 
@@ -15,36 +15,40 @@ let createProeject = async (ctx: KCtxT, next: NextT) => {
 
     if (name === '' || name === null || !/[a-zA-Z]{4,32}/.test(name)) {
         log.error('Project name invalid or empty');
-        throw Result.Fail(Code.Pro_Name_Err, Msg.Pro_Name_Error)
+        throw Resp.Fail(Code.Pro_Name_Err, Msg.Pro_Name_Error)
     }
 
     // check valid chain name in config list
     // TODO add config check
     if (![chain?.toLowerCase()]) {
         log.error('Invalid chain!')
-        throw Result.Fail(Code.Chain_Err, Msg.Chain_Err)
+        throw Resp.Fail(Code.Chain_Err, Msg.Chain_Err)
     }
 
-    let count = await Stat.countByAccount(uid)
+    let count = await Project.projectNumOfAllChain(uid)
+    if (isErr(count)) {
+        throw Resp.Fail(Code.Pro_Num_Limit, count.value as Msg)
+    }
+    
     let limit = await Limit.create(uid)
-    if (count >= limit.project) {
+    if (count.value >= limit.project) {
         log.error('Out of max project create number!')
-        throw Result.Fail(Code.Pro_Num_Limit, Msg.Pro_Num_Limit)
+        throw Resp.Fail(Code.Pro_Num_Limit, Msg.Pro_Num_Limit)
     }
 
     let exist = await Project.isExist(uid, chain, name)
     if (exist) {
         log.error(`An project named [${name}] existed`)
-        throw Result.Fail(Code.Dup_Name, Msg.Dup_Name)
+        throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)
     }
     let project = await Project.create(uid, chain, name)
 
     log.info('create project result: ', project)
 
     if (isErr(project)) {
-        throw Result.Fail(Code.Pro_Err, Msg.Pro_Err)
+        throw Resp.Fail(Code.Pro_Err, Msg.Pro_Err)
     }
-    ctx.body = Result.Ok(project.value)   // equals to ctx.response.body
+    ctx.body = Resp.Ok(project.value)   // equals to ctx.response.body
     return next()
 }
 
@@ -58,9 +62,9 @@ const getProject = async (ctx: KCtxT, next: NextT) => {
     // check UID or not
     let project = await Project.detail(chain, pid)
     if (isErr(project)) {
-        throw Result.Fail(Code.Pro_Err, project.value as Msg)
+        throw Resp.Fail(Code.Pro_Err, project.value as Msg)
     }
-    ctx.body = Result.Ok(project.value)
+    ctx.body = Resp.Ok(project.value)
     return next()
 }
 
@@ -69,9 +73,9 @@ let getProjectCount = async (ctx: KCtxT, next: NextT) => {
     let uid = ctx.state.user
     let projects = await Project.projectNumOfAllChain(uid)
     if (isErr(projects)) {
-        throw Result.Whocare()
+        throw Resp.Whocare()
     }
-    ctx.body = Result.Ok(projects.value)
+    ctx.body = Resp.Ok(projects.value)
     return next()
 }
 
@@ -83,21 +87,21 @@ let getProjects = async (ctx: KCtxT, next: NextT) => {
     log.info('Into project list: ', uid, chain)
     let projects = await Project.projectList(uid, chain)
     if (isErr(projects)) {
-        throw Result.Whocare()
+        throw Resp.Whocare()
     }
-    ctx.body = Result.Ok(projects.value)
+    ctx.body = Resp.Ok(projects.value)
     return next()
 }
 
-let switchStatus = async (ctx: KCtxT, next: NextT): Promise<Result> => {
+let switchStatus = async (ctx: KCtxT, next: NextT) => {
     const bd = ctx.request.body
     const chain = bd.chain
     const pid = bd.pid
     let re = await Project.switchStatus(chain, pid)
     if (isErr(re)) {
-        throw Result.Fail(Code.Pro_Err, re.value as Msg)
+        throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
-    ctx.body = Result.Ok(re.value)
+    ctx.body = Resp.Ok(re.value)
     return next()
 }
 

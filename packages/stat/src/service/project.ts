@@ -2,9 +2,8 @@ import crypto from 'crypto'
 import { now } from '../lib/date'
 import { setConfig } from '../../config'
 import { getAppLogger } from 'lib'
-// import redis from 'lib/utils/redis'
 import { IDT } from 'lib'
-import { Err, isErr, isOk, Ok, Result } from '../lib/result'
+import { Err, isErr, Ok, PResult } from 'lib'
 import Redis from 'ioredis'
 
 const redis = new Redis({
@@ -43,7 +42,7 @@ interface Project {
     [key: string]: any
 }
 
-type PResult = Promise<Result<any, string>>
+
 type SNU = string | null | undefined
 type INU = SNU | number
 
@@ -131,6 +130,11 @@ const dumpProject = async (project: Project): PResult => {
     return Ok('ok')
 }
 
+// TODO: spilt the redis operations
+namespace RDB {
+
+}
+
 namespace Project {
 
     export const create = async (uid: IDT, chain: string, name: string): PResult => {
@@ -157,10 +161,10 @@ namespace Project {
         }
         log.warn('Project to create: ', project)
         let re = await dumpProject(project)
-        if (isOk(re)) {
-            return Ok(project)
+        if (isErr(re)) {
+            return re
         }
-        return re
+        return Ok(project)
     }
 
     export const isExist = async(uid:IDT, chain: string, name: string): Promise<boolean> => {

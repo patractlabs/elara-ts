@@ -1,6 +1,6 @@
 import {Code, Msg} from './ApiCode'
 
-export class Result {
+export class Resp {
     constructor(public code: Code, public msg: Msg, public data: any) {
         this.code = code
         this.msg = msg
@@ -8,7 +8,7 @@ export class Result {
     }
 
     static Ok = (data: any = {}) => {
-        return new Result(
+        return new Resp(
             Code.Ok,
             Msg.Ok,
             data
@@ -16,15 +16,15 @@ export class Result {
     }
 
     static Fail = (code: Code, msg: Msg, data: any = {}) => {      
-        return new Result(code, msg, data)
+        return new Resp(code, msg, data)
     }
 
     static Unknown = (data: any = {}) => {
-        return new Result(Code.Unknown, Msg.Unknown, data)
+        return new Resp(Code.Unknown, Msg.Unknown, data)
     }
 
     static Whocare = (data: any = {}) => {
-        return new Result(Code.Whocare, Msg.Whocare, data)
+        return new Resp(Code.Whocare, Msg.Whocare, data)
     }
 
     toString() {

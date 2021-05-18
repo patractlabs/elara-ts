@@ -4,7 +4,7 @@ const Account = require('./account')
 const { formateDate } = require('../lib/date');
 const redis = require('lib/utils/redis')
 const KEY = require('../lib/KEY')
-import { isSome } from '../lib/option'
+import { isSome } from 'lib'
 const config = setConfig()
 
 class Limit {

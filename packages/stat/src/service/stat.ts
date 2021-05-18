@@ -13,6 +13,7 @@ const safeParseInt = (val: string | null): number => {
     }
     return 0
 }
+
 /**
  *  统计
  */
@@ -125,12 +126,6 @@ class Stat {
         return total
     }
 
-    //账户下的项目总数
-    static async countByAccount(uid) {
-        let count = await redis.scard(KEY.PROJECT(uid))
-        return count ? count : 0
-    }
-
     //项目的某日统计信息
     static async day(pid, date) {
         if (!date) {
@@ -203,7 +198,13 @@ class Stat {
 
         return requests
     }
-    static async dashboard() {
+
+}
+
+
+
+namespace Stat {
+    export const dashboard = async () => {
         let dashboard = {}
         try {
             let dashVal = await redis.get(KEY.DASHBOARD())

@@ -1,6 +1,6 @@
 import koa from "koa"
 import { getAppLogger } from 'lib/utils/log'
-import { Result, Code, Msg } from 'lib'
+import { Resp, Code, Msg } from 'lib'
 
 type NextT = () => Promise<any>
 type KCtxT = koa.Context
@@ -29,7 +29,7 @@ export const authCheck = async (ctx: KCtxT, next: NextT) => {
         return next()
     }
     if (!ctx.isAuthenticated()) {
-        throw Result.Fail(Code.Auth_Fail, Msg.Auth_Fail)
+        throw Resp.Fail(Code.Auth_Fail, Msg.Auth_Fail)
     }
     return next()
 }
@@ -37,10 +37,10 @@ export const authCheck = async (ctx: KCtxT, next: NextT) => {
 export const errHanldle = async (ctx: KCtxT, next: NextT) => {
     return next().catch((error: any) => {
         log.error('Catch request error: ', error)
-        if (error instanceof Result) {
+        if (error instanceof Resp) {
             ctx.body = error
         } else {
-            ctx.body = Result.Fail(Code.Unknown, Msg.Unknown)
+            ctx.body = Resp.Fail(Code.Unknown, Msg.Unknown)
         }
     })
 }
