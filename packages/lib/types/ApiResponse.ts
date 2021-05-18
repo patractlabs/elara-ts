@@ -1,6 +1,6 @@
 import {Code, Msg} from './ApiCode'
 
-export = class Result {
+export class Result {
     constructor(public code: Code, public msg: Msg, public data: any) {
         this.code = code
         this.msg = msg

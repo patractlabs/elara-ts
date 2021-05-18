@@ -4,9 +4,9 @@ import Koa from 'koa'
 import KoaBody from 'koa-body'
 import Kstatic from 'koa-static'
 import Session from 'koa-session'
-import { accessLogger, getAppLogger } from 'lib/utils/log'
+import { accessLogger, getAppLogger } from 'lib'
 import { accessControl, authCheck, dashboard, errHanldle, responseTime } from './src/middleware'
-import Passport from './lib/passport'
+import Passport from './src/lib/passport'
 
 import routerCompose  from './src/routerCompose'
 

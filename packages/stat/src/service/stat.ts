@@ -1,19 +1,23 @@
-import { getAppLogger } from 'lib/utils/log'
+import { getAppLogger } from 'lib'
 import redis from 'lib/utils/redis'
-import { now, formateDate } from '../../lib/date'
-import KEY from '../../lib/KEY'
-import { setConfig } from '../../config/config'
+import { now, formateDate } from '../lib/date'
+import KEY from '../lib/KEY'
+import { setConfig } from '../../config'
 
 const config = setConfig()
 const logger = getAppLogger('stat')
+
+const safeParseInt = (val: string | null): number => {
+    if (val !== null) {
+        return parseInt(val)
+    }
+    return 0
+}
 /**
  *  统计
  */
 class Stat {
-    static async createProject(uid: any, pid: any) {
-        await redis.sadd(KEY.PROJECT(uid), pid);
-        await redis.sadd(KEY.PROJECTS(), pid);
-    }
+
     
     static async request(info: any) {
 
@@ -49,11 +53,14 @@ class Stat {
     static async _timeout(pid: any, delay) {
         let date = formateDate(new Date())
 
-        if (delay >= config.timeout)
+        if (delay >= config.timeout) {
             await redis.incr(KEY.TIMEOUT(pid, date))
-        let average: number | string = parseInt(await redis.get(KEY.DELAY(pid, date)))
+        }
+
+        let average: number | string = safeParseInt(await redis.get(KEY.DELAY(pid, date)))
         if (average) {//算平均
-            let requests = parseInt(await redis.get(KEY.REQUEST(pid, date)))
+
+            let requests = safeParseInt(await redis.get(KEY.REQUEST(pid, date)))
             average = ((requests * average + delay) / (requests + 1)).toFixed(2)
             await redis.set(KEY.DELAY(pid, date), average)
         }
@@ -199,7 +206,12 @@ class Stat {
     static async dashboard() {
         let dashboard = {}
         try {
-            dashboard = JSON.parse(await redis.get(KEY.DASHBOARD()))
+            let dashVal = await redis.get(KEY.DASHBOARD())
+            if (dashVal === null) {
+                logger.error('Redis get dashboard failed')
+            } else {
+                dashboard = JSON.parse(dashVal)
+            }
         } catch (e) {
             logger.error('Dashboard Parse Error!')
         }

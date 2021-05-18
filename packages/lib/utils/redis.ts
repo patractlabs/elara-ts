@@ -1,5 +1,7 @@
-var Redis = require('ioredis')
+import  Redis  from 'ioredis'
+// const Redis = require('ioredis')
 import { getAppLogger } from './log'
+
 
 const log = getAppLogger('redis', true)
 const client = new Redis({

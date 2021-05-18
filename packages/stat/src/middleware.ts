@@ -1,7 +1,6 @@
 import koa from "koa"
 import { getAppLogger } from 'lib/utils/log'
-import { Code, Msg } from "../lib/ApiCode"
-import Result from '../lib/ApiResponse'
+import { Result, Code, Msg } from 'lib'
 
 type NextT = () => Promise<any>
 type KCtxT = koa.Context
@@ -26,7 +25,7 @@ export const responseTime = async (ctx: KCtxT, next: NextT) => {
 export const authCheck = async (ctx: KCtxT, next: NextT) => {
     log.info('NO_AUTH env: ', process.env.NO_AUTH)
     if (process.env.NO_AUTH?.toLowerCase() === 'true') {
-        ctx.state.user = 'Only for test'
+        ctx.state.user = 'TestUID'
         return next()
     }
     if (!ctx.isAuthenticated()) {

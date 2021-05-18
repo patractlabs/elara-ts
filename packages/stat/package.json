@@ -20,8 +20,10 @@
     "passport-github2": "^0.1.12"
   },
   "devDependencies": {
+    "@types/ioredis": "^4.26.3",
     "@types/koa-passport": "^4.0.2",
     "@types/koa-router": "^7.4.2",
-    "@types/koa-session": "^5.10.3"
+    "@types/koa-session": "^5.10.3",
+    "last": "^1.1.0"
   }
 }
