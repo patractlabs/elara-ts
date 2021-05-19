@@ -114,14 +114,12 @@ const dumpProject = async (project: Project): PResult => {
     try {
         await redis.hmset(key, project)
 
-        // incr project num
-        let cnt = await redis.incr(KEY.ProjectNumKey)
-    
         // zadd list
         key  = KEY.projectListKey(project.uid, project.chain)
-        await redis.zadd(key, cnt, project.id)
+        await redis.zadd(key, project.createTime.toString(), project.id)
         
-        
+        // incr project num
+        await redis.incr(KEY.ProjectNumKey)
     } catch (e) {
         log.error('Dump project error: ', e)
         return Err(e)

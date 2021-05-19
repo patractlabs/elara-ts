@@ -1,4 +1,4 @@
-import { getAppLogger } from 'lib'
+import { getAppLogger, IDT } from 'lib'
 import redis from 'lib/utils/redis'
 import { now, formateDate } from '../lib/date'
 import KEY from '../lib/KEY'
@@ -12,6 +12,20 @@ const safeParseInt = (val: string | null): number => {
         return parseInt(val)
     }
     return 0
+}
+
+interface StatProtocol {
+    protocol: string,    // websocket, http/https
+    header: any,        // ctx.request.header same as http.Incomingmessage.headers
+    ip: string,
+    chain: string,      // lowercase
+    pid: IDT,
+    method: string,      //  rpc-method { method: 'system_peers' }
+    req: string,        // rpc req body
+    resp: any,          // reseved
+    bandwidth: string | number,     // response package size
+    respTime: number | string,      // rpc request response time, ws default 0
+    ext?: any                        // extention    reserved
 }
 
 /**
@@ -48,9 +62,11 @@ class Stat {
     }
 
     static async _request_response(info: any) {
+        // 最新的1000条请求记录
         await redis.lpush(KEY.REQUEST_RESPONSE(), JSON.stringify(info))
         await redis.ltrim(KEY.REQUEST_RESPONSE(), 0, config.maxReqKeepNum)
     }
+    
     static async _timeout(pid: any, delay) {
         let date = formateDate(new Date())
 
@@ -199,6 +215,14 @@ class Stat {
         return requests
     }
 
+}
+
+namespace KEYS {
+    const S = 'Stat_'
+
+    export const dashBoardKey = (date: string, pid: IDT): string => {
+        return  `H_${S}${date}_${pid}`
+    }
 }
 
 
