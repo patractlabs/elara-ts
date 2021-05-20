@@ -4,7 +4,7 @@
   "description": "[中文](https://github.com/patractlabs/elara/blob/master/README-zh.md)",
   "main": "app.ts",
   "scripts": {
-    "test": "jest ./packages/api"
+    "test": "jest"
   },
   "repository": {
     "type": "git",

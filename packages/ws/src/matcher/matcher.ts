@@ -18,6 +18,10 @@ interface Matcher {
     option: any         // reserved
 }
 
+const createMatcher = (ws: any) => {
+    
+}
+
 const registerMatcher = (options: Matcher): void => {
     // 建立pub/sub映射
     // 

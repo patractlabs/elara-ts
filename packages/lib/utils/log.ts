@@ -18,7 +18,7 @@ export const accessLogger = (out: boolean = false): any => {
  
     config.categories['access'] = {
         appenders: out ? ['access', 'out'] : ['access'],
-        level: 'info' 
+        level: out ? 'debug' : 'info' 
     }
     Logger.configure(config)
     return Logger.koaLogger(Logger.getLogger('access'))
@@ -38,7 +38,7 @@ export const getAppLogger = (head: string, out: boolean = false): any => {
     
     config.categories[heads] = {
         appenders: out ? [heads, 'out'] : [heads], 
-        level: 'info'
+        level: out ? 'debug' : 'info'
     }
     Logger.configure(config)
     return Logger.getLogger(heads)

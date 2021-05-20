@@ -10,6 +10,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "koa": "^2.13.1",
+    "lib": "file:../lib",
     "ws": "^7.4.5"
   },
   "devDependencies": {

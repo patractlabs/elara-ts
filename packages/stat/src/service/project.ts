@@ -4,6 +4,7 @@ import { setConfig } from '../../config'
 import { getAppLogger } from 'lib'
 import { IDT } from 'lib'
 import { Err, isErr, Ok, PResult } from 'lib'
+import { KEYS } from 'lib'
 import Redis from 'ioredis'
 
 const redis = new Redis({
@@ -12,9 +13,12 @@ const redis = new Redis({
     db: 1
 })
 
+const KEY = KEYS.Project
+
 redis.on('connect', () => {
     log.info('Redis connect successfuly')
 })
+
 redis.on('error', (e) => {
     log.error('Redis error: ', e)
 })
@@ -66,42 +70,42 @@ const isInValidKey = (chain: SNU, id: INU): boolean => {
     return false
 }
 
-namespace KEY {
-    const P = 'Project'
+// namespace KEY {
+//     const P = 'Project'
 
-    export const ProjectNumKey = `${P}_Num`
+//     export const ProjectNumKey = `${P}_Num`
 
-    export const projectKey = (chain?: string, pid?: IDT) => {
-        let com = `H_${P}_`
-        let CHAIN = '*_'
-        let PID = `${pid}`
-        if (!isEmpty(chain)) {
-            CHAIN = `${chain?.toLowerCase()}_`
-        }
-        if (isEmpty(pid?.toString())) {
-           PID = '*'
-        }
-        // if chain is empty and pid not, would be get only one
-        let key = `${com}${CHAIN}${PID}`
-        // log.info('Project key: ', key)
-        return key
-    }
+//     export const projectKey = (chain?: string, pid?: IDT) => {
+//         let com = `H_${P}_`
+//         let CHAIN = '*_'
+//         let PID = `${pid}`
+//         if (!isEmpty(chain)) {
+//             CHAIN = `${chain?.toLowerCase()}_`
+//         }
+//         if (isEmpty(pid?.toString())) {
+//            PID = '*'
+//         }
+//         // if chain is empty and pid not, would be get only one
+//         let key = `${com}${CHAIN}${PID}`
+//         // log.info('Project key: ', key)
+//         return key
+//     }
 
-    export const projectListKey = (uid?: IDT, chain?: string): string => {
-        let com = `Z_${P}_list_`
-        let CHAIN = '*'
-        let UID = `${uid}_`
-        if (!isEmpty(chain)) {
-            CHAIN = `${chain?.toLowerCase()}`
-        }
-        if (isEmpty(uid?.toString())) {
-            UID = '*_'
-        }
-        let key = `${com}${UID}${CHAIN}`
-        // log.info('Project list key: ', key)
-        return key
-    }
-}
+//     export const projectListKey = (uid?: IDT, chain?: string): string => {
+//         let com = `Z_${P}_list_`
+//         let CHAIN = '*'
+//         let UID = `${uid}_`
+//         if (!isEmpty(chain)) {
+//             CHAIN = `${chain?.toLowerCase()}`
+//         }
+//         if (isEmpty(uid?.toString())) {
+//             UID = '*_'
+//         }
+//         let key = `${com}${UID}${CHAIN}`
+//         // log.info('Project list key: ', key)
+//         return key
+//     }
+// }
 
 // depends on the db strategy
 const dumpProject = async (project: Project): PResult => {
