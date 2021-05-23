@@ -9,7 +9,7 @@ export enum RpcStrategy {
     SyncKv = 'SyncKv',              // depends in parameter
 }
 
-type RpcMethodT = {[key in RpcStrategy]?: string[]}
+export type RpcMethodT = {[key in RpcStrategy]: string[]}
 
 export const RpcMethods: RpcMethodT = {
     Abandon: [
@@ -71,6 +71,8 @@ export const RpcMethods: RpcMethodT = {
         'system_chainType',
         'system_properties',
     ],
+    Direct: [],
+    SyncKv: [],
     // others not define here is Direct
 }
 export type RpcMapT = {[key: string]: RpcStrategy}

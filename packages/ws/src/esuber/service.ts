@@ -2,46 +2,64 @@
 /// the service of this chain. otherwise not init
 /// 
 /// TODO: SyncAsBlock is ovelap with the subscription
+import WebSocket from 'ws'
+import { getAppLogger } from 'lib'
+import { newSuber } from './interface'
+import { G } from './global'
+import { fetchChains } from './chain'
 
-import { KEYS, getAppLogger } from 'lib'
-import { chainRd } from '../db/redis'
 
-const KEY = KEYS.Chain
 const log = getAppLogger('esuber', true)
 
-namespace G {
-    export let chainStrategy = {}
-    export let chains: string[] = []
-    export let intervals: NodeJS.Timeout[] = []
+
+type OnMsgCb = (this: WebSocket, data: WebSocket.Data) => void
+type OnErrCb = (this: WebSocket, err: Error) => void
+
+const createSuber = (chain: string, url: string, cb: OnMsgCb, options?: {[key: string]: any}) => {
+    const ws: WebSocket = new WebSocket(url)
+    ws.on('open', () => {
+        log.info('Open connection to Polkadot node ws', options)
+        const sub = newSuber({chain, url, ws, ...options})
+        G.ws[chain] = sub
+        log.info('suber: ', G.ws)
+        sub.ws.send(JSON.stringify(buildReq('system_health', [])))
+    })
+ 
+    ws.on('error', (err: any) => {
+        log.error(`Suber[${chain}]-${G.ws[chain].cluster} Connect error: `, err)
+    })
+
+    ws.on('message', cb)
 }
 
 
-const fetchChains = async () => {
-    let chains = await chainRd.zrange(KEY.zChainList(), 0, -1)
-    log.info('chain list: ', chains)
-    G.chains = chains
+// init resource
+export const setup = async (url: string) => {
+    // init a ws connection for all chains
+    let chain = 'Polkadot'
+    await fetchChains()
+    log.info('G chains: ', G.chains)
+    createSuber(chain, url, (data: any) => {
+        log.info(`Suber[${chain}]-${G.ws[chain].cluster} received node ws data: `, data)
+        // TODO: cache data
+    })
+    // createSuber('Polkadot', url, {"stat": SubStat.Check})
+
+    
 }
 
-const parseChainConfig = async (chain: string) => {
-    let key = KEY.hChain(chain)
-    let exs = await chainRd.hmget(key, ['extends', 'excludes'])
-
-    let extens = []
-    let excludes= []
-    if (exs[0] !== null) {
-        extens = JSON.parse(exs[0])
-        for (let e in extens) {
-            log.info(e, extens[e])
-        }
+const buildReq = (method: string, params: any[]) => {
+    return {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": method,
+        "params": params,
     }
-    if (exs[1] !== null) {
-        excludes = JSON.parse(exs[1])
-        for (let e of excludes) {
-            log.info(e)
-        }
-    }
-
 }
+
+// 
+
+
 
 /// according to rpc strategy modulize the service
 /// SyncAsBlock, SyncLow, SyncOnce, Subscribe, Kv, Abandon, Direct
@@ -64,13 +82,23 @@ const syncAsBlockService = async (chain: string) => {
 
 const syncLowService = (chain: string) => {
     let interval = setInterval(() => {
-
+        // read register list
+        // dispatch
     }, 10 * 60 * 1000)
 }
 
-const syncOnceService = (chain: string) => {
-     
 
+const syncOnceService = (chain: string) => {
+    let brpcs = G.rpcs.SyncOnce
+    let exts = G.chainExt[chain].SyncOnce
+    log.info('brpcs-exts: ', brpcs, exts)
+    brpcs?.push(...exts)
+    log.info('rpcs: ', brpcs)
+    for (let r of brpcs) {
+        let req = buildReq(r, [])
+        log.info('Req: ', req)
+        G.ws[chain].ws.send(JSON.stringify(req))
+    }
 }
 
 const subscribeService = (chain: string) => {
@@ -95,7 +123,7 @@ const serviceTrigger = (chain: string) => {
 }
 
 const init = ()=> {
-
+    setup('ws://localhost:9944')
 }
 
 init()

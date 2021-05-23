@@ -6,6 +6,7 @@
 /// -- 1. subscription 
 /// -- 2. rpc methond cache
 import { getAppLogger } from 'lib'
+import { Suber } from './interface'
 
 console.log('env: ', process.env.MODE)
 const log = getAppLogger('esuber', true)
@@ -16,7 +17,7 @@ const esuber = () => {
 
 }
 
-const newSubscriber = () => {
+const newSuber = (chain: string, topic: string) => {
 
 }
 
@@ -27,8 +28,8 @@ const initSysSuber = async (): Promise<void> => {
 }
 
 
-namespace ESuber {
+namespace Suber {
     export const init = esuber
 }
 
-export = ESuber
+export = Suber
