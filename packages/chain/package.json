@@ -10,6 +10,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "koa": "^2.13.1",
+    "koa-body": "^4.2.0",
     "koa-router": "^10.0.0",
     "lib": "file:../lib"
   },

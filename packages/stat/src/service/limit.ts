@@ -2,9 +2,9 @@ import { setConfig } from "../../config"
 
 const Account = require('./account')
 const { formateDate } = require('../lib/date');
-const redis = require('lib/utils/redis')
 const KEY = require('../lib/KEY')
 import { isSome } from 'lib'
+import { actRd, statRd } from '../db/redis'
 const config = setConfig()
 
 class Limit {
@@ -34,14 +34,14 @@ class Limit {
     }
     //是否在黑名单
     static async isBlack(uid) {
-        return await redis.sismember(KEY.BLACKUID(), uid)
+        return await actRd.sismember(KEY.BLACKUID(), uid)
     }
     static async isLimit(uid, pid) {
         let date = formateDate(new Date())
         let limit = await Limit.create(uid)
 
-        let today_request = await redis.get(KEY.REQUEST(pid, date))
-        if (today_request > limit.daily) {
+        let today_request: any = await statRd.get(KEY.REQUEST(pid, date))
+        if (parseInt(today_request) > limit.daily) {
             return true
         }
         return false

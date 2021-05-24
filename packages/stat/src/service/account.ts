@@ -1,8 +1,8 @@
-const redis = require('lib/utils/redis')
 import { IDT, isErr, Result } from 'lib'
 import KEY from '../lib/KEY'
 import { Some, None, Option } from 'lib'
-import Project, { projectList } from './project'
+import Project from './project'
+import { actRd } from '../db/redis'
 
 type POption<T> = Promise<Option<T>>
 
@@ -24,7 +24,7 @@ class Account {
 
     //: Promise<Option<AccountT>>
     static async info(uid) {
-        let reply = await redis.hgetall(KEY.UID(uid))
+        let reply = await actRd.hgetall(KEY.UID(uid))
         let projects = await Project.projectNumOfAllChain(uid)
         if (isErr(projects)) {
             // log.error('Get project num error: ', projects.value)

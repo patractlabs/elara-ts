@@ -4,7 +4,9 @@ type IDT = string | number
 namespace Chain {
     const C = 'Chain'
 
-    export const ChainNumKey = `${C}_Num`
+    export const chainNum = () => {
+        return `${C}_Num`
+    }
 
     export const hChain = (chain: string): string => {
         return `H_${C}_${chain.toLowerCase()}`

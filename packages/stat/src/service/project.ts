@@ -3,23 +3,17 @@ import { now } from '../lib/date'
 import { setConfig } from '../../config'
 import { getAppLogger } from 'lib'
 import { IDT } from 'lib'
-import { Err, isErr, Ok, PResult } from 'lib'
+import { Err, isErr, Ok, PResultT } from 'lib'
 import { KEYS } from 'lib'
-import Redis from 'ioredis'
-
-const redis = new Redis({
-    port: 6379,
-    host: '127.0.0.1',
-    db: 1
-})
+import { projRd } from '../db/redis'
 
 const KEY = KEYS.Project
 
-redis.on('connect', () => {
+projRd.on('connect', () => {
     log.info('Redis connect successfuly')
 })
 
-redis.on('error', (e) => {
+projRd.on('error', (e) => {
     log.error('Redis error: ', e)
 })
 
@@ -70,45 +64,8 @@ const isInValidKey = (chain: SNU, id: INU): boolean => {
     return false
 }
 
-// namespace KEY {
-//     const P = 'Project'
-
-//     export const ProjectNumKey = `${P}_Num`
-
-//     export const projectKey = (chain?: string, pid?: IDT) => {
-//         let com = `H_${P}_`
-//         let CHAIN = '*_'
-//         let PID = `${pid}`
-//         if (!isEmpty(chain)) {
-//             CHAIN = `${chain?.toLowerCase()}_`
-//         }
-//         if (isEmpty(pid?.toString())) {
-//            PID = '*'
-//         }
-//         // if chain is empty and pid not, would be get only one
-//         let key = `${com}${CHAIN}${PID}`
-//         // log.info('Project key: ', key)
-//         return key
-//     }
-
-//     export const projectListKey = (uid?: IDT, chain?: string): string => {
-//         let com = `Z_${P}_list_`
-//         let CHAIN = '*'
-//         let UID = `${uid}_`
-//         if (!isEmpty(chain)) {
-//             CHAIN = `${chain?.toLowerCase()}`
-//         }
-//         if (isEmpty(uid?.toString())) {
-//             UID = '*_'
-//         }
-//         let key = `${com}${UID}${CHAIN}`
-//         // log.info('Project list key: ', key)
-//         return key
-//     }
-// }
-
 // depends on the db strategy
-const dumpProject = async (project: Project): PResult => {
+const dumpProject = async (project: Project): PResultT => {
     // TODO error handle, transaction 
     // hset project item
     if (isInValidKey(project.chain, project.id)) {
@@ -116,14 +73,14 @@ const dumpProject = async (project: Project): PResult => {
     }
     let key = KEY.projectKey(project.chain, project.id)
     try {
-        await redis.hmset(key, project)
+        await projRd.hmset(key, project)
 
         // zadd list
         key  = KEY.projectListKey(project.uid, project.chain)
-        await redis.zadd(key, project.createTime.toString(), project.id)
+        await projRd.zadd(key, project.createTime.toString(), project.id)
         
         // incr project num
-        await redis.incr(KEY.ProjectNumKey)
+        await projRd.incr(KEY.ProjectNumKey)
     } catch (e) {
         log.error('Dump project error: ', e)
         return Err(e)
@@ -139,7 +96,7 @@ namespace RDB {
 
 namespace Project {
 
-    export const create = async (uid: IDT, chain: string, name: string): PResult => {
+    export const create = async (uid: IDT, chain: string, name: string): PResultT => {
         log.info('Into projec create!', uid, chain, name)
             
         let id = crypto.randomBytes(16).toString('hex');
@@ -176,10 +133,10 @@ namespace Project {
         }
         try {
             const key = KEY.projectListKey(uid, chain)
-            let pidLis = await redis.zrange(key, 0, -1)
+            let pidLis = await projRd.zrange(key, 0, -1)
             for (let pid of pidLis) {
                 let pkey = KEY.projectKey(chain, pid)
-                let pname = await redis.hget(pkey, 'name')
+                let pname = await projRd.hget(pkey, 'name')
                 if (pname === name) {
                     log.warn('duplicate project name')
                     return true
@@ -196,13 +153,13 @@ namespace Project {
         return project.status === Status.Active
     }
 
-    const setStatus = async (chain: string, pid: IDT, status: Status): PResult => {
+    const setStatus = async (chain: string, pid: IDT, status: Status): PResultT => {
         if (isInValidKey(chain, pid)) {
             return Err('Empty chain or pid')
         }
         const key = KEY.projectKey(chain, pid)
         try {
-            redis.hset(key, 'status', status)
+            projRd.hset(key, 'status', status)
             return Ok({status})
         } catch (e) {
             log.error('Set project status error: ', e)
@@ -210,18 +167,18 @@ namespace Project {
         }
     }
     
-    export const switchStatus = async (chain: string, pid: IDT): PResult => {
+    export const switchStatus = async (chain: string, pid: IDT): PResultT => {
         if (isInValidKey(chain, pid)) {
             return Err('Empty chain or pid')
         }
         const key = KEY.projectKey(chain, pid)
         try {
-            const stat = await redis.hget(key, 'status')
+            const stat = await projRd.hget(key, 'status')
             let status = Status.Stop
             if (stat === Status.Active) {
-                redis.hset(key, 'status', Status.Stop)
+                projRd.hset(key, 'status', Status.Stop)
             } else if (stat === Status.Stop) {
-                redis.hset(key, 'status', Status.Active)
+                projRd.hset(key, 'status', Status.Active)
                 status = Status.Active
             } else {
                 log.error('Project status error');
@@ -234,7 +191,7 @@ namespace Project {
         }
     }
 
-    export const detail = async (chain: string, pid: IDT): PResult => {
+    export const detail = async (chain: string, pid: IDT): PResultT => {
         // TODO: the way to quick wrap
         const key = KEY.projectKey(chain, pid)
         let pro
@@ -242,14 +199,14 @@ namespace Project {
             let lis = [key]
             if (isEmpty(chain)) {
                 // for the project key has chain field H_Project_[CHAIN]_[PID]
-                lis = await redis.keys(key)
+                lis = await projRd.keys(key)
                 if (lis.length < 1) {
                     return Err('No this project or chain exist')
                 }
             }
            
             for (let p of lis) {
-                pro = await redis.hgetall(p)
+                pro = await projRd.hgetall(p)
                 // log.warn('Project detail: ', pro)
                 if (isEmpty(pro?.id)) {
                     return Err('No this project or chain exist')
@@ -273,15 +230,15 @@ namespace Project {
     }
 
     // project number in every chain of user
-    export const projectNumOfAllChain = async (uid: IDT): PResult => {
+    export const projectNumOfAllChain = async (uid: IDT): PResultT => {
         const key = KEY.projectListKey(uid)
         let re = {}
         try {
-            let chains = await redis.keys(key)
+            let chains = await projRd.keys(key)
             for (let k of chains) {
                 let chs = k.split('_')
                 let chain_name = chs[chs.length - 1]
-                let cnt = await redis.zcard(k)
+                let cnt = await projRd.zcard(k)
                 // log.warn('chain: ', c, chain_name, cnt)
                 re[chain_name] = cnt
             }
@@ -299,19 +256,19 @@ namespace Project {
      *              else all the projects
      * @returns 
      */
-    export const projectList = async (uid: IDT, chain: string): PResult => {
+    export const projectList = async (uid: IDT, chain: string): PResultT => {
         
         try {
             const key = KEY.projectListKey(uid, chain)
             let setLis
             if (isInValidKey(chain, uid)) {
-                setLis = await redis.keys(key)
+                setLis = await projRd.keys(key)
             } else {
                 setLis = [key]
             }
             let lis: any[] = []
             for (let s of setLis) {
-                let pidLis = await redis.zrange(s, 0, -1)
+                let pidLis = await projRd.zrange(s, 0, -1)
                
                 for (let p of pidLis) {
                     let pro = await detail(chain, p)

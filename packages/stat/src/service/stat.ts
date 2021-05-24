@@ -1,9 +1,8 @@
 import { getAppLogger, IDT } from 'lib'
-import redis from 'lib/utils/redis'
 import { now, formateDate } from '../lib/date'
 import KEY from '../lib/KEY'
 import { setConfig } from '../../config'
-
+import { statRd } from '../db/redis'
 const config = setConfig()
 const logger = getAppLogger('stat')
 
@@ -63,26 +62,26 @@ class Stat {
 
     static async _request_response(info: any) {
         // 最新的1000条请求记录
-        await redis.lpush(KEY.REQUEST_RESPONSE(), JSON.stringify(info))
-        await redis.ltrim(KEY.REQUEST_RESPONSE(), 0, config.maxReqKeepNum)
+        await statRd.lpush(KEY.REQUEST_RESPONSE(), JSON.stringify(info))
+        await statRd.ltrim(KEY.REQUEST_RESPONSE(), 0, config.maxReqKeepNum)
     }
     
     static async _timeout(pid: any, delay) {
         let date = formateDate(new Date())
 
         if (delay >= config.timeout) {
-            await redis.incr(KEY.TIMEOUT(pid, date))
+            await statRd.incr(KEY.TIMEOUT(pid, date))
         }
 
-        let average: number | string = safeParseInt(await redis.get(KEY.DELAY(pid, date)))
+        let average: number | string = safeParseInt(await statRd.get(KEY.DELAY(pid, date)))
         if (average) {//算平均
 
-            let requests = safeParseInt(await redis.get(KEY.REQUEST(pid, date)))
+            let requests = safeParseInt(await statRd.get(KEY.REQUEST(pid, date)))
             average = ((requests * average + delay) / (requests + 1)).toFixed(2)
-            await redis.set(KEY.DELAY(pid, date), average)
+            await statRd.set(KEY.DELAY(pid, date), average)
         }
         else {
-            await redis.set(KEY.DELAY(pid, date), delay)
+            await statRd.set(KEY.DELAY(pid, date), delay)
         }
     }
 
@@ -90,25 +89,25 @@ class Stat {
         let timestamp = now()
         let date = formateDate(new Date())
 
-        await redis.incr(KEY.REQUEST(pid, date))
-        await redis.set(KEY.REQUEST_UPDATETIME(pid, date), timestamp)
+        await statRd.incr(KEY.REQUEST(pid, date))
+        await statRd.set(KEY.REQUEST_UPDATETIME(pid, date), timestamp)
     }
     static async _method(pid, method) {
         let date = formateDate(new Date())
         let key_method = KEY.METHOD(pid, date)
-        await redis.hincrby(key_method, method, 1);
+        await statRd.hincrby(key_method, method, 1);
     }
     static async _chain(chain) {
-        await redis.incr(KEY.TOTAL(chain))
+        await statRd.incr(KEY.TOTAL(chain))
     }
     static async _bandwidth(pid, bandwidth) {
         let date = formateDate(new Date())
-        await redis.incrby(KEY.BANDWIDTH(pid, date), parseInt(bandwidth))
+        await statRd.incrby(KEY.BANDWIDTH(pid, date), parseInt(bandwidth))
     }
     static async _code(pid, code) {
         let date = formateDate(new Date())
         let key_code = KEY.CODE(pid, date)
-        await redis.hincrby(key_code, code, 1);
+        await statRd.hincrby(key_code, code, 1);
     }
     static async _header(header, pid) {
         let agent = header['user-agent'] ? header['user-agent'] : 'null'
@@ -121,12 +120,12 @@ class Stat {
     static async _agent(pid, agent) {
         let date = formateDate(new Date())
         let key_agent = KEY.AGENT(pid, date)
-        await redis.hincrby(key_agent, agent, 1)
+        await statRd.hincrby(key_agent, agent, 1)
     }
     static async _origin(pid, origin) {
         let date = formateDate(new Date())
         let key_origin = KEY.ORIGIN(pid, date)
-        await redis.hincrby(key_origin, origin, 1)
+        await statRd.hincrby(key_origin, origin, 1)
     }
 
     //链的总请求数
@@ -136,7 +135,7 @@ class Stat {
         let chains = ['polkadot', 'westend']
 
         for (let chain in chains) {
-            let count = await redis.get(KEY.TOTAL(chain))
+            let count = await statRd.get(KEY.TOTAL(chain))
             total[chain] = count ? count : "0"
         }
         return total
@@ -149,31 +148,31 @@ class Stat {
         }
         let today: any = {}
 
-        let pid_request = await redis.get(KEY.REQUEST(pid, date))
+        let pid_request = await statRd.get(KEY.REQUEST(pid, date))
         today.request = pid_request ? pid_request : '0'
 
-        let request_updatetime = await redis.get(KEY.REQUEST_UPDATETIME(pid, date))
+        let request_updatetime = await statRd.get(KEY.REQUEST_UPDATETIME(pid, date))
         today.updatetime = request_updatetime ? request_updatetime : '0'
 
-        let method = await redis.hgetall(KEY.METHOD(pid, date))
+        let method = await statRd.hgetall(KEY.METHOD(pid, date))
         today.method = method ? method : {}
 
-        let bandwidth = await redis.get(KEY.BANDWIDTH(pid, date))
+        let bandwidth = await statRd.get(KEY.BANDWIDTH(pid, date))
         today.bandwidth = bandwidth ? bandwidth : '0'
 
-        let code = await redis.hgetall(KEY.CODE(pid, date))
+        let code = await statRd.hgetall(KEY.CODE(pid, date))
         today.code = code ? code : {}
 
-        let agent = await redis.hgetall(KEY.AGENT(pid, date))
+        let agent = await statRd.hgetall(KEY.AGENT(pid, date))
         today.agent = agent ? agent : {}
 
-        let origin = await redis.hgetall(KEY.ORIGIN(pid, date))
+        let origin = await statRd.hgetall(KEY.ORIGIN(pid, date))
         today.origin = origin ? origin : {}
 
-        let timeout = await redis.get(KEY.TIMEOUT(pid, date))
+        let timeout = await statRd.get(KEY.TIMEOUT(pid, date))
         today.timeout = timeout ? timeout : 0
 
-        let delay = await redis.get(KEY.DELAY(pid, date))
+        let delay = await statRd.get(KEY.DELAY(pid, date))
         today.delay = delay ? delay : '0'
 
         return today
@@ -195,7 +194,7 @@ class Stat {
         let requests: any = []
 
         try {
-            let list = await redis.lrange(KEY.REQUEST_RESPONSE(), 0, size)
+            let list = await statRd.lrange(KEY.REQUEST_RESPONSE(), 0, size)
             for (var i = 0; i < list.length; i++) {
                 requests[i] = JSON.parse(list[i])
                 requests[i].pid = requests[i].pid.replace(/(.){16}$/, '******')
@@ -231,7 +230,7 @@ namespace Stat {
     export const dashboard = async () => {
         let dashboard = {}
         try {
-            let dashVal = await redis.get(KEY.DASHBOARD())
+            let dashVal = await statRd.get(KEY.DASHBOARD())
             if (dashVal === null) {
                 logger.error('Redis get dashboard failed')
             } else {

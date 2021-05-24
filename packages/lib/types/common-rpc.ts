@@ -38,7 +38,7 @@ export const RpcMethods: RpcMethodT = {
     ],
     Subscribe: [
         'author_submitAndWatchExtrinsic', // node direct?
-	    'author_unwatchExtrinsic',
+        'author_unwatchExtrinsic',
 
         'chain_subscribeAllHeads',
         'chain_unsubscribeAllHeads',

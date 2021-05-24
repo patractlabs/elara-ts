@@ -12,8 +12,10 @@ export const fetchChains = async () => {
     G.chains = chains
 }
 
-export enum Topic {
-    Chain = 'chain',
+enum Topic {
+    ChainAdd    = 'chain-add',
+    ChainDel    = 'chain-del',
+    ChainUpdate = 'chain-update'
 }
 
 
@@ -29,8 +31,14 @@ chainRd.psubscribe('*', (err, msg) => {
 chainRd.on('pmessage', (pat, chan, msg) => {
     log.info('received new topic message: ', chan)
     switch(chan) {
-        case Topic.Chain:
+        case Topic.ChainAdd:
             log.info('Topic chain message: ', msg)
+            break
+        case Topic.ChainDel:
+            log.info('Chain delete message: ', msg)
+            break
+        case Topic.ChainUpdate:
+            log.info('chain update message: ', msg)
             break
         default:
             log.info(`Unknown topic [${chan}] message: `, msg)

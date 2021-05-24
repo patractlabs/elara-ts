@@ -1,16 +1,13 @@
-import Dotenv from 'dotenv'
 import path from 'path'
 import Koa from 'koa'
 import KoaBody from 'koa-body'
 import Kstatic from 'koa-static'
 import Session from 'koa-session'
-import { accessLogger, getAppLogger } from 'lib'
+import { accessLogger, getAppLogger, dotenvInit } from 'lib'
 import { accessControl, authCheck, dashboard, errHanldle, responseTime } from './src/middleware'
 import Passport from './src/lib/passport'
-
-import routerCompose  from './src/routerCompose'
-
-Dotenv.config()    // init dot env
+import routerCompose from './src/router-compose'
+dotenvInit()   // init dot env
 const app = new Koa()
 export const log = getAppLogger('stat', true)
 
@@ -33,7 +30,7 @@ app
     .use(errHanldle)
     .use(authCheck)
     .use(accessControl)
-    .use(routerCompose())
+    .use(routerCompose('./src/routers/v1'))
 
 app.on('error', (err) => {
     log.error('Stat service error: ', err)

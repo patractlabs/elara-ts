@@ -16,8 +16,9 @@ export interface ChainConfig {
     chainType?: ChainType,
     rpcPort?: number | string,   // default 9933
     wsPort?: number | string,    // default 9944
-    excludes?: string[],         // exclude rpc methods in basic rpcs
-    extends?: RpcMapT,               // some special rpc method of chain
+    excludes?: string[] | string,         // exclude rpc methods in basic rpcs
+    extends?: RpcMapT | string,               // some special rpc method of chain
+    [key: string]: any
 }
 
 export const newChain = (

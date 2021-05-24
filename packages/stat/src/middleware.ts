@@ -1,9 +1,4 @@
-import koa from "koa"
-import { getAppLogger } from 'lib/utils/log'
-import { Resp, Code, Msg } from 'lib'
-
-type NextT = () => Promise<any>
-type KCtxT = koa.Context
+import { getAppLogger, Resp, Code, Msg, NextT, KCtxT } from 'lib'
 
 const log = getAppLogger('stat-midware', true)
 
