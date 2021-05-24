@@ -1,6 +1,5 @@
 import { Suber } from './interface'
-import { RpcMethods, RpcMethodT } from '../config/baseRpc'
-
+import { RpcMethods, RpcMethodT } from 'lib'
 type ChainExtT = {[key: string]: RpcMethodT }
 type WsPool = { [key: string]: Suber }
 

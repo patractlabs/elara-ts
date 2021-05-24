@@ -25,9 +25,8 @@ export const newMsgs = (key: string, value?: string): string[]|kafka.KeyedMessag
  *      attributes: 2// default 0 ,0-no compression 1- compress-gzip 2-compress-snappy
  * }
  */
-export const sendMsg = 
-(payloads: kafka.ProduceRequest[], cb: AnyCb): void => {
-    
+export const sendMsg = (payloads: kafka.ProduceRequest[], cb: AnyCb): void => {
+    // TODO
 }
 
 // client
@@ -48,7 +47,6 @@ export function newClient(options: KafkaClientOptions) {
  * ]
  */
 function createTopic(topics: kafka.CreateTopicRequest[]) {
-
 
     client.createTopics(topics, () => {})
 }

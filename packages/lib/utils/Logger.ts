@@ -1,7 +1,7 @@
-import { createLogger, transports, format } from 'winston';
+import { createLogger, transports, format } from 'winston'
 import fs from 'fs';
 import path from 'path';
-import DailyRotateFile from 'winston-daily-rotate-file';
+import DailyRotateFile from 'winston-daily-rotate-file'
 
 const logDirectory = 'logs/'
 

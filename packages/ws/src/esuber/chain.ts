@@ -17,8 +17,6 @@ export enum Topic {
 }
 
 
-interface RedisPubsub {}
-
 // chainRd.subscribe(Topic.Chain, (err, msg) => {
 //     log.info(err, msg)
 // })
@@ -67,3 +65,7 @@ const parseChainConfig = async (chain: string) => {
         }
     }
 }
+import { dotenvInit } from 'lib'
+dotenvInit()
+import Conf from 'config'
+log.info('config in esuber: ', Conf.get("redis"))

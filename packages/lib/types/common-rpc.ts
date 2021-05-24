@@ -138,6 +138,7 @@ export const isSyncLow = (method: string): boolean => {
     return RpcMethodMap[method] === RpcStrategy.SyncLow
 }
 
+// TODO
 export const rpcDispatch = (method: string) => {
     switch(method) {
     case RpcStrategy.SyncLow:

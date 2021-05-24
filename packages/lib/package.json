@@ -9,6 +9,7 @@
   "author": "Bruce",
   "license": "GPL-3.0",
   "dependencies": {
+    "dotenv": "^10.0.0",
     "ioredis": "^4.27.2",
     "kafka-node": "^5.0.0",
     "koa-log4": "^2.3.2",

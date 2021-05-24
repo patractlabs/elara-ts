@@ -1,4 +1,4 @@
-import {Code, Msg} from './ApiCode'
+import {Code, Msg} from './api-code'
 
 export class Resp {
     constructor(public code: Code, public msg: Msg, public data: any) {

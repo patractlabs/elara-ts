@@ -1,8 +1,7 @@
 import Koa from 'koa'
 import {ratelimit} from './src/access/ratelimit'
 import router from './src/router/router'
-import {accessLogger, getAppLogger } from '../lib/utils/log'
-
+import { accessLogger, getAppLogger } from 'lib'
 const app = new Koa()
 const log = getAppLogger('gateway', true) //true: console open
 

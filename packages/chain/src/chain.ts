@@ -1,4 +1,4 @@
-import { RpcMapT } from './baseRpc'
+import { RpcMapT } from 'lib'
 export enum Network {
     Live = 'live',
     Test = 'test',
@@ -33,8 +33,6 @@ export const newChain = (
     }
 }
 
-
-
 export const toJsonstr = (chain: ChainConfig): string => {
     return JSON.stringify(chain)
 }
@@ -42,15 +40,3 @@ export const toJsonstr = (chain: ChainConfig): string => {
 export const toChain = (chain: string): ChainConfig => {
     return JSON.parse(chain)
 }
-
-const run = () => {
-    let name = 'Polkadot'
-    let baseUrl = 'patrat.io'
-    let chain = newChain({name, baseUrl})
-    let chainstr = toJsonstr(chain)
-    let cha = toChain(chainstr)
-
-    console.log(chainstr, cha)
-    console.log(cha.name)
-}
-run()
