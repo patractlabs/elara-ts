@@ -12,6 +12,7 @@ enum Topic {
 }
 
 namespace Chain {
+    // TODO error handle
     
     export const isExist = async (chain: string): Promise<Boolean> => {
         const name = await chainRd.hget(KEY.hChain(chain), 'name')

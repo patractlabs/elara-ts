@@ -21,9 +21,11 @@ namespace Chain {
 namespace Project {
     const P = 'Project'
 
-    export const ProjectNumKey = `${P}_Num`
+    export const projectNum = () => {
+        return `${P}_Num`
+    }
 
-    export const projectKey = (chain?: string, pid?: IDT) => {
+    export const hProject = (chain?: string, pid?: IDT) => {
         let com = `H_${P}_`
         let CHAIN = '*_'
         let PID = `${pid}`
@@ -39,7 +41,7 @@ namespace Project {
         return key
     }
 
-    export const projectListKey = (uid?: IDT, chain?: string): string => {
+    export const zProjectList = (uid?: IDT, chain?: string): string => {
         let com = `Z_${P}_list_`
         let CHAIN = '*'
         let UID = `${uid}_`

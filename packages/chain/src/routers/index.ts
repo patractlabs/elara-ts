@@ -1,7 +1,7 @@
 import { isErr, KCtxT, NextT, Resp, RpcStrategy, Code, Msg } from 'lib'
 import { getAppLogger } from 'lib'
 import { ChainConfig } from '../chain'
-import Chain from '../services/chain'
+import Chain from '../services'
 
 const log = getAppLogger('chain', true)
 
@@ -33,7 +33,7 @@ const addChain = async (ctx: KCtxT, next: NextT) => {
     req.baseUrl = '127.0.0.1'
     req.excludes = JSON.stringify(['system_call'])
     req.extends = JSON.stringify({'system_wtf': RpcStrategy.Abandon})
-    let re = await Chain.newChain(req)
+    const re = await Chain.newChain(req)
     if (isErr(re)) {
         throw Resp.Unknown()
     }

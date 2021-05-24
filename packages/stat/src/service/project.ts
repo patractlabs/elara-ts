@@ -71,16 +71,16 @@ const dumpProject = async (project: Project): PResultT => {
     if (isInValidKey(project.chain, project.id)) {
         return Err('Empty chain or pid')
     }
-    let key = KEY.projectKey(project.chain, project.id)
+    let key = KEY.hProject(project.chain, project.id)
     try {
         await projRd.hmset(key, project)
 
         // zadd list
-        key  = KEY.projectListKey(project.uid, project.chain)
+        key  = KEY.zProjectList(project.uid, project.chain)
         await projRd.zadd(key, project.createTime.toString(), project.id)
         
         // incr project num
-        await projRd.incr(KEY.ProjectNumKey)
+        await projRd.incr(KEY.projectNum())
     } catch (e) {
         log.error('Dump project error: ', e)
         return Err(e)
@@ -132,10 +132,10 @@ namespace Project {
             return true 
         }
         try {
-            const key = KEY.projectListKey(uid, chain)
+            const key = KEY.zProjectList(uid, chain)
             let pidLis = await projRd.zrange(key, 0, -1)
             for (let pid of pidLis) {
-                let pkey = KEY.projectKey(chain, pid)
+                let pkey = KEY.hProject(chain, pid)
                 let pname = await projRd.hget(pkey, 'name')
                 if (pname === name) {
                     log.warn('duplicate project name')
@@ -157,7 +157,7 @@ namespace Project {
         if (isInValidKey(chain, pid)) {
             return Err('Empty chain or pid')
         }
-        const key = KEY.projectKey(chain, pid)
+        const key = KEY.hProject(chain, pid)
         try {
             projRd.hset(key, 'status', status)
             return Ok({status})
@@ -171,7 +171,7 @@ namespace Project {
         if (isInValidKey(chain, pid)) {
             return Err('Empty chain or pid')
         }
-        const key = KEY.projectKey(chain, pid)
+        const key = KEY.hProject(chain, pid)
         try {
             const stat = await projRd.hget(key, 'status')
             let status = Status.Stop
@@ -193,7 +193,7 @@ namespace Project {
 
     export const detail = async (chain: string, pid: IDT): PResultT => {
         // TODO: the way to quick wrap
-        const key = KEY.projectKey(chain, pid)
+        const key = KEY.hProject(chain, pid)
         let pro
         try {
             let lis = [key]
@@ -231,7 +231,7 @@ namespace Project {
 
     // project number in every chain of user
     export const projectNumOfAllChain = async (uid: IDT): PResultT => {
-        const key = KEY.projectListKey(uid)
+        const key = KEY.zProjectList(uid)
         let re = {}
         try {
             let chains = await projRd.keys(key)
@@ -259,7 +259,7 @@ namespace Project {
     export const projectList = async (uid: IDT, chain: string): PResultT => {
         
         try {
-            const key = KEY.projectListKey(uid, chain)
+            const key = KEY.zProjectList(uid, chain)
             let setLis
             if (isInValidKey(chain, uid)) {
                 setLis = await projRd.keys(key)
