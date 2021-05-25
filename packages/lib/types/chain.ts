@@ -1,4 +1,5 @@
-import { RpcMapT } from 'lib'
+import { RpcMapT } from './common-rpc'
+
 export enum Network {
     Live = 'live',
     Test = 'test',
@@ -14,24 +15,11 @@ export interface ChainConfig {
     baseUrl: string,
     network?: Network,
     chainType?: ChainType,
-    rpcPort?: number | string,   // default 9933
-    wsPort?: number | string,    // default 9944
+    rpcPort: number,       // default 9933
+    wsPort: number,        // default 9944
     excludes?: string[] | string,         // exclude rpc methods in basic rpcs
-    extends?: RpcMapT | string,               // some special rpc method of chain
+    extends?: RpcMapT | string,           // some special rpc method of chain
     [key: string]: any
-}
-
-export const newChain = (
-    {name, baseUrl, rpcPort=9933, wsPort=9944, ...options}: ChainConfig)
-    : ChainConfig => {
-
-    return {
-        name,
-        baseUrl,
-        rpcPort,
-        wsPort,
-        ...options
-    }
 }
 
 export const toJsonstr = (chain: ChainConfig): string => {

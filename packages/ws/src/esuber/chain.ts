@@ -1,16 +1,10 @@
 /// chain list init and handler the chain update
 
-import { chainRd } from '../db/redis'
-import { KEYS, getAppLogger } from 'lib'
+import { KEYS, getAppLogger, ChainConfig } from 'lib'
+import { chainPSub, chainRd } from '../db/redis'
 import { G } from './global'
 const KEY = KEYS.Chain
 const log = getAppLogger('sub-chain', true)
-
-export const fetchChains = async () => {
-    let chains = await chainRd.zrange(KEY.zChainList(), 0, -1)
-    log.info('chain list: ', chains)
-    G.chains = chains
-}
 
 enum Topic {
     ChainAdd    = 'chain-add',
@@ -18,62 +12,76 @@ enum Topic {
     ChainUpdate = 'chain-update'
 }
 
+const fetchChains = async () => {
+    let chains = await chainRd.zrange(KEY.zChainList(), 0, -1)
+    log.info('chain list: ', chains)
+    G.chains = chains
+}
 
-// chainRd.subscribe(Topic.Chain, (err, msg) => {
-//     log.info(err, msg)
-// })
+export const parseChainConfig = async (chain: string) => {
+    let conf: any = await chainRd.hgetall(KEY.hChain(chain)) as ChainConfig
+    log.info('chain conf: ', conf, conf.name)
+
+    // what if json parse error
+    G.chainConf[chain] = {
+        ...conf,
+        extends: JSON.parse(conf.extends),
+        excludes: JSON.parse(conf.excludes)
+    }
+}
+
+export const chainInit = async () => {
+    await fetchChains()
+    let parses: Promise<void>[] = []
+    for (let c of G.chains) {
+        parses.push(parseChainConfig(c))
+    }
+    return Promise.all(parses)
+}
+
+// chain events
+const chainAddHandler = async (chain: string) => {
+    log.info('Into chain add handler: ', chain)
+    // TODO: chain-init logic
+    // 
+}
+
+const chainDelHandler = async (chain: string) => {
+    log.info('Into chain delete handler: ', chain)
+    // TODO
+}
+
+const chainUpdateHandler = async (chain: string) => {
+    log.info('Into chain update handler: ', chain)
+    // TODO
+}
 
 // pattern subscription
-chainRd.psubscribe('*', (err, msg) => {
-    log.info('psubscribe all topic!', err, msg)
+chainPSub.psubscribe('*', (err, msg) => {
+    log.info('psubscribe all chain event topic!', err, msg)
 })
 
-chainRd.on('pmessage', (pat, chan, msg) => {
+chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
     log.info('received new topic message: ', chan)
     switch(chan) {
         case Topic.ChainAdd:
-            log.info('Topic chain message: ', msg)
+            log.info('Topic chain message: ', chain)
+            chainAddHandler(chain)
             break
         case Topic.ChainDel:
-            log.info('Chain delete message: ', msg)
+            log.info('Chain delete message: ', chain)
+            chainDelHandler(chain)
             break
         case Topic.ChainUpdate:
-            log.info('chain update message: ', msg)
+            log.info('chain update message: ', chain)
+            chainUpdateHandler(chain)
             break
         default:
-            log.info(`Unknown topic [${chan}] message: `, msg)
+            log.info(`Unknown topic [${chan}] message: `, chain)
             break
     }
 })
 
-
-chainRd.on('error', (err) => {
-    log.error('Redis sub listener error: ', err)
+chainPSub.on('error', (err) => {
+    log.error('Redis chain-server listener error: ', err)
 })
-
-// pattern
-
-const parseChainConfig = async (chain: string) => {
-    let key = KEY.hChain(chain)
-    let exs = await chainRd.hmget(key, ['extends', 'excludes'])
-
-    let extens = []
-    let excludes= []
-    if (exs[0] !== null) {
-        extens = JSON.parse(exs[0])
-        for (let e in extens) {
-            log.info(e, extens[e])
-        }
-    }
-
-    if (exs[1] !== null) {
-        excludes = JSON.parse(exs[1])
-        for (let e of excludes) {
-            log.info(e)
-        }
-    }
-}
-import { dotenvInit } from 'lib'
-dotenvInit()
-import Conf from 'config'
-log.info('config in esuber: ', Conf.get("redis"))

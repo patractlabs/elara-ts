@@ -1,5 +1,4 @@
-import { KEYS, getAppLogger, PResultT, Ok } from 'lib'
-import { ChainConfig } from '../chain'
+import { KEYS, getAppLogger, PResultT, Ok, ChainConfig } from 'lib'
 import { chainRd } from '../db/redis'
 
 const KEY = KEYS.Chain
@@ -27,7 +26,7 @@ namespace Chain {
     }
     
     export const detail = async (chain: string): PResultT => {
-        const re = await chainRd.hgetall(KEY.hChain(chain))
+        const re: any = await chainRd.hgetall(KEY.hChain(chain))
         let cha: ChainConfig = {            
             ...re,
             name: chain,
@@ -42,7 +41,7 @@ namespace Chain {
         let re = await chainRd.hmset(KEY.hChain(chain.name), chain)
         log.info('add chain result: ', re)
         let cnt = await chainRd.incr(KEY.chainNum())
-        chainRd.zadd(KEY.zChainList(), cnt, chain.name)
+        chainRd.zadd(KEY.zChainList(), cnt, chain.name.toLowerCase())
 
         // publish newchain event
         chainRd.publish(Topic.ChainAdd, chain.name)

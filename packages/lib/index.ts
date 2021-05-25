@@ -19,6 +19,7 @@ export * from './types/api-response'
 export * from './types/option'
 export * from './types/result'
 export * from './types/common-rpc'
+export * from './types/chain'
 
 // utils
 export * from './utils/log'

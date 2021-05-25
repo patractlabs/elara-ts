@@ -3,6 +3,7 @@ export enum RpcStrategy {
     Direct = 'Direct',              // direct to node
     Kv = 'Kv',                      // elara kv storage service
     Subscribe = 'Subscribe',        // subscription 
+    Unsub = 'Unsuvscribe',          // unsubscription
     SyncAsBlock = 'SyncAsBlock',    // update as block update
     SyncLow = 'SyncLow',            // 10min or more
     SyncOnce = 'SyncOnce',     
@@ -38,18 +39,22 @@ export const RpcMethods: RpcMethodT = {
     ],
     Subscribe: [
         'author_submitAndWatchExtrinsic', // node direct?
-        'author_unwatchExtrinsic',
 
         'chain_subscribeAllHeads',
-        'chain_unsubscribeAllHeads',
         'chain_subscribeNewHeads', 
-        'chain_unsubscribeNewHeads',
         'chain_subscribeFinalizedHeads', 
-        'chain_unsubscribeFinalizedHeads', 
         
         'state_subscribeRuntimeVersion',    // ?
-        'state_unsubscribeRuntimeVersion', 
         'state_subscribeStorage', 
+    ],
+    Unsuvscribe: [
+        'author_unwatchExtrinsic',
+
+        'chain_unsubscribeAllHeads',
+        'chain_unsubscribeNewHeads',
+        'chain_unsubscribeFinalizedHeads', 
+
+        'state_unsubscribeRuntimeVersion', 
         'state_unsubscribeStorage',
     ],
     SyncAsBlock: [
@@ -102,19 +107,19 @@ export const RpcMethodMap: RpcMapT = {
 
     /// sub
     'author_submitAndWatchExtrinsic': RpcStrategy.Subscribe, 
-    'author_unwatchExtrinsic': RpcStrategy.Subscribe,
+    'author_unwatchExtrinsic': RpcStrategy.Unsub,
 
     'chain_subscribeAllHeads': RpcStrategy.Subscribe,
-    'chain_unsubscribeAllHeads': RpcStrategy.Subscribe,
+    'chain_unsubscribeAllHeads': RpcStrategy.Unsub,
     'chain_subscribeNewHeads': RpcStrategy.Subscribe, 
-    'chain_unsubscribeNewHeads': RpcStrategy.Subscribe,
+    'chain_unsubscribeNewHeads': RpcStrategy.Unsub,
     'chain_subscribeFinalizedHeads': RpcStrategy.Subscribe, 
-    'chain_unsubscribeFinalizedHeads': RpcStrategy.Subscribe, 
+    'chain_unsubscribeFinalizedHeads': RpcStrategy.Unsub, 
     
     'state_subscribeRuntimeVersion': RpcStrategy.Subscribe,    // ?
-    'state_unsubscribeRuntimeVersion': RpcStrategy.Subscribe, 
+    'state_unsubscribeRuntimeVersion': RpcStrategy.Unsub, 
     'state_subscribeStorage': RpcStrategy.Subscribe, 
-    'state_unsubscribeStorage': RpcStrategy.Subscribe,
+    'state_unsubscribeStorage': RpcStrategy.Unsub,
 
     /// 
     'system_syncState': RpcStrategy.SyncAsBlock,

@@ -5,31 +5,24 @@
 /// suber resource manage
 /// -- 1. subscription 
 /// -- 2. rpc methond cache
-import { getAppLogger } from 'lib'
+import { getAppLogger, RpcStrategy } from 'lib'
 import { Suber } from './interface'
+import { chainInit } from './chain'
 
 console.log('env: ', process.env.MODE)
 const log = getAppLogger('esuber', true)
 
-
-
-const esuber = () => {
-
-}
-
-const newSuber = (chain: string, topic: string) => {
-
-}
-
-// system subscription, e.g. lastest block, hash, header
-const initSysSuber = async (): Promise<void> => {
-
-    //
-}
-
-
 namespace Suber {
-    export const init = esuber
+    // init suber service,
+    // 1. chains init
+    // 2. subers register
+    export const init = async () => {
+        return chainInit()
+        // log.info('exts: ', G.chainExt['polkadot']['extends']['system_wtf'] === RpcStrategy.Abandon)
+    }
+    
 }
-
-export = Suber
+export * from './chain'
+export * from './interface'
+export * from './global'
+export default Suber

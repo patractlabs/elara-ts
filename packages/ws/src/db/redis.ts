@@ -3,7 +3,12 @@ import { getAppLogger } from 'lib'
 
 const log = getAppLogger('redis')
 
+// TODO redis pool
+
 export const chainRd = new Redis({db: 3})
+
+// pubsub connection only support pub/sub relate command
+export const chainPSub = new Redis()
 
 export const cacheRd = new Redis({db: 4})
 

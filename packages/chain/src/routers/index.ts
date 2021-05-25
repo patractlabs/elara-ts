@@ -1,6 +1,5 @@
 import { isErr, KCtxT, NextT, Resp, RpcStrategy, Code, Msg } from 'lib'
-import { getAppLogger } from 'lib'
-import { ChainConfig } from '../chain'
+import { getAppLogger, ChainConfig } from 'lib'
 import Chain from '../services'
 
 const log = getAppLogger('chain', true)
