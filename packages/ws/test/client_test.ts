@@ -17,8 +17,8 @@ const ws1 = new WebSocket('ws://localhost:9944')
 //     ws.send(`{"jsonrpc":"2.0","id":1,"method":"chain_subscribeFinalizedHeads", "params":[]}`)
 // })
 
-ws1.on('open', () =>{
-    log.info('ws 1 socket client connection open')
+ws1.on('open', () => {
+    log.info('ws 1 socket client connection open: ', this)
     // ws1.send(`{"jsonrpc":"2.0","id":1,"method":"state_subscribeRuntimeVersion", "params":[]}`)
     // ws.send(`{"jsonrpc":"2.0","id":1,"method":"state_subscribeStorage", "params":[]}`)
 
@@ -89,3 +89,23 @@ const heartBeat = (ws: any) => {
 // ws.on('ping', () => {
 //     heartBeat(ws)
 // })
+
+(() => {
+    let sche = []
+    sche[2] = 3
+    console.log('array test', sche)
+    let m: {[key in string]: number} = {
+        'id1': 1,
+        'id2': 3,
+    }
+    delete m['id1']
+    console.log('map ', m)
+
+    let op = {
+        id1: '',
+        id: null
+    }
+
+    const {id1, id } = op || {id: 3}
+    console.log('default url: ', id, id1)
+})()

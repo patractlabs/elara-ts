@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import Puber from './src/epuber'
-import Suber, { G, parseChainConfig } from './src/esuber'
+import Suber, { G, Service } from './src/esuber'
 import { getAppLogger } from 'lib'
 import Conf from './config'
 
@@ -15,9 +15,9 @@ app.listen("7001", async () => {
     log.info("Api server listen on port: 7001")
 
     await Suber.init()
-    log.info('Global chain exts: ', G.chainExt, G.chains)
+    // log.info('Global chain exts: ', G.chainConf, G.chains)
     const poolConf = Conf.getWsPool()
-    log.info('pool config: ', poolConf)
-    parseChainConfig('Polkadot')
+    // log.info('pool config: ', poolConf)
+    
 })
 

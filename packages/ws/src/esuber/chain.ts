@@ -1,7 +1,7 @@
 /// chain list init and handler the chain update
 
-import { KEYS, getAppLogger, ChainConfig } from 'lib'
-import { chainPSub, chainRd } from '../db/redis'
+import { KEYS, getAppLogger, ChainConfig, RpcMethods } from 'lib'
+import Rd, { chainPSub } from '../db/redis'
 import { G } from './global'
 const KEY = KEYS.Chain
 const log = getAppLogger('sub-chain', true)
@@ -13,30 +13,10 @@ enum Topic {
 }
 
 const fetchChains = async () => {
-    let chains = await chainRd.zrange(KEY.zChainList(), 0, -1)
-    log.info('chain list: ', chains)
+    let chains = await Rd.getChainList()
+    // log.info('chain list: ', chains)
     G.chains = chains
-}
-
-export const parseChainConfig = async (chain: string) => {
-    let conf: any = await chainRd.hgetall(KEY.hChain(chain)) as ChainConfig
-    log.info('chain conf: ', conf, conf.name)
-
-    // what if json parse error
-    G.chainConf[chain] = {
-        ...conf,
-        extends: JSON.parse(conf.extends),
-        excludes: JSON.parse(conf.excludes)
-    }
-}
-
-export const chainInit = async () => {
-    await fetchChains()
-    let parses: Promise<void>[] = []
-    for (let c of G.chains) {
-        parses.push(parseChainConfig(c))
-    }
-    return Promise.all(parses)
+    G.rpcs = RpcMethods
 }
 
 // chain events
@@ -85,3 +65,32 @@ chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
 chainPSub.on('error', (err) => {
     log.error('Redis chain-server listener error: ', err)
 })
+
+namespace Chain {
+
+    export const parseConfig = async (chain: string) => {
+        let conf: any = await Rd.getChainConfig(chain)
+        // log.info('chain conf: ', conf, conf.name)
+    
+        // what if json parse error
+        G.chainConf[chain] = {
+            ...conf,
+            extends: JSON.parse(conf.extends),
+            excludes: JSON.parse(conf.excludes)
+        }
+        log.warn('chain conf: ', G.chainConf[chain])
+    }
+
+    export const init = async () => {
+        await fetchChains()
+        let parses: Promise<void>[] = []
+        for (let c of G.chains) {
+            parses.push(parseConfig(c))
+        }
+        return Promise.all(parses)
+    }
+}
+
+export = Chain
+
+Chain.init()

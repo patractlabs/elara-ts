@@ -57,7 +57,20 @@ namespace Project {
     }
 }
 
+namespace Cache {
+    const C = 'Cache'
+
+    export const rpc = (chain: string, id: number) => {
+        return `${C}_Rpc_${chain.toLowerCase()}_${id}`
+    }
+
+    export const hLatest = (chain: string, method: string) => {
+        return `H_${C}_${chain.toLowerCase()}_${method}`
+    }
+}
+
 export const KEYS = {
     Chain,
     Project,
+    Cache,
 }

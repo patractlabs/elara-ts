@@ -13,7 +13,7 @@ export const randomId = (size: number = 16): string => {
     return crypto.randomBytes(size).toString('hex')
 }
 
-export const md5 = (msg: string) => {
+export const md5 = (msg: string): string => {
     const hash = crypto.createHash('md5')
     return hash.update(msg).digest('hex')
 }

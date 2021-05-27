@@ -2,82 +2,57 @@
 /// the service of this chain. otherwise not init
 /// 
 /// TODO: SyncAsBlock is ovelap with the subscription
-import WebSocket from 'ws'
-import { ChainConfig, getAppLogger, RpcStrategy } from 'lib'
-import { newSuber, Suber } from './interface'
+import { getAppLogger, RpcMapT, RpcStrategy } from 'lib'
 import { G } from './global'
-import { chainInit } from './chain'
+import Chain from './chain'
+import Pool from './wspool'
+import { SuberType } from './interface'
+import { randomReplaceId } from 'lib/utils'
+import Rd from '../db/redis'
 
 const log = getAppLogger('esuber', true)
 
-
-type OnMsgCb = (this: WebSocket, data: WebSocket.Data) => void
-type OnErrCb = (this: WebSocket, err: Error) => void
-
-const createSuber = (chain: string, url: string, cb: OnMsgCb, options?: Suber) => {
-
-    // TODO: need to close the suber or unsubscribe when 
-    // something unexpected occured
-    const ws: WebSocket = new WebSocket(url)
-    ws.on('open', () => {
-        log.info('Open connection to Polkadot node ws', options)
-        const sub = newSuber({chain, url, ws, ...options})
-        G.cpool[chain].sub.push(sub)
-        log.info('suber: ', G.cpool)
-        sub.ws.send(JSON.stringify(buildReq('system_health', [])))
-    })
- 
-    ws.on('error', (err: any) => {
-        log.error(`Suber[${chain}]-${G.cpool[chain].sub[0].cluster} Connect error: `, err)
-    })
-
-    ws.on('message', cb)
-}
-
-const generateUrl = (url: string, port: number, sec: boolean = false) => {
-    let procol = 'ws://'
-    if (sec) { procol = 'wss://'}
-    return `${procol}${url}:${port}`
-}
-
-export const poolInit = (secure: boolean) => {
-    const chains = G.chains
-    for (let c of chains) {
-        const cconf: ChainConfig = G.chainConf[c]
-        const url = generateUrl(cconf.baseUrl, cconf.wsPort, secure)
-        let suber = createSuber(c, url, () =>{
-            
-        })
-    }
-}
-
-
 // init resource
-export const setup = async (url: string) => {
+const setup = async (secure: boolean) => {
     // init a ws connection for all chains
-    let chain = 'Polkadot'
-    await chainInit()
+    await Chain.init()
+    if (G.chains.length < 1) {
+        log.error("Chain init failed. No chain exist!")
+        process.exit(1)
+    }
+    await Pool.init()
+    log.info('G rpcs: ', G.rpcs)
     log.info('G chains: ', G.chains)
-    createSuber(chain, url, (data: any) => {
-        log.info(`Suber[${chain}]-${G.cpool[chain].sub[0].cluster} received node ws data: `, data)
-        // TODO: cache data
-    })
-    // createSuber('Polkadot', url, {"stat": SubStat.Check})
-
-    
+    log.info('G pool: ', G.cpool)
 }
 
 const getExclude = (chain: string): string[] => {
-    return G.chainExt[chain]['excludes']
+    return G.chainConf[chain]['excludes'] as string[]
 }
 
-const buildReq = (method: string, params: any[]) => {
+interface RpcReq {
+    id: number | string,
+    jsonrpc: string,
+    method: string,
+    params: string[]
+}
+
+
+const generateID = (): number => {
+    return randomReplaceId()
+}
+
+const buildReq = (id: number, method: string, params: any[]): RpcReq => {
     return {
-        "id": 1,
+        "id": id,
         "jsonrpc": "2.0",
         "method": method,
         "params": params,
     }
+}
+
+const reqres = () => {
+
 }
 
 /// according to rpc strategy modulize the service
@@ -93,47 +68,64 @@ const buildReq = (method: string, params: any[]) => {
 ///     3. follow the above steps
 
 const syncAsBlockService = async (chain: string) => {
-    let interval = setInterval(() => {
+    const interval = setInterval(() => {
 
     }, 5 * 1000)
-    G.intervals.push(interval)
+    G.intervals[RpcStrategy.SyncAsBlock] = interval
 }
 
 const syncLowService = (chain: string) => {
-    let interval = setInterval(() => {
+    const interval = setInterval(() => {
         // read register list
         // dispatch
     }, 10 * 60 * 1000)
+    G.intervals[RpcStrategy.SyncLow] = interval
 }
 
 // no parameters allowed
-const syncOnceHandler = (chain: string, method: string, params: any[] = []) => {
-    const req = buildReq(method, params)
-    G.ws[chain].ws.send(JSON.stringify(req))
-    // onMessageListener will cache
+const syncOnceHandler = (chain: string, method: string) => {
+    const id = generateID()
+    const req = buildReq(id, method, [])
+    Rd.setRpcMethod(chain, id, method)
+    Pool.send(chain, SuberType.Chan, JSON.stringify(req))
 }
 
 const syncOnceService = (chain: string) => {
     let brpcs = G.rpcs.SyncOnce
     let excludes = getExclude(chain)
     
-    log.info('rpcs: ', brpcs)
+    log.info('rpcs: ', brpcs, excludes)
     for (let r of brpcs) {
-        if (r in excludes) { continue }
+        if (excludes.indexOf(r) !== -1) { 
+            log.warn(`Rpc method [${r}] is excluded`)
+            continue 
+        }
         syncOnceHandler(chain, r)
     }
 }
 
 const subscribeHandler = (chain: string, subscription: string) => {
-    //
+    // 1. get ws[sub] and rpc.sub strategy
+    // 2. allocate sub 
+    // 3. send subscribption  
+    const id = generateID()
+    const req = buildReq(id, subscription, [])
+    Pool.send(chain, SuberType.Sub, JSON.stringify(req))
+    // memory cache or redis?
 }
 
 const subscribeService = (chain: string) => {
     const subs = G.rpcs.Subscribe
     let excludes = getExclude(chain)
+    log.info('subscriptions-excludes: ', subs, excludes)
     for (let s of subs) {
-        if (s in excludes) { continue }
-        subscribeHandler(chain, s)
+        if (excludes.indexOf(s) !== -1) { 
+            log.warn(`topic [${s}] is excluded`)
+            continue 
+        }
+        if (s.indexOf('submit') !== -1) {
+            subscribeHandler(chain, s)
+        }
     }
 }
 
@@ -145,7 +137,9 @@ const kvService = (chain: string) => {
 
 
 const extendsHandler = (chain: string) => {
-    let extens = G.chainExt[chain]['extends']
+    
+    let extens = G.chainConf[chain]['extends'] as RpcMapT
+
     for (let r in extens) {
         switch(extens[r]) {
         case RpcStrategy.SyncOnce:
@@ -159,9 +153,11 @@ const extendsHandler = (chain: string) => {
             break
         case RpcStrategy.Unsub:
             break
+        case RpcStrategy.History:
+            break
         case RpcStrategy.Kv:
             break
-        case RpcStrategy.SyncKv:
+        case RpcStrategy.SyncHistory:
             break
         case RpcStrategy.Abandon:
             // SBH
@@ -179,9 +175,23 @@ const activeScheduler = (chain: string) => {
     // active this chain
 }
 
-const serviceTrigger = (chain: string) => {
+const up = (chain: string) => {
     activeScheduler(chain)
     syncOnceService(chain)
     subscribeService(chain)
     kvService(chain)
 }
+
+namespace Service {
+    export const up = async (secure: boolean) => {
+        await setup(secure)
+        //TODO service trigger when suber OK
+        //
+        setTimeout(() => {
+            syncOnceService('polkadot')         
+            subscribeService('polkadot')
+        }, 1000);
+    }
+}
+
+export = Service

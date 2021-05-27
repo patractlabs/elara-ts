@@ -1,13 +1,14 @@
 export enum RpcStrategy {
     Abandon = 'Abandon',            
     Direct = 'Direct',              // direct to node
+    History = 'Histrory',
     Kv = 'Kv',                      // elara kv storage service
     Subscribe = 'Subscribe',        // subscription 
     Unsub = 'Unsuvscribe',          // unsubscription
     SyncAsBlock = 'SyncAsBlock',    // update as block update
     SyncLow = 'SyncLow',            // 10min or more
     SyncOnce = 'SyncOnce',     
-    SyncKv = 'SyncKv',              // depends in parameter
+    SyncHistory = 'SyncHistory',      // depends in parameter
 }
 
 export type RpcMethodT = {[key in RpcStrategy]: string[]}
@@ -15,7 +16,7 @@ export type RpcMethodT = {[key in RpcStrategy]: string[]}
 export const RpcMethods: RpcMethodT = {
     Abandon: [
         // export sensitive info
-        'system_nodeROles',
+        'system_nodeRoles',
         'system_localListenAddresses',
         'system_localPeerId',
         
@@ -32,10 +33,13 @@ export const RpcMethods: RpcMethodT = {
         // unkonwn
         'offchain_localStorageSet',
     ],
+    Histrory: [
+        
+        'state_getStorage',
+        'state_queryStorageAt',
+    ],
     Kv: [
-        'chain_getBlock',   // with block or hash parameter
-        'chain_getBlockHash',
-        'chain_getHeader',
+        // other subscription from elara-kv
     ],
     Subscribe: [
         'author_submitAndWatchExtrinsic', // node direct?
@@ -76,9 +80,14 @@ export const RpcMethods: RpcMethodT = {
         'system_chainType',
         'system_properties',
     ],
-    Direct: [],
-    SyncKv: [],
+    SyncHistory: [
+        'chain_getBlock',   // with block or hash parameter
+        'chain_getBlockHash',
+        'chain_getHeader',
+    ],
     // others not define here is Direct
+    Direct: [],
+
 }
 export type RpcMapT = {[key: string]: RpcStrategy}
 export const RpcMethodMap: RpcMapT = {
@@ -100,14 +109,18 @@ export const RpcMethodMap: RpcMapT = {
     // unkonwn
     'offchain_localStorageSet': RpcStrategy.Abandon,
 
-    /// kv, also in Sync
-    'chain_getBlock': RpcStrategy.SyncKv, 
-    'chain_getBlockHash': RpcStrategy.SyncKv,
-    'chain_getHeader': RpcStrategy.SyncKv,
+    /// History, also in Sync
+    'chain_getBlock': RpcStrategy.SyncHistory, 
+    'chain_getBlockHash': RpcStrategy.SyncHistory,
+    'chain_getHeader': RpcStrategy.SyncHistory,
+
+    /// history
+    'state_getStorage': RpcStrategy.History,
+    'state_queryStorageAt': RpcStrategy.History,
 
     /// sub
-    'author_submitAndWatchExtrinsic': RpcStrategy.Subscribe, 
-    'author_unwatchExtrinsic': RpcStrategy.Unsub,
+    // 'author_submitAndWatchExtrinsic': RpcStrategy.Subscribe, 
+    // 'author_unwatchExtrinsic': RpcStrategy.Unsub,
 
     'chain_subscribeAllHeads': RpcStrategy.Subscribe,
     'chain_unsubscribeAllHeads': RpcStrategy.Unsub,
@@ -133,6 +146,15 @@ export const RpcMethodMap: RpcMapT = {
     'system_chain': RpcStrategy.SyncOnce,
     'system_chainType': RpcStrategy.SyncOnce,
     'system_properties': RpcStrategy.SyncOnce,
+}
+
+export const SubMethod = {
+    'chain_allHead': 'chain_subscribeAllHeads',
+    'chain_newHead': 'chain_subscribeNewHeads', 
+    'chain_finalizedHead': 'chain_subscribeFinalizedHeads', 
+    
+    'state_runtimeVersion': 'state_subscribeRuntimeVersion',    // ?
+    'state_storage': 'state_subscribeStorage', 
 }
 
 export const isSyncAsBlock = (method: string): boolean => {
