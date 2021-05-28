@@ -39,30 +39,20 @@ namespace Rd {
 
 
     /// cache operation
-    export const setRpcMethod = async (chain: string, id: number, method: string) => {
-        return cacheRd.set(KCache.rpc(chain, id), method)
-    }
-
-    export const getRpcMethod = async (chain: string, id: number) => {
-        return cacheRd.get(KCache.rpc(chain, id))
-    }
-
-    export const delRpcMethod = async (chain: string, id: number) => {
-        return cacheRd.del(KCache.rpc(chain, id))
-    }
 
     export const setLatest = async (chain: string, method: string, result: any) => {
+        // TODO whether expiration
         const updateTime = Date.now()
         const latest = {
             updateTime,
             result
         }
         log.error('data to be dump: ', latest)
-        return cacheRd.hmset(KCache.hLatest(chain, method), latest)
+        return cacheRd.hmset(KCache.hCache(chain, method), latest)
     }
 
     export const getLatest = async (chain: string, method: string) => {
-        return cacheRd.hgetall(KCache.hLatest(chain, method))
+        return cacheRd.hgetall(KCache.hCache(chain, method))
     }
 
 }

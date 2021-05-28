@@ -8,14 +8,10 @@ import { G } from './global'
 import { Suber, SuberType, SuberPool, newSuber, ChainStat, SubStat, WsPool } from './interface'
 import { SubMethod } from 'lib'
 import Rd from '../db/redis'
+import { Service } from '.'
 
 const log = getAppLogger('suber-p', true)
 
-enum PoolStrategy {
-    Robin,
-}
-
-const excuter = []
 
 const lowCase = (str: string) => {
     return str.toLowerCase()
@@ -31,7 +27,7 @@ const delays = (sec: number, cb: () => void) => {
 const getSuber = (chain: string, type: SuberType, suberId?: IDT): Suber => {
     const pool = G.cpool[lowCase(chain)][type]
     if (suberId) {
-        return pool![suberId]
+        return pool![suberId] as Suber
     }
     let selected = Object.keys(pool!)[0]
     // strategy
@@ -40,12 +36,15 @@ const getSuber = (chain: string, type: SuberType, suberId?: IDT): Suber => {
         // select one
         break
     }
-    return pool![selected]
+    return pool![selected] as Suber
 }
 
 const getPool = (chain: string, type: SuberType): SuberPool => {
-    // if ()
-    return G.cpool[lowCase(chain)][type] || {}
+    const c = G.cpool[lowCase(chain)]
+    if (c && c[type]) {
+        return c[type] as SuberPool
+    }
+    return {}
 }
 
 const generateUrl = (url: string, port: number, sec: boolean = false) => {
@@ -54,22 +53,18 @@ const generateUrl = (url: string, port: number, sec: boolean = false) => {
     return `${procol}${url}:${port}`
 }
 
-const chanMsg = (chain: string) => {
+const cacheMsg = (chain: string) => {
 
     return  (msg: any) => {
         const dat = JSON.parse(msg)
-        // according to id cache result
-        Rd.getRpcMethod(chain, dat.id).then(method => {
-            // log.info('data: ', msg, method)
-            if (method) {
-                Rd.delRpcMethod(chain, dat.id)
-                Rd.setLatest(chain, method, JSON.stringify(dat.result))
-            } else {
-                log.error('No this method: ', method)
-            }
-        }).catch(e => {
-            log.error('Rpc channel message listen error: ', e)
-        })
+        const method = G.idMethod[dat.id]
+        // log.info('data: ', dat, method, G.idMethod)
+        if (method) {
+            delete G.idMethod[dat.id]
+            Rd.setLatest(chain, method, JSON.stringify(dat.result))
+        } else {
+            log.error('No this method: ', method)
+        }
     }
 }
 
@@ -94,8 +89,18 @@ const subMsg = (chain: string) => {
             // cache result, H_[method]_[chain] { updateTime: 2021-0525, data: "{balala}"}
             // notify Matcher
 
+            if (method === 'state_subscribeRuntimeVersion') {
+                // update syncOnce data
+                log.warn(`${chain} runtime version update`)
+                Service.Cache.syncOnceService(chain)
+            }
         }
-     
+    }
+}
+
+const reqrespMsg = (chain: string) => {
+    return (msg: any) => {
+        log.info('Req&Resp message: ', chain)
     }
 }
 
@@ -112,6 +117,15 @@ const createSuber = (chain: string, url: string, type: SuberType, cb: (data: any
         // set the status ok
         suber.chainStat = ChainStat.Health  
         suber.stat = SubStat.Active
+        // re subscribe  according to sub status      
+        log.warn('G cpool status: ', G.cpool[chain][type]!['status'] )  
+        if (type === SuberType.Sub && G.cpool[chain][type]!['status'] === 'death') {
+            log.warn('Rescribe the topics')
+            G.cpool[chain][type]!['status'] = 'active'
+            // 
+            Service.Subscr.subscribeService(chain)
+            log.warn('after re subscribe: ', G.cpool)
+        }
     })
  
     ws.on('error', (err: Error) => {
@@ -121,12 +135,16 @@ const createSuber = (chain: string, url: string, type: SuberType, cb: (data: any
         log.error(`Suber err-evt ${sign}: `, err)
     })
 
+
+    // BUG: will create another connection
     ws.on('close', (code: number, reason: string) => {
         log.error(`Suber close-evt ${sign}: `, code, reason)
 
+        // subscription
         suber.ws.close()
         Pool.del(chain, type, suber.id!)
-        log.warn('pool: ',chain, type, suber.id, G.cpool)
+        // set pool subscribe status fail        
+        log.warn('Pool state after del: ', G.cpool)
         delays(3, () => Pool.add(chain, url, type))
     })
 
@@ -139,7 +157,7 @@ namespace Pool {
 
     export const add = (chain: string, url: string, type: SuberType) => {
         chain = lowCase(chain)
-        let cb = chanMsg(chain)
+        let cb = cacheMsg(chain)
         if (type === SuberType.Sub) {
             cb = subMsg(chain)
         }
@@ -147,6 +165,9 @@ namespace Pool {
         const suber = createSuber(chain, url, type, cb)
         let spool: SuberPool = {}
         spool[suber.id!] = suber
+        // if (type === SuberType.Sub) {
+        //     spool['status'] = ''
+        // }
         let wpool: WsPool = {}
         let cpool = G.cpool[chain]
         wpool[type] = {...(cpool && cpool[type]) || {}, ...spool}
@@ -159,23 +180,33 @@ namespace Pool {
         // TODO
         let spool = getPool(chain, type)
         delete spool[subId]
+        if (type === SuberType.Sub) {
+            spool['status'] = 'death'
+        }
     }
 
     export const delChain = (chain: string) => {
         delete G.cpool[lowCase(chain)]
     }
     
-    export const send = (chain: string, type: SuberType, req: any) => {
+    // TODO
+    export const send = (chain: string, type: SuberType, req: string) => {
         const spool = getPool(chain, type)
         // strategy to select a suber
-        // TODO
         const ids = Object.keys(spool)
-        if (!spool || ids.length < 1) {
+        log.warn('Into pool send: ', chain, type, req)
+        if (!spool || ids.length < 1 || (ids.length === 1 && ids[0] === 'status')) {
             log.error('No invalid suber pool')
             return
         }
         // select a valid suber, if none, export error
-        const suber = spool[ids[0]]
+        let suber: Suber = {} as Suber
+        for (let i of ids) {
+            if (i === 'status') { continue }
+            suber = spool[i] as Suber
+        }
+
+        // const suber = spool[ids[0]] as Suber
         // if (!isSuberOk(suber)) {
         //     log.error('Suber is not active!')
         // }
@@ -188,28 +219,14 @@ namespace Pool {
 
     export const init = (secure: boolean = false) => {
         // init pool for basic sub & chan connection
-        // fetch chain config
         const cconf = G.chainConf
         for (let chain in cconf) {
             const conf = cconf[chain]
             const url = generateUrl(conf.baseUrl, conf.wsPort, secure)
-            add(chain, url, SuberType.Chan)
-            add(chain, url, SuberType.Sub)
+            add(chain, url, SuberType.Cache)
+            // add(chain, url, SuberType.Sub)
+            // add(chain, url, SuberType.Reqresp)
         }
-
-        // for test
-        setTimeout(() => {
-            for (let c in G.cpool) {
-                // log.warn('new suber state: ', G.cpool[c])
-            }
-        }, 1000);
-    }
-
-    // according to the request and pool config
-    // upgrade the pool resource
-    const upgrade = () => {
-        // TODO
-        // add connection
     }
 }
 

@@ -1,12 +1,10 @@
 /// common type
 /// end with 'T'
-import Koa from 'koa'
 import { Result } from './types/result'
 import Dotenv from 'dotenv'
-import { KafkaClientOptions } from 'kafka-node'
 
 export type IDT = string | number       // ID type
-export type KCtxT = Koa.Context         // koa.Context
+export type KCtxT = any       // koa.Context
 export type NextT = () => Promise<any>  // koa middleware next type
 export type PResultT = Promise<Result<any, string>>
 

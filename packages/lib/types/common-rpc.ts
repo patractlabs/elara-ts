@@ -69,9 +69,7 @@ export const RpcMethods: RpcMethodT = {
         'chain_getBlockHash',
         'chain_getFinalizedHead',
     ],
-    SyncLow: [
-        'state_getMetadata', // ensure update when runtimeVersion update
-    ],
+    SyncLow: [],
     // update when reconnect to node
     SyncOnce: [
         'rpc_methods',
@@ -79,6 +77,7 @@ export const RpcMethods: RpcMethodT = {
         'system_chain',
         'system_chainType',
         'system_properties',
+        'state_getMetadata', // ensure update when runtimeVersion update
     ],
     SyncHistory: [
         'chain_getBlock',   // with block or hash parameter
@@ -131,7 +130,7 @@ export const RpcMethodMap: RpcMapT = {
     
     'state_subscribeRuntimeVersion': RpcStrategy.Subscribe,    // ?
     'state_unsubscribeRuntimeVersion': RpcStrategy.Unsub, 
-    'state_subscribeStorage': RpcStrategy.Subscribe, 
+    'state_subscribeStorage': RpcStrategy.Subscribe,            // heavey load
     'state_unsubscribeStorage': RpcStrategy.Unsub,
 
     /// 
@@ -139,8 +138,8 @@ export const RpcMethodMap: RpcMapT = {
     'system_health': RpcStrategy.SyncAsBlock,
     'chain_getFinalizedHead': RpcStrategy.SyncAsBlock,
 
-    'state_getMetadata': RpcStrategy.SyncLow, // ensure update when runtimeVersion update
-
+    // ensure update when runtimeVersion update
+    'state_getMetadata': RpcStrategy.SyncOnce, 
     'rpc_methods': RpcStrategy.SyncOnce,
     'system_version': RpcStrategy.SyncOnce,
     'system_chain': RpcStrategy.SyncOnce,

@@ -1,4 +1,4 @@
-import { IDT, isErr, Result } from 'lib'
+import { IDT, isErr } from 'lib'
 import KEY from '../lib/KEY'
 import { Some, None, Option } from 'lib'
 import Project from './project'

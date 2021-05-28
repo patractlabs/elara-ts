@@ -5,8 +5,8 @@ const KEY = KEYS.Chain
 const Rd = new Redis({db: 3})
 const Cd = new Redis({db: 4})
 
-const init = async () => {
-    const chain = 'Polkadot'
+const newChain = async (chain: string) => {
+    // const chain = 'Polkadot'
     const polkadot: ChainConfig = {
         name: chain,
         baseUrl: '127.0.0.1',
@@ -20,12 +20,17 @@ const init = async () => {
     await Rd.hmset(KEY.hChain(chain), polkadot)
     let cnt = await Rd.incr(KEY.chainNum())
     await Rd.zadd(KEY.zChainList(), cnt, chain.toLowerCase())
-    process.exit(0)
 }
+
+(async () => {
+    await newChain('Polkadot')
+    await newChain('Kusuma')
+    process.exit(0)
+})()
 
 
 const test = async () => {
-    let re = await Cd.hgetall(KEYS.Cache.hLatest('Polkadot', 'rpc_methods'))
+    let re = await Cd.hgetall(KEYS.Cache.hCache('Polkadot', 'rpc_methods'))
     console.log(re)
     const res = JSON.parse(re.result)
     console.log(res.version)

@@ -23,6 +23,7 @@ const fetchChains = async () => {
 const chainAddHandler = async (chain: string) => {
     log.info('Into chain add handler: ', chain)
     // TODO: chain-init logic
+    // update G.chain G.chainConf
     // 
 }
 
@@ -34,11 +35,12 @@ const chainDelHandler = async (chain: string) => {
 const chainUpdateHandler = async (chain: string) => {
     log.info('Into chain update handler: ', chain)
     // TODO
+    // update G.chain G.chainConf
 }
 
 // pattern subscription
-chainPSub.psubscribe('*', (err, msg) => {
-    log.info('psubscribe all chain event topic!', err, msg)
+chainPSub.psubscribe('*', (err, topicNum) => {
+    log.info('psubscribe all chain event topic!', err, topicNum)
 })
 
 chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
@@ -70,7 +72,6 @@ namespace Chain {
 
     export const parseConfig = async (chain: string) => {
         let conf: any = await Rd.getChainConfig(chain)
-        // log.info('chain conf: ', conf, conf.name)
     
         // what if json parse error
         G.chainConf[chain] = {
@@ -78,7 +79,7 @@ namespace Chain {
             extends: JSON.parse(conf.extends),
             excludes: JSON.parse(conf.excludes)
         }
-        log.warn('chain conf: ', G.chainConf[chain])
+        // log.warn('chain conf: ', G.chainConf[chain])
     }
 
     export const init = async () => {
@@ -92,5 +93,3 @@ namespace Chain {
 }
 
 export = Chain
-
-Chain.init()

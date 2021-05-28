@@ -17,8 +17,10 @@ export enum ChainStat {
 }
 
 export enum SuberType {
-    Sub = 'sub',    // suscription
-    Chan = 'chan',    // rpc channel
+    Sub     = 'sub',        // suscription
+    Cache   = 'cache',      // cacheable
+    Reqresp = 'reqresp',    // request & response mode
+    History = 'history',    // such as polling, getStorage request
 }
 
 interface Ext {
@@ -44,10 +46,13 @@ export interface Suber {
     chainStat?: ChainStat,
     option?: any
 }
-export type SuberPool = {[key in string]: Suber}
+export type SuberPool = {[key in string]: Suber | string}
+
 export interface WsPool {
     sub?: SuberPool,
-    chan?: SuberPool
+    cache?: SuberPool,
+    reqresp?: SuberPool,
+    history?: SuberPool,
 }
 
 export const newSuber = ({ 
@@ -58,7 +63,7 @@ export const newSuber = ({
     const url = options.url || 'ws://localhost:80'
     const ws = options.ws 
     const cluster = options.cluster || 0
-    const type = options.type || SuberType.Chan
+    const type = options.type || SuberType.Cache
     const stat = options.stat || SubStat.Check
     const chainStat = options.chainStat || ChainStat.Degrade
     const subId = options.subId || ''
