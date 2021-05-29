@@ -1,32 +1,26 @@
-import { KEYS, getAppLogger, PResultT, Ok, ChainConfig } from 'lib'
-import { chainRd } from '../db/redis'
+import { getAppLogger, PResultT, Ok, ChainConfig, isErr } from 'lib'
+import Dao from '../dao'
+import { Topic } from '../types'
 
-const KEY = KEYS.Chain
 const log = getAppLogger('chain', true)
-
-enum Topic {
-    ChainAdd    = 'chain-add',
-    ChainDel    = 'chain-del',
-    ChainUpdate = 'chain-update'
-}
 
 namespace Chain {
     // TODO error handle
     
     export const isExist = async (chain: string): Promise<Boolean> => {
-        const name = await chainRd.hget(KEY.hChain(chain), 'name')
-        if (name === null) {
-            log.info('No this chain: ', name)
+        const re = await Dao.getChainName(chain)
+        if (isErr(re)) {
+            log.info('No this chain: ', re.value)
             return false
         }
-        if (name.toLowerCase() === chain.toLowerCase()) {
+        if (re.value.toLowerCase() === chain.toLowerCase()) {
             return true
         }
         return false
     }
     
     export const detail = async (chain: string): PResultT => {
-        const re: any = await chainRd.hgetall(KEY.hChain(chain))
+        const re: any = await Dao.getChainDetail(chain)
         let cha: ChainConfig = {            
             ...re,
             name: chain,
@@ -38,34 +32,30 @@ namespace Chain {
     }
     
     export const newChain = async (chain: ChainConfig): PResultT => {
-        let re = await chainRd.hmset(KEY.hChain(chain.name), chain)
+        let re = await Dao.updateChain(chain)
         log.info('add chain result: ', re)
-        let cnt = await chainRd.incr(KEY.chainNum())
-        chainRd.zadd(KEY.zChainList(), cnt, chain.name.toLowerCase())
 
         // publish newchain event
-        chainRd.publish(Topic.ChainAdd, chain.name)
+        Dao.publishTopic(Topic.ChainAdd, chain.name)
         return Ok(re)
     }
     
     export const deleteChain = async (chain: string): PResultT => {
-        const re = await chainRd.del(KEY.hChain(chain))
+        const re = await Dao.delChain(chain)
         log.warn('delete result: ', re)
-        await chainRd.zrem(KEY.zChainList(), chain)
-        await chainRd.decr(KEY.chainNum())
 
         // publish chain delete event
-        await chainRd.publish(Topic.ChainDel, chain)
+        await Dao.publishTopic(Topic.ChainDel, chain)
         return Ok(re)
     }
 
     export const updateChain = async (chain: ChainConfig): PResultT => {
-        const re = await chainRd.hmset(KEY.hChain(chain.name), chain)
+        const re = await Dao.updateChain(chain)
         return Ok(re)
     }   
 
     export const chainList = async (): PResultT => {
-        const re = await chainRd.zrange(KEY.zChainList(), 0, -1)
+        const re = await Dao.getChainList()
         return Ok(re)
     }
 }
