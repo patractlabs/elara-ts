@@ -8,8 +8,6 @@ import Chain from './chain'
 import Pool from './wspool'
 import { SuberType } from './interface'
 import { randomReplaceId } from 'lib/utils'
-import Rd from '../db/redis'
-import c from 'config'
 
 const log = getAppLogger('esuber', true)
 
@@ -29,7 +27,11 @@ const setup = async (secure: boolean) => {
 
 // depends on chain evnet
 const getExtends = (chain: string, strategy: RpcStrategy): string[] => {
-    const extens = G.chainConf[chain]['extends'] as RpcMapT
+    const cconf = G.chainConf[chain]
+    if (!cconf || !cconf['extends']) {
+        return []
+    }
+    const extens = cconf['extends'] as RpcMapT
     // log.error(`extens of chain[${chain}]: `, extens)
     let res: string[] = []
     for (let k in extens) {
@@ -210,7 +212,7 @@ namespace Service {
         setTimeout(() => {
             Cacheable.run()
             for (let c of G.chains) {
-                // Subscr.subscribeService(c)
+                Subscr.subscribeService(c)
             }
         }, 1000);
     }

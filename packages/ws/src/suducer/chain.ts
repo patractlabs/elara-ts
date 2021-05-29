@@ -1,9 +1,8 @@
 /// chain list init and handler the chain update
 
-import { KEYS, getAppLogger, ChainConfig, RpcMethods } from 'lib'
-import Rd, { chainPSub } from '../db/redis'
+import { getAppLogger, isErr, isOk, RpcMethods } from 'lib'
+import Dao, { chainPSub } from '../dao'
 import { G } from './global'
-const KEY = KEYS.Chain
 const log = getAppLogger('sub-chain', true)
 
 enum Topic {
@@ -13,7 +12,7 @@ enum Topic {
 }
 
 const fetchChains = async () => {
-    let chains = await Rd.getChainList()
+    let chains = await Dao.getChainList()
     // log.info('chain list: ', chains)
     G.chains = chains
     G.rpcs = RpcMethods
@@ -71,13 +70,16 @@ chainPSub.on('error', (err) => {
 namespace Chain {
 
     export const parseConfig = async (chain: string) => {
-        let conf: any = await Rd.getChainConfig(chain)
-    
+        const conf = await Dao.getChainConfig(chain)
+        if (isErr(conf)) { 
+            log.error(`Parse config of chain[${chain}] error: `, conf.value)
+            return 
+        }
         // what if json parse error
         G.chainConf[chain] = {
-            ...conf,
-            extends: JSON.parse(conf.extends),
-            excludes: JSON.parse(conf.excludes)
+            ...conf.value,
+            extends: JSON.parse(conf.value.extends),
+            excludes: JSON.parse(conf.value.excludes)
         }
         // log.warn('chain conf: ', G.chainConf[chain])
     }

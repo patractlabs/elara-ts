@@ -7,7 +7,7 @@ import { getAppLogger, IDT } from 'lib'
 import { G } from './global'
 import { Suber, SuberType, SuberPool, newSuber, ChainStat, SubStat, WsPool } from './interface'
 import { SubMethod } from 'lib'
-import Rd from '../db/redis'
+import Dao from '../dao'
 import { Service } from '.'
 
 const log = getAppLogger('suber-p', true)
@@ -61,7 +61,7 @@ const cacheMsg = (chain: string) => {
         // log.info('data: ', dat, method, G.idMethod)
         if (method) {
             delete G.idMethod[dat.id]
-            Rd.setLatest(chain, method, JSON.stringify(dat.result))
+            Dao.updateChainCache(chain, method, JSON.stringify(dat.result))
         } else {
             log.error('No this method: ', method)
         }
@@ -138,10 +138,8 @@ const createSuber = (chain: string, url: string, type: SuberType, cb: (data: any
 
     // BUG: will create another connection
     ws.on('close', (code: number, reason: string) => {
-        log.error(`Suber close-evt ${sign}: `, code, reason)
+        log.error(`Suber close-evt ${sign}: `, code, reason, suber.ws.readyState)
 
-        // subscription
-        suber.ws.close()
         Pool.del(chain, type, suber.id!)
         // set pool subscribe status fail        
         log.warn('Pool state after del: ', G.cpool)
@@ -196,7 +194,7 @@ namespace Pool {
         const ids = Object.keys(spool)
         log.warn('Into pool send: ', chain, type, req)
         if (!spool || ids.length < 1 || (ids.length === 1 && ids[0] === 'status')) {
-            log.error('No invalid suber pool')
+            log.error('No invalid suber pool', ids)
             return
         }
         // select a valid suber, if none, export error
@@ -224,8 +222,8 @@ namespace Pool {
             const conf = cconf[chain]
             const url = generateUrl(conf.baseUrl, conf.wsPort, secure)
             add(chain, url, SuberType.Cache)
-            // add(chain, url, SuberType.Sub)
-            // add(chain, url, SuberType.Reqresp)
+            add(chain, url, SuberType.Sub)
+            add(chain, url, SuberType.Reqresp)
         }
     }
 }

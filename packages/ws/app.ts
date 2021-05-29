@@ -1,6 +1,7 @@
 import Koa from 'koa'
-import Puber from './src/epuber'
-import Suber, { G, Service } from './src/esuber'
+import WebSocket from 'ws'
+import Puber from './src/pusumer'
+import Suber from './src/suducer'
 import { getAppLogger } from 'lib'
 import Conf from './config'
 
@@ -21,3 +22,8 @@ app.listen("7001", async () => {
     
 })
 
+const wss = new WebSocket.Server({port: 80})
+
+wss.on('connection', (ws, req) => {
+    log.info('new connection: ', wss.clients.size)
+})
