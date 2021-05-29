@@ -2,6 +2,7 @@
 /// end with 'T'
 import { Result } from './types/result'
 import Dotenv from 'dotenv'
+import Rd from './utils/redis'
 
 export type IDT = string | number       // ID type
 export type KCtxT = any       // koa.Context
@@ -23,4 +24,5 @@ export * from './types/chain'
 
 // utils
 export * from './utils/log'
+export const Redis = Rd
 export * from './utils/redis-key'

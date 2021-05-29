@@ -155,24 +155,3 @@ export const SubMethod = {
     'state_runtimeVersion': 'state_subscribeRuntimeVersion',    // ?
     'state_storage': 'state_subscribeStorage', 
 }
-
-export const isSyncAsBlock = (method: string): boolean => {
-    return RpcMethodMap[method] === RpcStrategy.SyncAsBlock
-}
-
-export const isSyncLow = (method: string): boolean => {
-    return RpcMethodMap[method] === RpcStrategy.SyncLow
-}
-
-// TODO
-export const rpcDispatch = (method: string) => {
-    switch(method) {
-    case RpcStrategy.SyncLow:
-        break
-    case RpcStrategy.SyncAsBlock:
-        break
-    default:
-        break
-
-    }
-}
