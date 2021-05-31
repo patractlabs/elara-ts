@@ -11,12 +11,17 @@
   "dependencies": {
     "axios": "^0.21.1",
     "koa": "^2.13.1",
+    "koa-body": "^4.2.0",
     "koa-passport": "^4.1.4",
     "koa-router": "^10.0.0",
-    "lib": "file:../lib"
+    "koa-session": "^6.2.0",
+    "lib": "file:../lib",
+    "passport-github2": "^0.1.12"
   },
   "devDependencies": {
     "@types/koa-passport": "^4.0.2",
-    "@types/koa-router": "^7.4.2"
+    "@types/koa-router": "^7.4.2",
+    "@types/koa-session": "^5.10.3",
+    "@types/passport-github2": "^1.2.4"
   }
 }
