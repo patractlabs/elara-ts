@@ -18,6 +18,18 @@ namespace Chain {
     }
 }
 
+namespace Account {
+    const A = 'Account'
+
+    export const hAccount = (uid: IDT): string => {
+        let UID = `${uid}`
+        if (isEmpty(uid?.toString())) {
+            UID = '*_'
+        }
+        return `H_${A}_${UID.toLowerCase()}`
+    }
+}
+
 namespace Project {
     const P = 'Project'
 
@@ -33,7 +45,7 @@ namespace Project {
             CHAIN = `${chain?.toLowerCase()}_`
         }
         if (isEmpty(pid?.toString())) {
-           PID = '*'
+            PID = '*'
         }
         // if chain is empty and pid not, would be get only one
         let key = `${com}${CHAIN}${PID}`
@@ -66,6 +78,7 @@ namespace Cache {
 }
 
 export const KEYS = {
+    Account,
     Chain,
     Project,
     Cache,

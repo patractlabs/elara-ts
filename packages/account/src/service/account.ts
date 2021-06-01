@@ -1,27 +1,18 @@
+import { PResultT, Ok, Account, IDT, getAppLogger } from 'lib'
 import { now } from '../lib/tool'
-import { getAppLogger, IDT, Err, isErr, Ok, PResultT } from 'lib'
-// import { setConfig } from '../../config'
+import Dao from '../dao'
+import { actRd } from '../db/redis'
 
-interface Account {
-    uid: IDT
-    username: IDT
-    vip: number
-    type: string
-    createTime: number | string
-}
-// const config = setConfig()
+actRd.on('connect', () => {
+    log.info('Redis connect successfuly')
+})
+
+actRd.on('error', (e) => {
+    log.error('Redis error: ', e)
+})
+
 const log = getAppLogger('account-pro', true)
-const dumpAccount = async (account: Account): PResultT => {
-    log.info(account)
-    // TODO：异常数据过滤
-    try {
-        // TODO: 存储操作
-    } catch (error) {
-        log.error('Dump account error: ', error)
-        return Err(error)
-    }
-    return Ok('ok')
-}
+
 namespace Account {
     export const create = async (
         uid: IDT,
@@ -30,12 +21,9 @@ namespace Account {
         type: string
     ): PResultT => {
         log.info('Into account creat !', uid, username, vip, type)
-
         const timestamp = now()
         let createTime: number = timestamp
-        log.info('timestamp: ', timestamp)
-
-        let account = {
+        const account: Account = {
             uid,
             username,
             vip,
@@ -43,20 +31,28 @@ namespace Account {
             createTime,
         }
         log.warn('Account to create: ', account)
-        let re = await dumpAccount(account)
-        if (isErr(re)) {
-            return re
+        let re = await Dao.createAccount(account)
+        return Ok(re)
+    }
+
+    export const detail = async (uid: IDT): PResultT => {
+        const re: any = await Dao.getAccountDetail(uid.toString())
+        let projectNum = (await projects(uid)).valueOf
+        let account = null
+        if (re && re.uid) {
+            account = {
+                ...re,
+                uid: re.uid,
+                vip: re.vip,
+                username: re.username,
+                projectNum: projectNum,
+            }
         }
         return Ok(account)
     }
 
-    export const info = async (uid: IDT): PResultT => {
-        let account = null
-        account = {
-            uid: uid,
-            username: 'test',
-        }
-        return Ok(account)
+    async function projects(uid: IDT) {
+        return await Dao.getProjectNum(uid.toString())
     }
 }
 

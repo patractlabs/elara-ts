@@ -21,6 +21,7 @@ export * from './types/option'
 export * from './types/result'
 export * from './types/common-rpc'
 export * from './types/chain'
+export * from './types/account'
 
 // utils
 export * from './utils/log'
