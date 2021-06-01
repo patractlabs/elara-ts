@@ -10,6 +10,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "config": "^3.3.6",
+    "kafkajs": "^1.15.0",
     "koa": "^2.13.1",
     "lib": "file:../lib",
     "ws": "^7.4.5"

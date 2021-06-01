@@ -83,3 +83,10 @@ export const newSuber = ({
         chainStat,
     }
 }
+
+export interface SubProto {
+    chain: string,
+    topic: string,
+    subId: IDT,
+    data: any,
+}
