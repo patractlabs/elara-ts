@@ -1,9 +1,9 @@
-import {Redis} from 'lib/utils'
+import { Redis } from 'lib'
 import { ChainConfig, ChainType, KEYS, Network } from 'lib'
 
 const KEY = KEYS.Chain
-const Rd = new Redis({db: 3})
-const Cd = new Redis({db: 4})
+const Rd = Redis.newClient(Redis.DBT.Chain).client
+const Cd = Redis.newClient(Redis.DBT.Cache).client
 
 const newChain = async (chain: string) => {
     // const chain = 'Polkadot'
@@ -22,13 +22,6 @@ const newChain = async (chain: string) => {
     await Rd.zadd(KEY.zChainList(), cnt, chain.toLowerCase())
 }
 
-(async () => {
-    await newChain('Polkadot')
-    await newChain('Kusuma')
-    process.exit(0)
-})()
-
-
 const test = async () => {
     let re = await Cd.hgetall(KEYS.Cache.hCache('Polkadot', 'rpc_methods'))
     console.log(re)
@@ -38,5 +31,11 @@ const test = async () => {
         console.log(m)
     }
 }
+
+const init = async () => {
+    await newChain('Polkadot')
+    await newChain('Kusuma')
+    process.exit(0)
+}
 // test()
-// init()
+init()

@@ -3,6 +3,7 @@
 import { Result } from './types/result'
 import Dotenv from 'dotenv'
 import Rd from './utils/redis'
+import Kfk from './utils/kafka'
 
 export type IDT = string | number       // ID type
 export type KCtxT = any       // koa.Context
@@ -24,5 +25,6 @@ export * from './types/chain'
 
 // utils
 export * from './utils/log'
-export const Redis = Rd
 export * from './utils/redis-key'
+export const Redis = Rd
+export const Kafka = Kfk
