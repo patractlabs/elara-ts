@@ -1,11 +1,12 @@
 import WebSocket from 'ws'
-// import http from 'http'
-// import url from 'url'
+import http from 'http'
+import httpProxy from 'http-proxy'
 import { getAppLogger } from 'lib'
 import { connHandler } from './handler'
+import Service from './service'
 
 const log = getAppLogger("ws", true)
-const port = 80
+const port = 7003
 
 const noop = () => {
     log.debug('noop')
@@ -61,25 +62,58 @@ const epuber = () => {
 
 
 
-// namespace NoServer {
-//     const Server = http.createServer()
-//     const wss = new WebSocket.Server({noServer: true})
+namespace NoServer {
+    const proxy = httpProxy.createProxyServer()
+    const Server = http.createServer((req, res) => {
+        proxy.web(req, res, {
+            target: 'http://localhost:90'
+        })
+    })
 
-//     Server.listen(port, () => {
-//         log.info('Http server listen on port: ', port)
-//     })
+    proxy.on('error', (err) => {
+        log.error('proxy error: ', err)
+    })
+    const wss = new WebSocket.Server({noServer: true})
 
-//     Server.on('upgrade', (req, socket, head) => {
-//         const pathName = url.pathToFileURL(req.url)
-//         log.info('path name: ', pathName)
+    // Server.listen(port, () => {
+    //     log.info('Http server listen on port: ', port)
+    // })
 
-//         wss.handleUpgrade(req, socket, head, (ws) => {
-//             wss.emit('connection', ws, req)
-//         })
-//     })
-// }
-namespace EPuber {
-    export const init = epuber
-    
+    // Server.on('upgrade', (req, socket, head) => {
+    //     // const pathName = new URL(req.url).pathname
+    //     const pathName = ''
+    //     log.info('path name: ', pathName, req.url)
+        
+    //     wss.handleUpgrade(req, socket, head, (ws) => {
+    //         wss.emit('connection', ws, req)
+    //     })
+    // })
+
+    wss.on('connection', (ws, req) => {
+        log.info('new connection')
+
+        ws.on('message', (msg) => {
+            log.info('new message :', msg)
+        })
+    })
+
 }
-export = EPuber
+namespace Pusumer {
+    export const init = () => {
+        Service.up()
+        // NoServer
+
+        // const wss = new WebSocket.Server({
+        //     port,
+        // })
+
+        // wss.on('connection', (ws, req) => {
+        //     log.info('new connection')
+        //     ws.on('message', (msg) => {
+        //         log.info('new msg: ', msg)
+        //     })
+        // })
+    }
+}
+
+export default Pusumer

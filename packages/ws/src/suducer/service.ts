@@ -18,7 +18,7 @@ const setup = async (secure: boolean) => {
         log.error("Chain init failed. No chain exist!")
         process.exit(1)
     }
-    await Pool.init()
+    await Pool.init(secure)
     // log.info('G rpcs: ', G.rpcs)
     log.info('G chains: ', G.chains)
     log.info('G pool: ', G.cpool)

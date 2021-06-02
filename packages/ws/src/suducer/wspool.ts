@@ -11,7 +11,7 @@ import { Suber, SuberType, SuberPool,
 } from './interface'
 import { SubMethod } from 'lib'
 import Dao from '../dao'
-import { Service } from '.'
+import Service from './service'
 import Mq from './kafka'
 
 const log = getAppLogger('suber-p', true)
