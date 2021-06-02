@@ -1,5 +1,5 @@
-import { Resp, NextT, KCtxT, Code, Msg } from 'lib'
-// import {isOk } from 'lib'
+import { Resp, NextT, KCtxT, Code, Msg, isErr } from 'lib'
+// import { isOk } from 'lib'
 import Passport from '../lib/passport'
 import Account from '../service/account'
 import { getID } from '../lib/tool'
@@ -46,13 +46,21 @@ let callback = async (ctx: KCtxT, next: NextT) => {
             } else {
                 // 创建账户
                 const username = user.profile.username
-                await Account.create(
+                let account = await Account.create(
                     uid,
                     username,
                     config.defaultLevel,
                     'github'
                 )
+                if (isErr(account)) {
+                    //新建账户失败，重定向到登陆页
+                    ctx.response.redirect(config.login) //重定向到登陆页
+                    return next()
+                }
+                ctx.login(uid) //设置登陆
+                ctx.session['sid'] = sid
             }
+
             ctx.response.type = 'html'
             ctx.response.body = html_login_succecc
             return next()
@@ -64,9 +72,6 @@ let callback = async (ctx: KCtxT, next: NextT) => {
 let logout = async (ctx: KCtxT, next: NextT) => {
     ctx.logOut()
     ctx.response.body = Resp.Ok().toString()
-    if (ctx.state) {
-        throw Resp.Fail(Code.Auth_Fail, Msg.Auth_Fail)
-    }
     return next()
 }
 

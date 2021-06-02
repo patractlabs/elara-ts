@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+
 export const now = () => {
     const dateTime = Date.now()
     const timestamp = Math.floor(dateTime / 1000)

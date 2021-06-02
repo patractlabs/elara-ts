@@ -1,4 +1,4 @@
-import { PResultT, Account, Ok ,Err} from 'lib'
+import { PResultT, Account, Ok, Err } from 'lib'
 import Rd from './redis'
 
 // TODO return result-type wrap
@@ -10,7 +10,6 @@ namespace Dao {
         return Ok(name)
     }
 
-
     export const getAccountDetail = async (uid: string) => {
         return Rd.hgetDetail(uid)
     }
@@ -18,9 +17,6 @@ namespace Dao {
     export const getProjectNum = async (uid: string) => {
         return Rd.scardProjectNum(uid)
     }
-
-
-
 }
 
 export default Dao

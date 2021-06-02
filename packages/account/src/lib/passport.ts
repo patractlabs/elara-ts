@@ -19,9 +19,14 @@ Passport.use(
             clientSecret: config.github.ClientSecret,
             callbackURL: config.github.CallbackURL,
         },
-        function (accessToken: any, refreshToken: any, profile: any, callback: any) {
-            console.log("Passport callback");
-            
+        function (
+            accessToken: any,
+            refreshToken: any,
+            profile: any,
+            callback: any
+        ) {
+            console.log('Passport callback')
+
             callback(null, { accessToken, refreshToken, profile })
         }
     )
