@@ -1,0 +1,6 @@
+{
+    "ws": {
+        "maxConnection": 10,
+        "poolSize": 2
+    }
+}

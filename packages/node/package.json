@@ -1,0 +1,17 @@
+{
+  "name": "node",
+  "version": "1.0.0",
+  "description": "node service for elara fail",
+  "main": "app.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "ws": "^7.4.6"
+  },
+  "devDependencies": {
+    "@types/ws": "^7.4.4"
+  }
+}
