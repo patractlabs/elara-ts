@@ -92,6 +92,7 @@ namespace Chain {
     export const init = async () => {
         await fetchChains()
         let parses: Promise<void>[] = []
+        log.warn('parse chain: ', G.chains)
         for (let c of G.chains) {
             parses.push(parseConfig(c))
         }

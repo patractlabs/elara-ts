@@ -25,7 +25,6 @@ const setup = async (secure: boolean) => {
 }
 
 
-
 const generateID = (): number => {
     return randomReplaceId()
 }
@@ -51,7 +50,7 @@ const isAbandon = (method: string): Boolean => {
 // no parameters allowed
 const send = (chain: string, method: string, type: SuberType) => {
     const id = generateID()
-    const req = buildReq(id, method, [])
+    const req = buildReq(id, method, ['0x1cb6f36e027abb2091cfb5110ab5087f0323475657e0890fbdbf66fb24b4649e'])
     if (type === SuberType.Cache) {
         G.idMethod[id] = method     // id-method map for ws response msg
     }
@@ -129,9 +128,9 @@ namespace Subscribe {
         for (let s of subs) {
             if (excludes.indexOf(s) !== -1) { 
                 log.warn(`topic [${s}] is excluded`)
+                send(chain, s, SuberType.Sub)
                 continue 
             }
-            send(chain, s, SuberType.Sub)
         }
     }
 

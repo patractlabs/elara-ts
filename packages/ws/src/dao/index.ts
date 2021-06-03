@@ -4,7 +4,7 @@ import Rd from './redis'
 // TODO result
 namespace Dao {
     export const getChainList = async (): PResultT => {
-        return Ok(Rd.getChainList())
+        return Ok(await Rd.getChainList())
     }
 
     export const getChainConfig = async (chain: string): PResultT => {
@@ -16,7 +16,7 @@ namespace Dao {
     }
 
     export const updateChainCache = async (chain: string, method: string, data: any): PResultT => {
-        return Ok(Rd.setLatest(chain, method, data))
+        return Ok(await Rd.setLatest(chain, method, data))
     }
 }
 

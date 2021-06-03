@@ -9,6 +9,7 @@ export type IDT = string | number       // ID type
 export type KCtxT = any       // koa.Context
 export type NextT = () => Promise<any>  // koa middleware next type
 export type PResultT = Promise<Result<any, string>>
+export type ResultT = Result<any, string>
 export type PVoidT = Promise<void>
 
 // to use .env and config, init before import config

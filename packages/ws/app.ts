@@ -14,7 +14,7 @@ const log = getAppLogger("ws", true)
 app.listen("7001", async () => {
     log.info("Api server listen on port: 7001")
 
-    // await Suducer.init()
+    await Suducer.init()
     // log.info('Global chain exts: ', G.chainConf, G.chains)
 
     Pusumer.init()
