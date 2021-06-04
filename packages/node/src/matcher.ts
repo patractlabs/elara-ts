@@ -32,16 +32,24 @@ const selectSuber = (chain: string): ResultT => {
 }
 
 namespace Matcher {
-    export const regist = (pubId: IDT, chain: string): ResultT => {
+    export const regist = (pubId: IDT, chain: string, pid: IDT): ResultT => {
         const re = selectSuber(chain)
         if (isOk(re)) { 
-            G.addMatcher(pubId, re.value, {chain}) 
+            G.addMatcher(pubId, re.value, {chain, pid}) 
         }
         return re
     }
 
     export const unRegist = (pubId: IDT): void => {
         G.delMatcher(pubId)
+    }
+
+    export const addSubscribe = (pubId: IDT, subsId: string) => {
+        G.addMatcherSub(pubId, subsId)
+    }
+
+    export const remSubscribe = (pubId: IDT, subsId: string) => {
+        G.remMatcherSub(pubId, subsId)
     }
 
     export const get = (pubId: IDT): ResultT => {

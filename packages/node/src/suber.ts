@@ -1,7 +1,7 @@
 import { randomId } from 'lib/utils'
 import WebSocket from 'ws'
-import { Puber, Suber, WsData } from './interface'
-import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT } from 'lib'
+import { Puber, Suber, SubscripT, WsData } from './interface'
+import { ChainConfig, getAppLogger, isErr, isOk, IDT, Err, Ok, ResultT } from 'lib'
 import G from './global'
 import Chain from './chain'
 import Dao from './dao'
@@ -16,39 +16,67 @@ const delays = (sec: number, cb: () => void) => {
     }, sec * 1000);
 }
 
+const subReg = (() => {
+    return /[0-9a-zA-Z]{16}/
+})()
+
 const dataParse = (dat: WsData): ResultT => {
     let pubId: IDT
     if (dat.id) {
         pubId = dat.id
         log.info('data result: ', dat.result)
-        if (dat.result.length === 16) {
-            // NOTE: if something better way to confirm a subscription
-            G.addSubCache(dat.result, dat.id)
+        const subTestOk: boolean = subReg.test(dat.result)
+        // handle method cache
+        let re = G.getMethodCache(pubId)  // maybe conflic, 
+        if (isOk(re) && subTestOk) {
+            const sub = re.value as SubscripT
+            G.addSubscription(dat.result, pubId)
 
+            // update matcher 
+            sub.id = dat.result     // result is subscribe ID
+            sub.pubId = pubId
+            Matcher.addSubscribe(pubId, sub.id!)
+            // delete method cache
+            G.delMethodCache(pubId)
+            // add subscribed record
+            re = G.getPuber(pubId)
+            if (isErr(re)) {
+                // SBH
+                log.error()
+                return re
+            }
+            const puber = re.value as Puber
+            G.addSubTopic(puber.chain, puber.pid, sub)
+            log.warn('Update sub topic: ', Matcher.get(pubId))
         }
-        // record subscription: pubId
-
+        // if (subTestOk) {
+        //     G.addSubscription(dat.result, dat.id)
+        // }
     } else if (dat.params) {
         const subsId = dat.params.subscription
-        const re = G.getSubCache(subsId)
+        const re = G.getSubscription(subsId)
         if (isErr(re)) {
             log.error('Subscribe message parse error: ', re.value)
-            return Err(``)
+            return Err(`SubCache invalid,subscription id [${subsId}]`)
         }
         pubId = re.value
     } else {
         return Err(`Unknow error`)
     }
-    return Ok(pubId)
+    return Ok(pubId) 
 }
 
 // send the message back to puber
 const puberSend = (pubId: IDT, dat: WsData) => {
+
     let re = G.getPuber(pubId)
 
     if (isErr(re)) {
-        log.error('Invalid puber: ', re.value)
-        // TODO: unsubscribe & clear suber matcher & realloc
+        if (dat.result === true || dat.result == false) {
+            log.warn('Unscribe response: ', dat.result)
+        } else {
+            log.error('Invalid puber: ', re.value)
+        }
         return
     }
     const puber = re.value as Puber

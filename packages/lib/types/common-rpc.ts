@@ -4,7 +4,7 @@ export enum RpcStrategy {
     History = 'Histrory',
     Kv = 'Kv',                      // elara kv storage service
     Subscribe = 'Subscribe',        // subscription 
-    Unsub = 'Unsuvscribe',          // unsubscription
+    Unsub = 'Unsubscribe',          // unsubscription
     SyncAsBlock = 'SyncAsBlock',    // update as block update
     SyncLow = 'SyncLow',            // 10min or more
     SyncOnce = 'SyncOnce',     
@@ -51,7 +51,7 @@ export const RpcMethods: RpcMethodT = {
         'state_subscribeRuntimeVersion',    // ?
         'state_subscribeStorage', 
     ],
-    Unsuvscribe: [
+    Unsubscribe: [
         // 'author_unwatchExtrinsic',
 
         'chain_unsubscribeAllHeads',

@@ -1,16 +1,19 @@
 import { Err, Ok, getAppLogger, IDT, ResultT, RpcMethods, RpcMethodT } from 'lib'
-import { Suber, Puber, SuberMap, PuberMap, ChainSuber, MatcherT, Matcher } from './interface'
+import { Suber, Puber, SuberMap, PuberMap, ChainSuber, MatcherT, SubscripT, SubscripMap } from './interface'
+import Matcher from './matcher'
 
 const log = getAppLogger('G', true)
-type PidTopicMap = { [key in string]: string[] }
+
+type PidTopicMap = { [key in string]: SubscripMap }
 
 const Subers: ChainSuber = {}
 const Pubers: PuberMap = {}
 const Matchers: {[key in string]: MatcherT} = {}     // pubId: Matcher
-const TopicSubed: { [key in string]: PidTopicMap } = {} // {chain: {pid: []}}
+const TopicSubed: { [key in string]: PidTopicMap } = {} // {chain: {pid: {}}}
 const Chains: string[] = []
 const Rpcs: RpcMethodT = RpcMethods
 const SubCache: {[key in string]: IDT} = {} // subscriptionId to pubId
+const MethodCache: {[key in string]: SubscripT } = {}  // pubId: {}
 
 let ID_CNT: number = 0
 
@@ -89,14 +92,28 @@ namespace G {
     }
 
     export const updateMatcher = (pubId: IDT, matcher: MatcherT): void => {
+        let subscribe: string[] = Matchers[pubId].subscribe || []
+        if (matcher.subscribe) {
+            subscribe.push(...matcher.subscribe)
+        }
         Matchers[pubId] = {
             ...Matchers[pubId],
-            ...matcher
+            ...matcher,
+            subscribe
         }
     }
 
     export const delMatcher = (pubId: IDT): void => {
         delete Matchers[pubId]
+    }
+
+    export const addMatcherSub = (pubId: IDT, subsId: string): void => {
+        Matchers[pubId].subscribe?.push(subsId)
+    }
+
+    export const remMatcherSub = (pubId: IDT, subsId: string): void => {
+        const newSubs = ldel(Matchers[pubId].subscribe!, subsId)
+        Matchers[pubId].subscribe = newSubs
     }
 
     export const getSubId = (pubId: IDT): ResultT => {
@@ -106,10 +123,20 @@ namespace G {
         return Ok(Matchers[pubId].subId)
     }
 
-    export const addSubTopic = (chain: string, pid: IDT, topic: string): void => {
+    export const addSubTopic = (chain: string, pid: IDT, topic: SubscripT): void => {
+        log.info('Into add sub topic: ', chain, pid, topic)
         chain = chain.toLowerCase()
+        const newSub: SubscripMap = {}
+        newSub[topic.id!] = topic
+
         if (TopicSubed[chain] && TopicSubed[chain][pid]) {
-            TopicSubed[chain][pid].push(topic)
+            
+            TopicSubed[chain][pid] = {
+                ...TopicSubed[chain][pid],
+                ...newSub
+            }
+            log.warn('after add sub topic: ', JSON.stringify(TopicSubed[chain][pid]))
+
             return
         }
 
@@ -118,24 +145,24 @@ namespace G {
         }
 
         const tops: PidTopicMap = {}
-        tops[pid] = [topic]
+        tops[pid] = newSub
         
         TopicSubed[chain] = {
             ...TopicSubed[chain],
             ...tops
         }
+        log.warn('after add sub topic: ', JSON.stringify(TopicSubed[chain][pid]))
     }
 
-    export const remSubTopic = (chain: string, pid: IDT, topic: string): void => {
+    export const remSubTopic = (chain: string, pid: IDT, subsId: string): void => {
         chain = chain.toLowerCase()
-        const news = ldel(TopicSubed[chain][pid], topic)
-        TopicSubed[chain][pid] = news
+        delete TopicSubed[chain][pid][subsId] 
     }
 
-    export const getSubTopics = (chain: string, pid: IDT): string[] => {
+    export const getSubTopics = (chain: string, pid: IDT): SubscripMap => {
         chain = chain.toLowerCase()
         if (!TopicSubed[chain] || !TopicSubed[chain][pid]) {
-            return []
+            return {}
         }
         return TopicSubed[chain][pid]
     }
@@ -173,19 +200,36 @@ namespace G {
         return Rpcs
     }
 
-    export const addSubCache = (subscriptId: string, id: IDT) => {
+    /// subscribe id - pubId map
+    export const addSubscription = (subscriptId: string, id: IDT) => {
         SubCache[subscriptId] = id
     }
 
-    export const getSubCache = (subscriptId: string): ResultT => {
+    export const getSubscription = (subscriptId: string): ResultT => {
         if (!SubCache[subscriptId]) {
             return Err('No this subscription')
         }
         return Ok(SubCache[subscriptId])
     }
 
-    export const delSubCache = (subscriptId: string): void => {
+    export const delSubscription = (subscriptId: string): void => {
         delete SubCache[subscriptId]
+    }
+
+    // method cacche for subscribe method map
+    export const addMethodCache = (pubId: IDT, topic: string, params: string): void => {
+        MethodCache[pubId] = {topic, params, pubId}
+    }
+
+    export const delMethodCache = (pubId: IDT): void => {
+        delete MethodCache[pubId]
+    }
+
+    export const getMethodCache = (pubId: IDT): ResultT => {
+        if (!MethodCache[pubId]) {
+            return Err('')
+        }
+        return Ok(MethodCache[pubId])
     }
 }
 

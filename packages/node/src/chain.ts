@@ -1,6 +1,6 @@
 /// chain list init and handler the chain update
 
-import { getAppLogger, isErr, PVoidT, RpcMethods } from 'lib'
+import { getAppLogger, isErr, PVoidT } from 'lib'
 import Dao, { chainPSub } from '../src/dao'
 import G from './global'
 const log = getAppLogger('sub-chain', true)

@@ -16,10 +16,13 @@ export interface Puber {
 }
 
 export interface SubscripT {
-    id: string,
+    id?: string,
+    pubId: IDT,
     topic: string,
     params: string
 }
+
+export type SubscripMap = {[key in string]: SubscripT}
 
 export interface MatcherT {
     pubId?: IDT,
@@ -27,8 +30,7 @@ export interface MatcherT {
     pid?: IDT,
     originId?: IDT,          
     chain?: string,
-    subscribe?: {[key in string]: SubscripT},
-    // [key: string]: any
+    subscribe?: string[],   //  topic : SubscripT
 }
 
 export interface WsData {
