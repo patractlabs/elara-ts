@@ -1,27 +1,65 @@
 import { Err, Ok, getAppLogger, IDT, ResultT, RpcMethods, RpcMethodT } from 'lib'
-import { Suber, Puber, SuberMap, PuberMap, ChainSuber, MatcherT, SubscripT, SubscripMap } from './interface'
-import Matcher from './matcher'
+import { SuberMap, PuberMap, ChainSuber, SubscripT, SubscripMap, ReqMap, WsData, ReqT } from './interface'
+import Suber from './suber'
+import Puber from './puber'
+import Util from './util'
 
 const log = getAppLogger('G', true)
 
 type PidTopicMap = { [key in string]: SubscripMap }
 
+/**
+ * Subers {
+ *  'polkadot': {
+ *      'f90dc072e006d5f6f8fbe33e565d274f': {
+ *          id: 'f90dc072e006d5f6f8fbe33e565d274f',
+ *          url: '127.0.0.1:9944',
+ *          chain: 'polkadot',
+ *          ws: WebSocketObject,
+ *          pubers: ['852c5949c10b2797dedad388fa745110']
+ *       }
+ *   }
+ * }
+ */
 const Subers: ChainSuber = {}
+
+/**
+ * Pubers {
+ *  '852c5949c10b2797dedad388fa745110': {
+ *      id: '852c5949c10b2797dedad388fa745110',
+ *      pid: 'dfaghlsjflslajslkgslgjklj',
+ *      chain: 'polkadot',
+ *      originId: 1,
+ *      ws: WebSocketObject
+ *      subId: 'f90dc072e006d5f6f8fbe33e565d274f',
+ *      topics: ['chain_subscribeNewHead']
+ *  }
+ * }
+ */
 const Pubers: PuberMap = {}
-const Matchers: {[key in string]: MatcherT} = {}     // pubId: Matcher
-const TopicSubed: { [key in string]: PidTopicMap } = {} // {chain: {pid: {}}}
-const Chains: string[] = []
+
+/**
+ * Top{
+ *  'polkadot': {
+ *      'dfaghlsjflslajslkgslgjklj': {
+ *          id: 'sdfi23kjldsfds32',
+ *          topic: 'chain_subscribeNewHead',
+ *          pubId: 'fkjskljxjglksdjsdgjsg',
+ *          params: '[]'
+ *      }
+ *  }
+ * }
+ */
+const TopicSubed: { [key in string]: PidTopicMap } = {} 
+
+let Chains: string[] = []
 const Rpcs: RpcMethodT = RpcMethods
-const SubCache: {[key in string]: IDT} = {} // subscriptionId to pubId
-const MethodCache: {[key in string]: SubscripT } = {}  // pubId: {}
+const ReqMap: ReqMap = {}
+
+const SubMap: {[key in string]: IDT} = {} // subscriptionId to reqId
+const TopicCache: {[key in string]: SubscripT } = {}  // pubId: {}
 
 let ID_CNT: number = 0
-
-const ldel = (lis: any[], value: any) => {
-    return lis.filter((val) => {
-        return val !== value
-    })
-}
 
 namespace G {
 
@@ -32,7 +70,7 @@ namespace G {
     export const getSuber = (chain: string, subId: IDT): ResultT => {
         chain = chain.toLowerCase()
         if (!Subers[chain] || !Subers[chain][subId]) {
-            return Err(`No this suber`)
+            return Err(`No this suber ${subId} of ${chain}`)
         }
         return Ok(Subers[chain][subId])
     }
@@ -45,19 +83,23 @@ namespace G {
         return Subers
     }
 
-    export const addSuber = (chain: string, suber: Suber): void => {
+    export const updateAddSuber = (chain: string, suber: Suber): void => {
         chain = chain.toLowerCase()
         const sub: SuberMap = {}
+        log.warn('subers before add: ', Subers[chain])
         sub[suber.id] = suber
         Subers[chain] = {
             ...Subers[chain],
             ...sub
         }
+        log.warn('subers after add: ', Subers[chain])
     }
 
     export const delSuber = (chain: string, subId: IDT): void => {
+        log.warn('subers before delete: ', Subers[chain])
         chain = chain.toLowerCase()
         delete Subers[chain][subId]
+        log.warn('subers after delete: ', Subers[chain])
     }
 
     export const getPuber = (pubId: IDT): ResultT => {
@@ -72,55 +114,34 @@ namespace G {
     }
 
     export const addPuber = (puber: Puber): void => {
+        log.warn('pubers before add: ', Pubers)
         Pubers[puber.id] = puber
+        log.warn('pubers after add: ', Pubers)
     }
 
     export const delPuber = (pubId: IDT): void => {
+        log.warn('pubers before delete: ', Pubers)
         delete Pubers[pubId]
+        log.warn('pubers after delete: ', Pubers)
     }
 
-    export const addMatcher = (pubId: IDT, subId: IDT, options?: MatcherT): void => {
-        Matchers[pubId] = {
-            ...options,
-            subId,
-            pubId
+    export const updateAddReqCache = (req: ReqT): void => {
+        log.warn('request cache before add-update: ', ReqMap)
+        ReqMap[req.id] = req
+        log.warn('request cache after add-update: ', ReqMap)
+    }
+
+    export const delReqCache = (reqId: IDT): void => {
+        log.warn('request cache before del: ', ReqMap)
+        delete ReqMap[reqId]
+        log.warn('request cache after del: ', ReqMap)
+    }
+
+    export const getReqCache = (reqId: IDT): ResultT => {
+        if (!ReqMap[reqId]) {
+            return Err(`invalid request id ${reqId}`)
         }
-    }
-
-    export const getMatcher = (pubId: IDT): MatcherT => {
-        return Matchers[pubId]
-    }
-
-    export const updateMatcher = (pubId: IDT, matcher: MatcherT): void => {
-        let subscribe: string[] = Matchers[pubId].subscribe || []
-        if (matcher.subscribe) {
-            subscribe.push(...matcher.subscribe)
-        }
-        Matchers[pubId] = {
-            ...Matchers[pubId],
-            ...matcher,
-            subscribe
-        }
-    }
-
-    export const delMatcher = (pubId: IDT): void => {
-        delete Matchers[pubId]
-    }
-
-    export const addMatcherSub = (pubId: IDT, subsId: string): void => {
-        Matchers[pubId].subscribe?.push(subsId)
-    }
-
-    export const remMatcherSub = (pubId: IDT, subsId: string): void => {
-        const newSubs = ldel(Matchers[pubId].subscribe!, subsId)
-        Matchers[pubId].subscribe = newSubs
-    }
-
-    export const getSubId = (pubId: IDT): ResultT => {
-        if (!Matchers[pubId]) {
-            return Err('No this mathcer')
-        }
-        return Ok(Matchers[pubId].subId)
+        return Ok(ReqMap[reqId])
     }
 
     export const addSubTopic = (chain: string, pid: IDT, topic: SubscripT): void => {
@@ -180,16 +201,21 @@ namespace G {
     }
 
     export const addChain = (chain: string): void => {
+        log.warn('chains before add: ', Chains)
         chain = chain.toLowerCase()
         if (Chains.indexOf(chain) !== -1)  {
             log.warn('Chain is exist: ', chain)
             return
         }
         Chains.push(chain)
+        log.warn('chains after add: ', Chains)
     }
 
     export const remChain = (chain: string): void => {
-        ldel(Chains, chain)
+        log.warn('chains before remove: ', Chains)
+        const news = Util.ldel(Chains, chain)
+        Chains = news
+        log.warn('chains after remove: ', Chains)
     }
 
     export const getChains = (): string[] => {
@@ -200,36 +226,28 @@ namespace G {
         return Rpcs
     }
 
-    /// subscribe id - pubId map
-    export const addSubscription = (subscriptId: string, id: IDT) => {
-        SubCache[subscriptId] = id
+    /// subscribe id - req id map
+    export const addSubReqMap = (subscriptId: string, id: IDT) => {
+        SubMap[subscriptId] = id
     }
 
-    export const getSubscription = (subscriptId: string): ResultT => {
-        if (!SubCache[subscriptId]) {
-            return Err('No this subscription')
+    export const getReqId = (subscriptId: string): ResultT => {
+        if (!SubMap[subscriptId]) {
+            return Err(`No this subscription ${subscriptId}`)
         }
-        return Ok(SubCache[subscriptId])
+        return Ok(SubMap[subscriptId])
     }
 
-    export const delSubscription = (subscriptId: string): void => {
-        delete SubCache[subscriptId]
+    export const delSubReqMap = (subscriptId: string): void => {
+        delete SubMap[subscriptId]
     }
 
-    // method cacche for subscribe method map
-    export const addMethodCache = (pubId: IDT, topic: string, params: string): void => {
-        MethodCache[pubId] = {topic, params, pubId}
+    export const delTopicCache = (pubId: IDT): void => {
+        delete TopicCache[pubId]
     }
 
-    export const delMethodCache = (pubId: IDT): void => {
-        delete MethodCache[pubId]
-    }
-
-    export const getMethodCache = (pubId: IDT): ResultT => {
-        if (!MethodCache[pubId]) {
-            return Err('')
-        }
-        return Ok(MethodCache[pubId])
+    export const getTopicCache = (pubId: IDT): SubscripT => {
+        return TopicCache[pubId]
     }
 }
 

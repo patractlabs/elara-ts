@@ -1,37 +1,37 @@
 import WebSocket from 'ws'
 import { IDT } from 'lib'
+import Suber from './suber'
+import Puber from './puber'
 
-export interface Suber {
+
+export type SuberMap = { [key in IDT]: Suber }
+export type ChainSuber = { [key in string]: SuberMap } 
+
+export type PuberMap = { [key in IDT]: Puber }
+
+// request type 
+export interface ReqT {
     id: IDT,
-    chain: string,
-    url: string,
-    ws: WebSocket,
-}
-
-export interface Puber {
-    id: IDT,
-    pid: IDT,
-    chain: string,
-    ws: WebSocket
-}
-
-export interface SubscripT {
-    id?: string,
     pubId: IDT,
-    topic: string,
+    subsId?: IDT,
+    originId: IDT,
+    isSubscribe: boolean,
+    jsonrpc: string,
+    method: string,
+    params: string
+}
+
+export type ReqMap = {[key in string]: ReqT}
+
+// subscribe type
+export interface SubscripT {
+    id: string,
+    pubId: IDT,
+    method: string,
     params: string
 }
 
 export type SubscripMap = {[key in string]: SubscripT}
-
-export interface MatcherT {
-    pubId?: IDT,
-    subId?: IDT,
-    pid?: IDT,
-    originId?: IDT,          
-    chain?: string,
-    subscribe?: string[],   //  topic : SubscripT
-}
 
 export interface WsData {
     id?: IDT,
@@ -41,7 +41,7 @@ export interface WsData {
     params?: any
 }
 
-export type SuberMap = { [key in IDT]: Suber }
-export type ChainSuber = { [key in string]: SuberMap }   
-export type PuberMap = { [key in IDT]: Puber }
-export type Matcher = { [key in string]: IDT }
+export type ChainPidT = {
+    chain: string,
+    pid: IDT
+}
