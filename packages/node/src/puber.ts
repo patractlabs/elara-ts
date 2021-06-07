@@ -55,7 +55,7 @@ const suberSend = (pubId: IDT, chain: string, data: WsData): void => {
     }
 
     const reqId = Matcher.newRequest(pubId, data)
-
+    log.info('Send new message to suber: ', reqId)
     data.id = reqId   // id bind
     suber.ws.send(JSON.stringify(data)) 
 }

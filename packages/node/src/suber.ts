@@ -23,11 +23,15 @@ const subReg = (() => {
 
 const dataParse = (dat: WsData): ResultT => {
     let reqId: IDT
+    log.warn('new suber message data: ', dat)
     if (dat.id) {
         // request response or subscription respond first time 
         reqId = dat.id
 
-        log.warn('new suber message data: ', dat)
+        if (dat.result === true || dat.result === false) {
+            log.info('Unsubscribe result: ', dat.result)
+            
+        }
         // handle method cache
         let re = G.getReqCache(reqId)  
         if (isErr(re)) {

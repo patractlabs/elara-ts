@@ -17,7 +17,7 @@
 /// 3. chain config update handle logic
 
 
-import { IDT, getAppLogger, Err, Ok, ResultT, isErr } from 'lib'
+import { IDT, getAppLogger, Err, Ok, ResultT, isErr, isOk } from 'lib'
 import G from './global'
 import { WsData, SubscripT, ReqT } from './interface'
 import Puber from './puber'
@@ -52,15 +52,19 @@ const clearSubContext = (puber: Puber) => {
     
     const topics = G.getSubTopics(chain, pid)
     log.info(`topics of chain[${chain}] pid[${pid}]`, topics)
-    for (let id of puber.topics || []) {
-        log.info('subscribe id: ', id)
-        const subscript = topics[id] as SubscripT
+    for (let subsId of puber.topics || []) {
+        log.info('subscribe id: ', subsId)
+        const subscript = topics[subsId] as SubscripT
         log.info('subscription: ', subscript)
         if (subscript.method) {
-            suberUnsubscribe(chain, subId, subscript.method, id)
-            G.delSubReqMap(id)
-            G.remSubTopic(chain, pid, id)
+            suberUnsubscribe(chain, subId, subscript.method, subsId)
         }
+        let re = G.getReqId(subsId)
+        if (isOk(re)) {
+            G.delReqCache(re.value)
+        }
+        G.delSubReqMap(subsId)
+        G.remSubTopic(chain, pid, subsId)
     }
 }
 
@@ -73,10 +77,8 @@ const isUnsubReq = (method: string): boolean => {
 }
 
 const unsubRequest = (pubId: IDT, data: WsData) => {
-    // update SubReqMap
     log.info(`Puber[${pubId}] unscribe ${data.method}: `, data.params[0])
     const subsId = data.params[0]
-    G.delSubReqMap(subsId)
 
     // update puber topics
     let re = G.getPuber(pubId)
@@ -91,7 +93,13 @@ const unsubRequest = (pubId: IDT, data: WsData) => {
     // update SubedTopics
     G.remSubTopic(puber.chain, puber.pid, subsId)
 
-    // clear subscribe SubReqMap{}
+    // delet reqCache of subscribe
+    re = G.getReqId(subsId)
+    if (isOk(re)) {
+        G.delReqCache(re.value)
+    }
+
+    // update SubReqMap
     G.delSubReqMap(subsId)
 }
 
@@ -131,7 +139,7 @@ namespace Matcher {
         const pubs = Util.ldel(suber.pubers, pubId)
         suber.pubers = pubs
         G.updateAddSuber(suber.chain, suber)
-        log.info(`Unregist successfullt: ${pubId} - ${suber.id}`)
+        log.info(`Unregist successfully: ${pubId} - ${suber.id}`)
         return Ok(true)
     }
 
@@ -171,7 +179,11 @@ namespace Matcher {
         // 
         G.addSubTopic(puber.chain, puber.pid, {id: subsId,pubId: req.pubId, method: req.method, params: req.params})
    
-        G.addSubReqMap(subsId, req.id)
+        // if unsubscribe, dont update
+        re = G.getReqId(subsId)
+        if (isErr(re)) {
+            G.addSubReqMap(subsId, req.id)
+        }
         return Ok(0)
     }
 }
