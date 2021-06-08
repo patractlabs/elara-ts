@@ -28,6 +28,7 @@ const getSuberBypubId = (pubId: IDT, chain: string): ResultT => {
 
 const suberSend = (pubId: IDT, chain: string, data: WsData): void => {
     let re = getSuberBypubId(pubId, chain)
+    log.warn('get suber result by pubId: ', re)
     let suber: Suber
     if (isErr(re)) {
         log.error('Suber send error: ', re.value)
@@ -55,7 +56,7 @@ const suberSend = (pubId: IDT, chain: string, data: WsData): void => {
     }
 
     const reqId = Matcher.newRequest(pubId, data)
-    log.info('Send new message to suber: ', reqId)
+    log.info('Send new message to suber, request ID: ', reqId)
     data.id = reqId   // id bind
     suber.ws.send(JSON.stringify(data)) 
 }
@@ -131,7 +132,7 @@ namespace Puber {
             dat = JSON.parse(data.toString()) as WsData
         } catch (err) {
             log.error('Parse message to JSON error: ', err)  
-            puber.ws.send('Invalid request')
+            puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
             return
         }
         log.info('Into message handler: ', dat)

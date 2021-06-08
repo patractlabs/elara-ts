@@ -29,10 +29,10 @@ import { randomId } from 'lib/utils'
 const log = getAppLogger('matcher', true)
 
 const suberUnsubscribe = (chain: string, subId: IDT, topic: string, subsId: string) => {
-    log.warn('Into unscribe: ', chain, subId, topic, subsId)
+    log.warn('Into unsubcribe: ', chain, subId, topic, subsId)
     const re = G.getSuber(chain, subId)
     if (isErr(re)) {
-        log.error('get suber to unscribe error: ', re.value)
+        log.error('get suber to unsubcribe error: ', re.value)
         return
     }
     const suber = re.value as Suber
@@ -77,8 +77,12 @@ const isUnsubReq = (method: string): boolean => {
 }
 
 const unsubRequest = (pubId: IDT, data: WsData) => {
-    log.info(`Puber[${pubId}] unscribe ${data.method}: `, data.params[0])
+    log.info(`Puber[${pubId}] unsubcribe ${data.method}: `, data.params[0])
     const subsId = data.params[0]
+    if (!subsId) {
+        log.error('Invalid unsubscribe params: ', subsId)
+        return
+    }
 
     // update puber topics
     let re = G.getPuber(pubId)

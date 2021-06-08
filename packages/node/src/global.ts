@@ -1,5 +1,5 @@
 import { Err, Ok, getAppLogger, IDT, ResultT, RpcMethods, RpcMethodT } from 'lib'
-import { SuberMap, PuberMap, ChainSuber, SubscripT, SubscripMap, ReqMap, WsData, ReqT } from './interface'
+import { SuberMap, PuberMap, ChainSuber, SubscripT, SubscripMap, ReqMap, ReqT } from './interface'
 import Suber from './suber'
 import Puber from './puber'
 import Util from './util'
@@ -32,7 +32,7 @@ const Subers: ChainSuber = {}
  *      originId: 1,
  *      ws: WebSocketObject
  *      subId: 'f90dc072e006d5f6f8fbe33e565d274f',
- *      topics: ['chain_subscribeNewHead']
+ *      topics: ['subsID']
  *  }
  * }
  */
@@ -43,7 +43,7 @@ const Pubers: PuberMap = {}
  *  'polkadot': {
  *      'dfaghlsjflslajslkgslgjklj': {
  *          id: 'sdfi23kjldsfds32',
- *          topic: 'chain_subscribeNewHead',
+ *          method: 'chain_subscribeNewHead',
  *          pubId: 'fkjskljxjglksdjsdgjsg',
  *          params: '[]'
  *      }
@@ -55,11 +55,11 @@ const TopicSubed: { [key in string]: PidTopicMap } = {}
 let Chains: string[] = []
 const Rpcs: RpcMethodT = RpcMethods
 const ReqMap: ReqMap = {}
-
 const SubMap: {[key in string]: IDT} = {} // subscriptionId to reqId
-const TopicCache: {[key in string]: SubscripT } = {}  // pubId: {}
 
-let ID_CNT: number = 0
+const ConnCntMap: {[key in string]: number} = {}
+
+let ID_CNT: number = 0      // for suber select factor
 
 namespace G {
 
@@ -86,20 +86,20 @@ namespace G {
     export const updateAddSuber = (chain: string, suber: Suber): void => {
         chain = chain.toLowerCase()
         const sub: SuberMap = {}
-        log.warn('subers before add: ', Subers[chain])
+        // log.warn('subers before add: ', Subers[chain])
         sub[suber.id] = suber
         Subers[chain] = {
             ...Subers[chain],
             ...sub
         }
-        log.warn('subers after add: ', Subers[chain])
+        // log.warn('subers after add: ', Subers[chain])
     }
 
     export const delSuber = (chain: string, subId: IDT): void => {
-        log.warn('subers before delete: ', Subers[chain])
+        // log.warn('subers before delete: ', Subers[chain])
         chain = chain.toLowerCase()
         delete Subers[chain][subId]
-        log.warn('subers after delete: ', Subers[chain])
+        // log.warn('subers after delete: ', Subers[chain])
     }
 
     export const getPuber = (pubId: IDT): ResultT => {
@@ -114,9 +114,9 @@ namespace G {
     }
 
     export const addPuber = (puber: Puber): void => {
-        log.warn('pubers before add: ', Pubers)
+        // log.warn('pubers before add: ', Pubers)
         Pubers[puber.id] = puber
-        log.warn('pubers after add: ', Pubers)
+        // log.warn('pubers after add: ', Pubers)
     }
 
     export const delPuber = (pubId: IDT): void => {
@@ -176,8 +176,19 @@ namespace G {
     }
 
     export const remSubTopic = (chain: string, pid: IDT, subsId: string): void => {
+        log.warn(`Subscribed topics before delete: `, TopicSubed[chain][pid])
         chain = chain.toLowerCase()
         delete TopicSubed[chain][pid][subsId] 
+        log.warn(`Subscribed topics after delete: `, TopicSubed[chain][pid])
+
+    }
+
+    export const getSubTopic = (chain: string, pid: IDT, subsId: IDT): ResultT => {
+        const ct = TopicSubed[chain]
+        if (!ct || !ct[pid] || !ct[pid][subsId]) {
+            return Err(`Invalid subscribed topic: ${subsId}`)
+        }
+        return Ok(TopicSubed[chain][pid][subsId])
     }
 
     export const getSubTopics = (chain: string, pid: IDT): SubscripMap => {
@@ -239,15 +250,21 @@ namespace G {
     }
 
     export const delSubReqMap = (subscriptId: string): void => {
+        log.warn(`SubMap before delete: `, SubMap)
         delete SubMap[subscriptId]
+        log.warn(`SubMap after delete: `, SubMap)
     }
 
-    export const delTopicCache = (pubId: IDT): void => {
-        delete TopicCache[pubId]
+    export const resetConnCnt = (chain: string) => {
+        ConnCntMap[chain] = 0
     }
 
-    export const getTopicCache = (pubId: IDT): SubscripT => {
-        return TopicCache[pubId]
+    export const incrConnCnt = (chain: string) => {
+        ConnCntMap[chain] = 1 + ConnCntMap[chain] || 0
+    }
+
+    export const getConnCnt = (chain: string) => {
+        return ConnCntMap[chain] || 0
     }
 }
 

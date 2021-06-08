@@ -1,10 +1,11 @@
 import { Redis } from 'lib'
 import { getAppLogger, KEYS } from 'lib'
 
-const KCache = KEYS.Cache
+// const KCache = KEYS.Cache
 const KChain = KEYS.Chain
 
 const log = getAppLogger('redis')
+log.info('Redis connection init')
 
 const chainClient = Redis.newClient(Redis.DBT.Chain)
 const chainRedis = chainClient.client

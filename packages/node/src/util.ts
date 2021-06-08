@@ -27,6 +27,10 @@ namespace Util {
             return val !== value
         })
     }
+
+    export const sleeps = async (s: number) => {
+        return new Promise(resolve=>setTimeout(resolve, s * 1000))
+    }
 }
 
 export default Util

@@ -1,4 +1,3 @@
-import WebSocket from 'ws'
 import { IDT } from 'lib'
 import Suber from './suber'
 import Puber from './puber'
@@ -14,7 +13,7 @@ export interface ReqT {
     id: IDT,
     pubId: IDT,
     subsId?: IDT,
-    originId: IDT,
+    originId: number,
     isSubscribe: boolean,
     jsonrpc: string,
     method: string,
