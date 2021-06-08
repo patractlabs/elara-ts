@@ -126,6 +126,8 @@ namespace Matcher {
             return Err(`unregist puber error: ${re.value}`)
         }
         const puber = re.value as Puber
+        G.decrConnCnt(puber.chain, puber.pid)   
+        
         clearSubContext(puber)
 
         G.delPuber(pubId)

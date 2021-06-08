@@ -271,7 +271,7 @@ const newSuber = (chain: string, url: string, pubers?: IDT[]): Suber => {
         let pubers = subTmp.pubers
         log.warn(`Ready to create new suber, transmit pubers: `, pubers)
 
-        if (G.getConnCnt(chain) >= MAX_RE_CONN_CNT) {
+        if (G.getTryCnt(chain) >= MAX_RE_CONN_CNT) {
             await closeHandler(chain, subTmp)
             pubers = []
         }
@@ -280,7 +280,7 @@ const newSuber = (chain: string, url: string, pubers?: IDT[]): Suber => {
         delays(3, () => {
             log.warn(`create new suber try to connect`)
             newSuber(chain, url, pubers || [])
-            G.incrConnCnt(chain)
+            G.incrTryCnt(chain)
         })
     })
 

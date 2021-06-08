@@ -10,6 +10,7 @@ import G from './global'
 import { getAppLogger, IDT, PResultT, Err, Ok, isErr, PVoidT, ResultT } from 'lib'
 import Matcher from './matcher'
 import Suber from './suber'
+import Conf from '../config'
 
 const log = getAppLogger('Puber', true)
 
@@ -104,9 +105,11 @@ namespace Puber {
 
     export const onConnect = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
 
-        // TODO: connection limit according to pid connection config 
-        const isLimit = false
-        if (isLimit) {
+        // connection limit 
+        const wsConf = Conf.getWs()
+        const curConn = G.getConnCnt(chain, pid)
+        log.warn('Max connection limit: ', wsConf.maxConn, curConn)
+        if (curConn >= wsConf.maxConn) {
             ws.send('Out of connection limit')
             ws.terminate()
             return Err('Out of connectino limit')
@@ -121,6 +124,7 @@ namespace Puber {
         const puber = re.value as Puber
 
         log.info(`Create puber successfully [${puber.id}]-[${puber.subId}]`)
+        G.incrConnCnt(chain, pid)
         return re
     }
 
