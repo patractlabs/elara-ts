@@ -9,9 +9,11 @@
   "author": "",
   "license": "GPL-3.0",
   "dependencies": {
+    "config": "^3.3.6",
     "ws": "^7.4.6"
   },
   "devDependencies": {
+    "@types/config": "0.0.38",
     "@types/ws": "^7.4.4"
   }
 }

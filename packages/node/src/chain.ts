@@ -1,8 +1,10 @@
 /// chain list init and handler the chain update
 
 import { getAppLogger, isErr, PVoidT } from 'lib'
+import Conf from '../config'
 import Dao, { chainPSub } from '../src/dao'
 import G from './global'
+import Suber from './suber'
 const log = getAppLogger('sub-chain', true)
 
 enum Topic {
@@ -25,20 +27,24 @@ const fetchChains = async (): PVoidT => {
 // chain events
 const chainAddHandler = async (chain: string): PVoidT => {
     log.info('Into chain add handler: ', chain)
-    // TODO: chain-init logic
-    // update G.chain G.chainConf
-    // 
+
+    // reinit subers of chain 
+    const wsConf = Conf.getWs()
+    Suber.initChainSuber(chain, wsConf.poolSize)
+
+    // update G.chain
+    G.addChain(chain)
 }
 
 const chainDelHandler = async (chain: string): PVoidT => {
     log.info('Into chain delete handler: ', chain)
-    // TODO
+    // TODO ?
 }
 
 const chainUpdateHandler = async (chain: string): PVoidT => {
     log.info('Into chain update handler: ', chain)
     // TODO
-    // update G.chain G.chainConf
+    // nothing to do now
 }
 
 // pattern subscription
@@ -73,30 +79,8 @@ chainPSub.on('error', (err) => {
 
 namespace Chain {
 
-    export const parseConfig = async (chain: string) => {
-        const conf = await Dao.getChainConfig(chain)
-        if (isErr(conf)) { 
-            log.error(`Parse config of chain[${chain}] error: `, conf.value)
-            return 
-        }
-        // what if json parse error
-        // G.chainConf[chain] = {
-        //     ...conf.value,
-        //     extends: JSON.parse(conf.value.extends),
-        //     excludes: JSON.parse(conf.value.excludes)
-        // }
-        // log.warn('chain conf: ', G.chainConf[chain])
-    }
-
     export const init = async () => {
         return fetchChains()
-        // let parses: Promise<void>[] = []
-        // const chains = G.getChains()
-        // log.warn('parse chain: ', chains)
-        // for (let c of chains) {
-        //     parses.push(parseConfig(c))
-        // }
-        // return Promise.all(parses)
     }
 }
 

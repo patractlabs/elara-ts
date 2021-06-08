@@ -7,6 +7,7 @@ import Chain from './chain'
 import Dao from './dao'
 import Matcher from './matcher'
 import Puber from './puber'
+import Conf from '../config'
 
 const log = getAppLogger('suber', true)
 const MAX_RE_CONN_CNT = 10
@@ -232,6 +233,8 @@ const openHandler = (chain: string, subId: IDT, ws: WebSocket, pubers: IDT[]) =>
 }
 
 const newSuber = (chain: string, url: string, pubers?: IDT[]): Suber => {
+    // chain valid check
+    Dao.getChainConfig(chain)
     const ws = new WebSocket(url)
     const suber =  { id: randomId(), ws, url, chain, pubers } as Suber
     G.updateAddSuber(chain, suber)
@@ -313,24 +316,28 @@ namespace Suber {
         return Ok(subers[keys[ind]])
     }
 
+    export const initChainSuber = async (chain: string, poolSize: number) => {
+        const conf = await Dao.getChainConfig(chain)
+        if (isErr(conf)) { 
+            log.warn(`Config of chain[${chain}] invalid`)    
+            return 
+        }
+        const url = geneUrl(conf.value)
+        log.info(`Url of chain [${chain}] is: `, url)
+        for (let i = 0; i < poolSize; i++) {                
+            newSuber(chain, url)
+        }
+    }
+
     export const init = async () => {
         // fetch chain list
         await Chain.init()
         const chains = G.getChains()
         // config
-        const poolSize = 2
-
+        const wsConf = Conf.getWs()
+        // log.warn('Pool size: ', wsConf.poolSize, process.env.NODE_ENV)
         for (let c of chains) {
-            const conf = await Dao.getChainConfig(c)
-            if (isErr(conf)) { 
-                log.warn(`Config of chain[${c}] invalid`)    
-                continue 
-            }
-            const url = geneUrl(conf.value)
-            log.info(`Url of chain [${c}] is: `, url)
-            for (let i = 0; i < poolSize; i++) {                
-                newSuber(c, url)
-            }
+            initChainSuber(c, wsConf.poolSize)
         }
         log.info('Init completely. ', G.getAllSubers())
     }

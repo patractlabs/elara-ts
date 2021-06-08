@@ -9,6 +9,11 @@ const log = getAppLogger('Node', true)
 const Server =  Http.createServer()
 const wss = new WebSocket.Server({ noServer: true })
 
+
+Server.on('connection', (dat) => {
+    log.info('on connection: ', dat)
+})
+
 // server 
 Server.on('upgrade', async (res, socket, head) => {
     const path = res.url

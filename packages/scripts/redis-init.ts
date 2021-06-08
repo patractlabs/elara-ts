@@ -34,7 +34,7 @@ const test = async () => {
 
 const init = async () => {
     await newChain('Polkadot')
-    await newChain('Kusuma')
+    // await newChain('Kusuma')
     process.exit(0)
 }
 // test()
