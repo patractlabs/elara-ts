@@ -10,8 +10,8 @@ const newChain = async (chain: string) => {
     const polkadot: ChainConfig = {
         name: chain,
         baseUrl: '127.0.0.1',
-        wsPort: 9944,
-        rpcPort: 9933,
+        wsPort: 19944,
+        rpcPort: 19933,
         network: Network.Live,        // test
         chainType: ChainType.Relay,     // parallel
         extends: JSON.stringify({}),
@@ -33,7 +33,7 @@ const test = async () => {
 }
 
 const init = async () => {
-    await newChain('Polkadot')
+    await newChain('Jupiter')
     // await newChain('Kusuma')
     process.exit(0)
 }

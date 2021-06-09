@@ -335,7 +335,7 @@ namespace Suber {
         const chains = G.getChains()
         // config
         const wsConf = Conf.getWs()
-        // log.warn('Pool size: ', wsConf.poolSize, process.env.NODE_ENV)
+        log.warn('Pool size: ', wsConf.poolSize, process.env.NODE_ENV)
         for (let c of chains) {
             initChainSuber(c, wsConf.poolSize)
         }

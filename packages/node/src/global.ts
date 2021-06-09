@@ -121,15 +121,15 @@ namespace G {
     }
 
     export const delPuber = (pubId: IDT): void => {
-        log.warn('pubers before delete: ', Pubers)
+        // log.warn('pubers before delete: ', Pubers)
         delete Pubers[pubId]
-        log.warn('pubers after delete: ', Pubers)
+        // log.warn('pubers after delete: ', Pubers)
     }
 
     export const updateAddReqCache = (req: ReqT): void => {
-        log.warn('request cache before add-update: ', ReqMap)
+        // log.warn('request cache before add-update: ', ReqMap)
         ReqMap[req.id] = req
-        log.warn('request cache after add-update: ', ReqMap)
+        // log.warn('request cache after add-update: ', ReqMap)
     }
 
     export const delReqCache = (reqId: IDT): void => {
@@ -213,21 +213,21 @@ namespace G {
     }
 
     export const addChain = (chain: string): void => {
-        log.warn('chains before add: ', Chains)
+        // log.warn('chains before add: ', Chains)
         chain = chain.toLowerCase()
         if (Chains.indexOf(chain) !== -1)  {
             log.warn('Chain is exist: ', chain)
             return
         }
         Chains.push(chain)
-        log.warn('chains after add: ', Chains)
+        // log.warn('chains after add: ', Chains)
     }
 
     export const remChain = (chain: string): void => {
-        log.warn('chains before remove: ', Chains)
+        // log.warn('chains before remove: ', Chains)
         const news = Util.ldel(Chains, chain)
         Chains = news
-        log.warn('chains after remove: ', Chains)
+        // log.warn('chains after remove: ', Chains)
     }
 
     export const getChains = (): string[] => {
@@ -251,9 +251,9 @@ namespace G {
     }
 
     export const delSubReqMap = (subscriptId: string): void => {
-        log.warn(`SubMap before delete: `, SubMap)
+        // log.warn(`SubMap before delete: `, SubMap)
         delete SubMap[subscriptId]
-        log.warn(`SubMap after delete: `, SubMap)
+        // log.warn(`SubMap after delete: `, SubMap)
     }
 
     export const resetConnCnt = (chain: string) => {

@@ -1,6 +1,9 @@
 {
+    "server": {
+        "port": 7001
+    },
     "ws": {
-        "maxConn": 5,
+        "maxConn": 10,
         "poolSize": 5
     }
 }

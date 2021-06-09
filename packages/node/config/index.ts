@@ -7,7 +7,16 @@ interface WsConf {
     poolSize: number
 }
 
+interface ServerConf {
+    port: number
+}
+
 namespace Conf {
+
+    export const getServer = (): ServerConf => {
+        return Config.get('server')
+    }
+
     export const getWs = (): WsConf => {
         return Config.get('ws')
     }

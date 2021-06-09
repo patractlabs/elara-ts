@@ -1,15 +1,16 @@
 {
   "name": "node",
   "version": "1.0.0",
-  "description": "node service for elara fail",
+  "description": "node transpond service for elara fail",
   "main": "app.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Bruce",
   "license": "GPL-3.0",
   "dependencies": {
     "config": "^3.3.6",
+    "lib": "file:../lib",
     "ws": "^7.4.6"
   },
   "devDependencies": {

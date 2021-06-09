@@ -1,5 +1,4 @@
 import Http from 'http'
-import Stream from 'stream'
 import WebSocket from 'ws'
 import { getAppLogger, Ok, isNone, isErr, Option, ChainConfig, PResultT, Err } from 'lib'
 import Puber from './src/puber'
@@ -7,6 +6,7 @@ import Suber from './src/suber'
 import Util from './src/util'
 import { ChainPidT } from './src/interface'
 import Dao from './src/dao'
+import Conf from './config'
 
 const log = getAppLogger('Node', true)
 const Server =  Http.createServer()
@@ -35,8 +35,7 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
     let re = await Dao.getChainConfig(chain)
     if (isErr(re)) {
         log.error('Request error:', re.value)
-        Response.Fail(resp, `request error: no valid chain ${chain}`, 500)
-        return Err('')
+        return Err('invalid chain')
     }
     const conf = re.value as ChainConfig
     let url = `http://${conf.baseUrl}:${conf.rpcPort}`
@@ -76,7 +75,7 @@ const isMethodOk = (method: string): boolean => {
 const pathOk = (url: string, host: string): Option<ChainPidT> => {
     let nurl = new URL(url, `http://${host}`)
     let path = nurl.pathname
-    log.warn('request path: ', path, url)
+    log.warn('request path: ', path)
     // chain pid valid check
     return Util.urlParse(path)
 }
@@ -124,7 +123,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
 })
 
 // WebSocket request 
-Server.on('upgrade', async (res: Http.IncomingMessage, socket: Stream.Duplex, head) => {
+Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
     const path = res.url!
     log.warn('New socket request: ', path)
     const re: any = Util.urlParse(path)
@@ -176,8 +175,9 @@ wss.on('connection', async (ws, req: any) => {
 
 const run = async () => {
     await Suber.init()
-    Server.listen(7001, () => {
-        log.info('Elara node server listen on port: 7001')
+    let conf = Conf.getServer()
+    Server.listen(conf.port, () => {
+        log.info('Elara node server listen on port: ', conf.port)
     })
 }
 
@@ -200,7 +200,7 @@ errorTypes.map(type => {
 signalTraps.map((type: any) => {
     process.once(type, async (err) => {
         try {
-            log.error(`process on signal ecent: ${type}: `, err)
+            log.error(`process on signal event: ${type}: `, err)
         } finally {
             process.kill(process.pid, type)
         }
