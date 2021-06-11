@@ -1,6 +1,6 @@
 {
     "name": "node-transpond", 
-    "script": "./app.ts",
+    "script": "./dist/app.js",
     "cwd": "./", 
     "watch": [ 
         "config",

@@ -99,6 +99,7 @@ namespace G {
     export const delSuber = (chain: string, subId: IDT): void => {
         // log.warn('subers before delete: ', Subers[chain])
         chain = chain.toLowerCase()
+        Subers[chain][subId].pubers?.clear()
         delete Subers[chain][subId]
         // log.warn('subers after delete: ', Subers[chain])
     }
@@ -114,7 +115,7 @@ namespace G {
         return Pubers
     }
 
-    export const addPuber = (puber: Puber): void => {
+    export const updateAddPuber = (puber: Puber): void => {
         // log.warn('pubers before add: ', Pubers)
         Pubers[puber.id] = puber
         // log.warn('pubers after add: ', Pubers)
@@ -122,6 +123,7 @@ namespace G {
 
     export const delPuber = (pubId: IDT): void => {
         // log.warn('pubers before delete: ', Pubers)
+        Pubers[pubId].topics?.clear()
         delete Pubers[pubId]
         // log.warn('pubers after delete: ', Pubers)
     }
@@ -143,6 +145,10 @@ namespace G {
             return Err(`invalid request id ${reqId}`)
         }
         return Ok(ReqMap[reqId])
+    }
+
+    export const getAllReqCache = () => {
+        return ReqMap
     }
 
     export const addSubTopic = (chain: string, pid: IDT, topic: SubscripT): void => {
@@ -201,7 +207,7 @@ namespace G {
     }
 
     export const getSubTopicsByChain = (chain: string): PidTopicMap => {
-        return TopicSubed[chain]
+        return TopicSubed[chain] || {}
     }
 
     export const getAllSubTopics = () => {

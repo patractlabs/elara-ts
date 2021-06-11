@@ -4,7 +4,8 @@
   "description": "node transpond service for elara fail",
   "main": "app.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "coverage": "jest --coverage"
   },
   "author": "Bruce",
   "license": "GPL-3.0",
@@ -15,6 +16,9 @@
   },
   "devDependencies": {
     "@types/config": "0.0.38",
-    "@types/ws": "^7.4.4"
+    "@types/jest": "^26.0.23",
+    "@types/ws": "^7.4.4",
+    "jest": "^27.0.4",
+    "ts-jest": "^27.0.3"
   }
 }

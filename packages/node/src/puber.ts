@@ -48,10 +48,10 @@ const suberSend = (pubId: IDT, chain: string, data: WsData): void => {
         }
         const puber = re.value as Puber
         puber.subId = suber.id
-        G.addPuber(puber)
+        G.updateAddPuber(puber)
         
         // update suber
-        Matcher.regist(puber.id, suber)
+        // Matcher.regist(puber, suber)    
     } else {
         suber = re.value as Suber
     }
@@ -82,25 +82,30 @@ interface Puber {
     pid: IDT,
     chain: string,
     ws: WebSocket,
-    subId: IDT,            // suber id
-    topics?: string[]    // [subscribeId]
+    subId?: IDT,            // suber id
+    topics?: Set<string>    // {subscribeId}
 }
 
 
 namespace Puber {
 
-    export const create = (ws: WebSocket, chain: string, pid: IDT): ResultT => {
-        const re = Suber.selectSuber(chain)
+    export const create = (ws: WebSocket, chain: string, pid: IDT): Puber => {
+        const puber = { id: randomId(), pid, chain, ws } as Puber
+        G.updateAddPuber(puber)
+        return puber
+    }
+
+    export const updateTopics = (pubId: IDT, subsId: string): void => {
+        let re = G.getPuber(pubId)
         if (isErr(re)) {
-            return re
+            // SBH
+            log.error(`update puber topics error: ${re.value}`)
+            process.exit(1) // exit process or ?
         }
-        const suber = re.value as Suber
-        const puber = { id: randomId(), pid, chain, ws, subId: suber.id } as Puber
-        G.addPuber(puber)
-        
-        // update suber
-        Matcher.regist(puber.id, suber)
-        return Ok(puber)
+        const puber = re.value as Puber
+        puber.topics = puber.topics || new Set<string>()
+        puber.topics.add(subsId)
+        G.updateAddPuber(puber)
     }
 
     export const onConnect = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
@@ -115,17 +120,18 @@ namespace Puber {
             return Err('Out of connectino limit')
         }
     
-        const re = create(ws, chain, pid)
+        const puber = create(ws, chain, pid)
+
+        // regist in Matcher
+        let re = Matcher.regist(puber)
+
         if (isErr(re)) {
-            const err = `create puber error: ${re.value}`
-            log.error(err)
+            const err = `Matcher regist error: ${re.value}`
             return Err(err)
         }
-        const puber = re.value as Puber
 
         log.info(`Create puber successfully [${puber.id}]-[${puber.subId}]`)
-        G.incrConnCnt(chain, pid)
-        return re
+        return Ok(puber)
     }
 
     export const onMessage = async (puber: Puber, data: WebSocket.Data): PVoidT => {

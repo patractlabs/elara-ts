@@ -1,6 +1,7 @@
 {
     "server": {
-        "port": 7001
+        "port": 7001,
+        "maxReconnTry": 60 
     },
     "ws": {
         "maxConn": 10,

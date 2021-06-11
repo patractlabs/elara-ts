@@ -150,10 +150,16 @@ wss.on('connection', async (ws, req: any) => {
     let re = await Puber.onConnect(ws, req.chain, req.pid)
     if (isErr(re)) {
         log.error('Connect handle error: ', re.value)
+        if (re.value.indexOf('no valid subers of chain') !== 1) {
+            ws.send(`no chain named ${req.chain}`)
+            ws.close(1001, 'Invalid chain')
+            return
+        }
         ws.terminate()
         return
     }
     const puber = re.value as Puber
+
     ws.on('message', (data) => {
         // log.info('New msg-evt: ', data)
         Puber.onMessage(puber, data)

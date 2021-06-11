@@ -22,7 +22,6 @@ import G from './global'
 import { WsData, SubscripT, ReqT } from './interface'
 import Puber from './puber'
 import Suber from './suber'
-import Util from './util'
 import Topic from './topic'
 import { randomId } from 'lib/utils'
 
@@ -46,6 +45,7 @@ const suberUnsubscribe = (chain: string, subId: IDT, topic: string, subsId: stri
 }
 
 const clearSubContext = (puber: Puber) => {
+    // sub context: 1. subed topics 2. subreqMap 3. reqCache for subscribe
     const chain = puber.chain
     const pid = puber.pid
     const subId = puber.subId!
@@ -91,8 +91,8 @@ const unsubRequest = (pubId: IDT, data: WsData) => {
         return
     }
     const puber = re.value as Puber
-    puber.topics = Util.ldel(puber.topics!, subsId)
-    G.addPuber(puber)
+    puber.topics!.delete(subsId)
+    G.updateAddPuber(puber)
 
     // update SubedTopics
     G.remSubTopic(puber.chain, puber.pid, subsId)
@@ -108,17 +108,34 @@ const unsubRequest = (pubId: IDT, data: WsData) => {
 }
 
 namespace Matcher {
-    export const regist = (pubId: IDT, suber: Suber): void => {
-        const chain = suber.chain
-        suber.pubers = suber.pubers || []
-        suber.pubers.push(pubId)
+    export const regist = (puber: Puber): ResultT => {
+        /// when puber connect
+
+        const chain = puber.chain
+        const re = Suber.selectSuber(chain)
+        if (isErr(re)) {
+            return re
+        }
+        const suber = re.value as Suber
+
+        // update suber.pubers
+        suber.pubers = suber.pubers || new Set<IDT>()
+        suber.pubers.add(puber.id)
         G.updateAddSuber(chain, suber)
+
+        // update puber.subId
+        puber.subId = suber.id
+        G.updateAddPuber(puber)
+
+        // side context set
+        G.incrConnCnt(chain, puber.pid)
+        return Ok(true)
     }
 
     export const unRegist = (pubId: IDT): ResultT => {
-        // remove puber.topics and unscribe
-        // delete puber
-        // remove suber.pubers[pubId]
+        /// when puber error or close,
+        /// if suber close or error, will emit puber close
+        
         let re = G.getPuber(pubId)
         if (isErr(re) || !re.value.subId) {
             // SBH
@@ -126,10 +143,11 @@ namespace Matcher {
             return Err(`unregist puber error: ${re.value}`)
         }
         const puber = re.value as Puber
+
         G.decrConnCnt(puber.chain, puber.pid)   
         
         clearSubContext(puber)
-
+        
         G.delPuber(pubId)
 
         re = G.getSuber(puber.chain, puber.subId!)
@@ -138,12 +156,12 @@ namespace Matcher {
             return Err(`unregist puber error: ${re.value}`)
         }
         const suber = re.value as Suber
-        if (!suber.pubers || suber.pubers.length < 1) {
+        if (!suber.pubers || suber.pubers.size < 1) {
             log.error('Unregist puber error: empty puber member')
             return Err('unregist puber error: empty puber member')
         }
-        const pubs = Util.ldel(suber.pubers, pubId)
-        suber.pubers = pubs
+        // const pubs = Util.ldel(suber.pubers, pubId)
+        suber.pubers.delete(pubId)
         G.updateAddSuber(suber.chain, suber)
         log.info(`Unregist successfully: ${pubId} - ${suber.id}`)
         return Ok(true)
@@ -170,19 +188,20 @@ namespace Matcher {
     }
 
     export const setSubContext = (req: ReqT, subsId: string): ResultT => {
+        // update subscribe request cache
         req.subsId = subsId
         G.updateAddReqCache(req)
 
         // update puber.topics, 
         let re = G.getPuber(req.pubId)
         if (isErr(re)) {
+            // SBH
+            // process.exit(1) ?
             return Err(`set subscribe context error: ${re.value}`)
         }
         const puber = re.value as Puber
-        puber.topics = puber.topics ||[]
-        puber.topics.push(subsId)
 
-        // 
+        // add new subscribed topic
         G.addSubTopic(puber.chain, puber.pid, {id: subsId,pubId: req.pubId, method: req.method, params: req.params})
    
         // if unsubscribe, dont update

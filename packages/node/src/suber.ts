@@ -19,7 +19,7 @@ const delays = (sec: number, cb: () => void) => {
     }, sec * 1000);
 }
 
-const subReg = (() => {
+const SubReg = (() => {
     return /[0-9a-zA-Z]{16}/
 })()
 
@@ -41,9 +41,13 @@ const dataParse = (dat: WsData): ResultT => {
         }
         const req = re.value as ReqT
         const subsId = dat.result
-        const subTestOk: boolean = subReg.test(subsId)
+        const subTestOk: boolean = SubReg.test(subsId)
 
         if (req.isSubscribe && subTestOk) {
+            
+            Puber.updateTopics(req.pubId, subsId)
+
+            // set suscribe context
             re = Matcher.setSubContext(req, subsId)
 
             if (isErr(re)) {
@@ -100,6 +104,8 @@ const msgCb = (data: WebSocket.Data) => {
     const req = re.value as ReqT
     dat.id = req.originId
     puberSend(req.pubId, dat)
+    /// if suber close before message event,
+    /// this request Cache will clear before suber delete
     if (!req.isSubscribe) {
         // subscribe request cache will be clear 
         // on close or unsubscribe event
@@ -107,7 +113,7 @@ const msgCb = (data: WebSocket.Data) => {
     }
 }
 
-const puberClear = (pubers: IDT[]) => {
+const puberClear = (pubers: Set<IDT>) => {
     log.warn(`Into puber clear: `, pubers)
     for (let pubId of pubers) {
         let re = G.getPuber(pubId)
@@ -117,27 +123,27 @@ const puberClear = (pubers: IDT[]) => {
             continue
         }
         // close puber conn
-        const puber = re.value as Puber
+        const puber = re.value as Puber   
         puber.ws.close(1001, 'cannot connect to server')
 
-        // clear request cache & sub map & subed topics 
-        // ReqMap have to be clear before subMap
-        const topics = puber.topics || []
-        for (let subsId of topics) {
-            G.remSubTopic(puber.chain, puber.pid, subsId)
-            // no need to unsubscribe
-            let re = G.getReqId(subsId)
-            if (isErr(re)) {
-                log.error(`clear subscribe topic on suber close error: `, re.value)
-                continue
-            }
-            const reqId = re.value as IDT
-            G.delReqCache(reqId)
-            G.delSubReqMap(subsId)
-        }
+        // // clear request cache & sub map & subed topics 
+        // // ReqMap have to be clear before subMap
+        // const topics = puber.topics || new Set<string>()
+        // for (let subsId of topics) {
+        //     G.remSubTopic(puber.chain, puber.pid, subsId)
+        //     // no need to unsubscribe
+        //     let re = G.getReqId(subsId)
+        //     if (isErr(re)) {
+        //         log.error(`clear subscribe topic on suber close error: `, re.value)
+        //         continue
+        //     }
+        //     const reqId = re.value as IDT
+        //     G.delReqCache(reqId)
+        //     G.delSubReqMap(subsId)
+        // }
 
-        // delete puber
-        G.delPuber(pubId)
+        // // delete puber
+        // G.delPuber(pubId)
     }
 }
 
@@ -145,7 +151,7 @@ const closeHandler = async (chain: string, suber: Suber): PVoidT => {
 
     log.warn(`Too many reconnection try of chain[${chain}], start to clear resource.`)
     // clear pubers context
-    puberClear(suber.pubers || [])
+    puberClear(suber.pubers || new Set<IDT>())
 
 }
 
@@ -157,7 +163,7 @@ const recoverPuber = (pubId: IDT, subId: IDT): ResultT => {
 
     // rematche subId
     puber.subId = subId
-    G.addPuber(puber)
+    G.updateAddPuber(puber)
     
     if (!puber.topics) { return Err('No topics to recover') }
     return Ok(puber)
@@ -176,7 +182,8 @@ const recoverSubedTopic = (chain: string, pid: IDT, subsId: string): ResultT => 
     return re
 }
 
-const openHandler = (chain: string, subId: IDT, ws: WebSocket, pubers: IDT[]) => {
+const openHandler = (chain: string, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
+    log.warn(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers}]`)
     for (let pubId of pubers) {
 
         let re = recoverPuber(pubId, subId)
@@ -228,11 +235,23 @@ const openHandler = (chain: string, subId: IDT, ws: WebSocket, pubers: IDT[]) =>
 
             // delete subMap
             G.delSubReqMap(subsId)
+
+            // no need to clear req cache, 
+            // req.subsId will be update after new message received
         }
     }
 }
 
-const newSuber = (chain: string, url: string, pubers?: IDT[]): Suber => {
+const reqCacheClear = (pubers: Set<IDT>) => {
+    const reqs = G.getAllReqCache()
+    for (let reqId in reqs) {
+        if (pubers.has(reqs[reqId].pubId)) {
+            G.delReqCache(reqId)
+        }
+    }
+}
+
+const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     // chain valid check
     Dao.getChainConfig(chain)
     const ws = new WebSocket(url)
@@ -240,17 +259,15 @@ const newSuber = (chain: string, url: string, pubers?: IDT[]): Suber => {
     G.updateAddSuber(chain, suber)
 
     ws.once('open', () => {
-        log.info(`Websocket connection open: chain[${chain}]`)
+        log.info(`Websocket connection opened: chain[${chain}]`)
 
-        // reset RE_CONN_CNT = 0 
-        G.resetConnCnt(chain)
+        G.resetConnCnt(chain)   // reset chain connection count
 
-        // reconnect to recover matcher or subscription
-        if (!pubers) {
-            log.warn('No pubers to recover!')
+        if (!pubers || pubers.size < 1) {
             return 
         }
 
+        // reconnect to recover matcher or subscription
         openHandler(chain, suber.id, ws, pubers)
     })
 
@@ -268,18 +285,26 @@ const newSuber = (chain: string, url: string, pubers?: IDT[]): Suber => {
             return
         }
         const subTmp = re.value as Suber
-        let pubers = subTmp.pubers
+        let pubers = subTmp.pubers || new Set<IDT>()
         log.warn(`Ready to create new suber, transmit pubers: `, pubers)
 
         if (G.getTryCnt(chain) >= MAX_RE_CONN_CNT) {
+            // clear all the puber resource
             await closeHandler(chain, subTmp)
-            pubers = []
+            pubers = new Set<IDT>()  // clear pubers after handle done
         }
+        // try to clear request cache of suber.pubers before delete,
+        // which wont clear on subscribe request cache
+        reqCacheClear(pubers)
+        
+        // delete suber before
+        
         G.delSuber(chain, suber.id)
+
         // try to reconnect
         delays(3, () => {
             log.warn(`create new suber try to connect`)
-            newSuber(chain, url, pubers || [])
+            newSuber(chain, url, pubers)
             G.incrTryCnt(chain)
         })
     })
@@ -298,7 +323,7 @@ interface Suber {
     chain: string,
     url: string,
     ws: WebSocket,
-    pubers?: IDT[]    // [pubId]
+    pubers?: Set<IDT>,    // {pubId}
 }
 
 namespace Suber {
