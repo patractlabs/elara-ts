@@ -135,9 +135,9 @@ namespace G {
     }
 
     export const delReqCache = (reqId: IDT): void => {
-        log.warn('request cache before del: ', ReqMap)
+        // log.warn('request cache before del: ', ReqMap)
         delete ReqMap[reqId]
-        log.warn('request cache after del: ', ReqMap)
+        // log.warn('request cache after del: ', ReqMap)
     }
 
     export const getReqCache = (reqId: IDT): ResultT => {

@@ -78,7 +78,7 @@ const puberSend = (pubId: IDT, dat: WsData) => {
 
     if (isErr(re)) {
         if (dat.result === true || dat.result == false) {
-            log.warn('Unscribe response: ', dat.result)
+            log.warn('Unsubcribe result is ok?: ', dat.result)
         } else {
             log.error('Invalid puber: ', re.value)
         }
@@ -298,7 +298,7 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
         reqCacheClear(pubers)
         
         // delete suber before
-        
+
         G.delSuber(chain, suber.id)
 
         // try to reconnect

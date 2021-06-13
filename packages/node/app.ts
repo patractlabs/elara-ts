@@ -39,7 +39,6 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
     }
     const conf = re.value as ChainConfig
     let url = `http://${conf.baseUrl}:${conf.rpcPort}`
-    log.warn('transmit request url: ', url)
     const req = Http.request(url, {
         method: 'POST',
         headers: {
@@ -47,13 +46,12 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
             'Content-Type': 'application/json; charset=UTF-8'
         }
     }, (res) => {
-        log.warn('response: ', res.statusCode)
         let data = ''
         res.on('data', (dat) => {
             data += dat
         })
         res.on('close', () => {
-            log.warn('new response: ', data.toString())
+            // log.warn('new response: ', data.toString())
             if (!res.statusCode || res.statusCode !== 200) {
                 Response.Fail(resp, data, res.statusCode || 500)
             } else {
@@ -61,21 +59,18 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
             }
         })
     })
-    log.warn('request body: ', body)
     req.write(body)
     req.end()
     return Ok(req)
 }
 
 const isMethodOk = (method: string): boolean => {
-    log.warn('request method: ', method)
     return method === 'POST'
 }
 
 const pathOk = (url: string, host: string): Option<ChainPidT> => {
     let nurl = new URL(url, `http://${host}`)
     let path = nurl.pathname
-    log.warn('request path: ', path)
     // chain pid valid check
     return Util.urlParse(path)
 }
@@ -101,7 +96,6 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
     })
     req.on('end', async () => {
         // no more data
-        log.warn('request data: ', data.toString())
         try {
             JSON.parse(data)
         } catch (err) {

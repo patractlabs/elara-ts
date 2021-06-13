@@ -29,7 +29,6 @@ const getSuberBypubId = (pubId: IDT, chain: string): ResultT => {
 
 const suberSend = (pubId: IDT, chain: string, data: WsData): void => {
     let re = getSuberBypubId(pubId, chain)
-    log.warn('get suber result by pubId: ', re)
     let suber: Suber
     if (isErr(re)) {
         log.error('Suber send error: ', re.value)
