@@ -17,11 +17,11 @@ const fetchChains = async (): PVoidT => {
     let chains = await Dao.getChainList()
     if (isErr(chains)) {
         log.error('Fetch chains error: ', chains.value)
-        G.initChains([])
+        G.initChains(new Set())
         return
     }
     // log.info('chain list: ', chains)
-    G.initChains(chains.value)
+    G.initChains(new Set(chains.value))
 }
 
 // chain events

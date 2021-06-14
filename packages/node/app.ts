@@ -10,7 +10,7 @@ import Conf from './config'
 
 const log = getAppLogger('Node', true)
 const Server =  Http.createServer()
-const wss = new WebSocket.Server({ noServer: true })
+const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
 
 namespace Response {
     const end = (res: Http.ServerResponse, data: any, code: number, md5?: string) => {
@@ -139,7 +139,7 @@ Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
 // WebSocket connection event handle
 wss.on('connection', async (ws, req: any) => {
 
-    log.info(`New socket connection CHAIN[${req.chian}] PID[${req.pid}]`, req.chain, req.pid)
+    log.info(`New socket connection CHAIN[${req.chian}] PID[${req.pid}]: `, req.chain, req.pid, wss.clients.size)
     // 
     let re = await Puber.onConnect(ws, req.chain, req.pid)
     if (isErr(re)) {
@@ -160,7 +160,7 @@ wss.on('connection', async (ws, req: any) => {
     })
  
     ws.on('close', (code, reason) => {
-        log.error('Connection closed: ', code, reason)
+        log.error('Client close connection to puber: ', code, reason, wss.clients.size)
         Puber.clear(puber.id)
     })
 
@@ -171,17 +171,6 @@ wss.on('connection', async (ws, req: any) => {
     })
     return
 })
-
-
-const run = async () => {
-    await Suber.init()
-    let conf = Conf.getServer()
-    Server.listen(conf.port, () => {
-        log.info('Elara node server listen on port: ', conf.port)
-    })
-}
-
-run()
 
 const errorTypes = ['unhandledRejection', 'uncaughtException']
 const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2']
@@ -206,3 +195,13 @@ signalTraps.map((type: any) => {
         }
     })
 })
+
+const run = async () => {
+    await Suber.init()
+    let conf = Conf.getServer()
+    Server.listen(conf.port, () => {
+        log.info('Elara node server listen on port: ', conf.port)
+    })
+}
+
+run()

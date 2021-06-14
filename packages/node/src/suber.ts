@@ -1,13 +1,15 @@
 import { randomId } from 'lib/utils'
 import WebSocket from 'ws'
 import { ReqT, SubscripT, WsData } from './interface'
-import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PVoidT } from 'lib'
+import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PVoidT, PResultT } from 'lib'
 import G from './global'
 import Chain from './chain'
 import Dao from './dao'
 import Matcher from './matcher'
 import Puber from './puber'
 import Conf from '../config'
+import Util from './util'
+// import Assert from 'assert'
 
 const log = getAppLogger('suber', true)
 const MAX_RE_CONN_CNT = 10
@@ -23,15 +25,15 @@ const SubReg = (() => {
     return /[0-9a-zA-Z]{16}/
 })()
 
-const dataParse = (dat: WsData): ResultT => {
+const dataParse = async (dat: WsData): PResultT => {
     let reqId: IDT
-    // log.warn('new suber message data: ', dat)
+    log.warn('new suber message data: ', dat)
     if (dat.id) {
         // request response or subscription respond first time 
         reqId = dat.id
 
         if (dat.result === true || dat.result === false) {
-            log.info('Unsubscribe result: ', dat.result)
+            log.warn('Unsubcribe result is ok?: ', dat.result)
         }
         // handle method cache
         let re = G.getReqCache(reqId)  
@@ -44,16 +46,24 @@ const dataParse = (dat: WsData): ResultT => {
         const subTestOk: boolean = SubReg.test(subsId)
 
         if (req.isSubscribe && subTestOk) {
-            
+            let tc = G.topicCnt()
+            // let ptc = G.puberTopicCnt(req.pubId)
+            log.warn(`${reqId} all topic cnt: `, tc)
             Puber.updateTopics(req.pubId, subsId)
-
-            // set suscribe context
+            // let cptc = G.puberTopicCnt(req.pubId)
+            // log.warn('puber topic cnt: ', ptc, cptc)
+            // Assert.strictEqual(cptc, ptc + 1)
+            // set suscribe context, cannot be async, will race
             re = Matcher.setSubContext(req, subsId)
 
             if (isErr(re)) {
                 log.error(`update puber[${req.pubId}] topics error: `, re.value)
                 return Err(`update puber[${req.pubId}] topics error: ${re.value}`)
             }
+            // let ctc = G.topicCnt()
+            // log.warn(`${reqId} all topic cnt after add new topic: `, ctc)
+
+            // Assert.strictEqual(ctc, tc + 1)
             log.info(`Puber[${req.pubId}] subscribe topic[${req.method}] params[${req.params}] successfully: ${subsId}`)
         }
     } else if (dat.params) {
@@ -72,29 +82,28 @@ const dataParse = (dat: WsData): ResultT => {
 }
 
 // send the message back to puber
-const puberSend = (pubId: IDT, dat: WsData) => {
+const puberSend = async (pubId: IDT, dat: WsData) => {
 
     let re = G.getPuber(pubId)
-
+    log.warn('puber send data: ', dat)
     if (isErr(re)) {
-        if (dat.result === true || dat.result == false) {
-            log.warn('Unsubcribe result is ok?: ', dat.result)
-        } else {
-            log.error('Invalid puber: ', re.value)
-        }
+        log.error('Invalid puber: ', re.value)
         return
     }
     const puber = re.value as Puber
     puber.ws.send(JSON.stringify(dat))
 }
 
-const msgCb = (data: WebSocket.Data) => {
+const msgCb = async (data: WebSocket.Data) => {
     const dat = JSON.parse(data.toString())
-    let re = dataParse(dat)
+    let re = await dataParse(dat)
     if (isErr(re)) {
         log.error('Parse message data error: ', re.value)
         return
     }
+    // test log
+    Util.logGlobalStat()
+
     const reqId = re.value as IDT
     re = G.getReqCache(reqId)
     if (isErr(re)) {
@@ -113,7 +122,7 @@ const msgCb = (data: WebSocket.Data) => {
     }
 }
 
-const puberClear = (pubers: Set<IDT>) => {
+const puberClear = async (pubers: Set<IDT>) => {
     log.warn(`Into puber clear: `, pubers)
     for (let pubId of pubers) {
         let re = G.getPuber(pubId)
@@ -125,25 +134,6 @@ const puberClear = (pubers: Set<IDT>) => {
         // close puber conn
         const puber = re.value as Puber   
         puber.ws.close(1001, 'cannot connect to server')
-
-        // // clear request cache & sub map & subed topics 
-        // // ReqMap have to be clear before subMap
-        // const topics = puber.topics || new Set<string>()
-        // for (let subsId of topics) {
-        //     G.remSubTopic(puber.chain, puber.pid, subsId)
-        //     // no need to unsubscribe
-        //     let re = G.getReqId(subsId)
-        //     if (isErr(re)) {
-        //         log.error(`clear subscribe topic on suber close error: `, re.value)
-        //         continue
-        //     }
-        //     const reqId = re.value as IDT
-        //     G.delReqCache(reqId)
-        //     G.delSubReqMap(subsId)
-        // }
-
-        // // delete puber
-        // G.delPuber(pubId)
     }
 }
 
@@ -155,7 +145,7 @@ const closeHandler = async (chain: string, suber: Suber): PVoidT => {
 
 }
 
-const recoverPuber = (pubId: IDT, subId: IDT): ResultT => {
+const recoverPuber = async (pubId: IDT, subId: IDT): PResultT => {
     let re = G.getPuber(pubId)
     if (isErr(re)) { return re }
 
@@ -182,11 +172,11 @@ const recoverSubedTopic = (chain: string, pid: IDT, subsId: string): ResultT => 
     return re
 }
 
-const openHandler = (chain: string, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
+const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
     log.warn(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers}]`)
     for (let pubId of pubers) {
 
-        let re = recoverPuber(pubId, subId)
+        let re = await recoverPuber(pubId, subId)
         if (isErr(re)) {
             log.error(`Handle re open error: `, re.value)
             continue
@@ -242,7 +232,7 @@ const openHandler = (chain: string, subId: IDT, ws: WebSocket, pubers: Set<IDT>)
     }
 }
 
-const reqCacheClear = (pubers: Set<IDT>) => {
+const reqCacheClear = async (pubers: Set<IDT>) => {
     const reqs = G.getAllReqCache()
     for (let reqId in reqs) {
         if (pubers.has(reqs[reqId].pubId)) {
@@ -310,7 +300,6 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     })
 
     ws.on('message', msgCb)
-
     return suber
 }
 
@@ -328,7 +317,7 @@ interface Suber {
 
 namespace Suber {
 
-    export const selectSuber = (chain: string): ResultT => {
+    export const selectSuber = async (chain: string): PResultT => {
     
         const subers = G.getChainSubers(chain)
         const keys = Object.keys(subers)

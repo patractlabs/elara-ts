@@ -27,17 +27,17 @@ const getSuberBypubId = (pubId: IDT, chain: string): ResultT => {
     return Ok(re.value as Suber)
 }
 
-const suberSend = (pubId: IDT, chain: string, data: WsData): void => {
+const suberSend = async (pubId: IDT, chain: string, data: WsData): PVoidT => {
     let re = getSuberBypubId(pubId, chain)
     let suber: Suber
     if (isErr(re)) {
-        log.error('Suber send error: ', re.value)
-        // SBH
+        log.error('[SBH] Suber send error: ', re.value)
+
         // try to realloc suber 
-        re = Suber.selectSuber(chain)
+        re = await Suber.selectSuber(chain)
         if (isErr(re)) {
             log.error(`Realloc suber for puber [${pubId}] of chain [${chain}] failed: `, re.value)
-            return
+            process.exit(1)
         }
         suber = re.value as Suber
         re = G.getPuber(pubId)
@@ -50,7 +50,9 @@ const suberSend = (pubId: IDT, chain: string, data: WsData): void => {
         G.updateAddPuber(puber)
         
         // update suber
-        // Matcher.regist(puber, suber)    
+        suber.pubers = suber.pubers || new Set()
+        suber.pubers.add(puber.id)
+        G.updateAddSuber(chain, suber)
     } else {
         suber = re.value as Suber
     }
@@ -122,7 +124,7 @@ namespace Puber {
         const puber = create(ws, chain, pid)
 
         // regist in Matcher
-        let re = Matcher.regist(puber)
+        let re = await Matcher.regist(puber)
 
         if (isErr(re)) {
             const err = `Matcher regist error: ${re.value}`
@@ -158,6 +160,8 @@ namespace Puber {
     }
 
     export const clear = async (pubId: IDT): PVoidT => {
+        // unsbscribe topics
+        // 
         Matcher.unRegist(pubId)
     }
 }

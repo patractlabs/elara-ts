@@ -17,13 +17,15 @@
 /// 3. chain config update handle logic
 
 
-import { IDT, getAppLogger, Err, Ok, ResultT, isErr, isOk } from 'lib'
+import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, isOk } from 'lib'
 import G from './global'
 import { WsData, SubscripT, ReqT } from './interface'
 import Puber from './puber'
 import Suber from './suber'
 import Topic from './topic'
 import { randomId } from 'lib/utils'
+// import Assert from 'assert'
+import Util from './util'
 
 const log = getAppLogger('matcher', true)
 
@@ -46,12 +48,13 @@ const suberUnsubscribe = (chain: string, subId: IDT, topic: string, subsId: stri
 
 const clearSubContext = (puber: Puber) => {
     // sub context: 1. subed topics 2. subreqMap 3. reqCache for subscribe
+    log.warn(`Into clear puber [${puber.id}] subscription context: `, puber.chain, puber.pid)
     const chain = puber.chain
     const pid = puber.pid
     const subId = puber.subId!
     
     const topics = G.getSubTopics(chain, pid)
-    log.info(`topics of chain[${chain}] pid[${pid}]`, topics)
+    log.warn(`topics of chain[${chain}] pid[${pid}] to unsubscribe`, topics)
     for (let subsId of puber.topics || []) {
         log.info('subscribe id: ', subsId)
         const subscript = topics[subsId] as SubscripT
@@ -108,15 +111,17 @@ const unsubRequest = (pubId: IDT, data: WsData) => {
 }
 
 namespace Matcher {
-    export const regist = (puber: Puber): ResultT => {
+    export const regist = async (puber: Puber): PResultT => {
         /// when puber connect
-
+        
         const chain = puber.chain
-        const re = Suber.selectSuber(chain)
+        const re = await Suber.selectSuber(chain)
         if (isErr(re)) {
             return re
         }
         const suber = re.value as Suber
+
+        // let spc = G.suberPuberCnt(chain, suber.id)
 
         // update suber.pubers
         suber.pubers = suber.pubers || new Set<IDT>()
@@ -129,23 +134,25 @@ namespace Matcher {
 
         // side context set
         G.incrConnCnt(chain, puber.pid)
+        // Assert.strictEqual(G.suberPuberCnt(chain, suber.id), spc+1)
         return Ok(true)
     }
 
-    export const unRegist = (pubId: IDT): ResultT => {
+    export const unRegist = async (pubId: IDT): PResultT => {
         /// when puber error or close,
         /// if suber close or error, will emit puber close
         
         let re = G.getPuber(pubId)
         if (isErr(re) || !re.value.subId) {
             // SBH
-            log.error('Unregist puber error: ', re.value)
+            log.error('[SBH] Unregist puber error: ', re.value)
             return Err(`unregist puber error: ${re.value}`)
         }
         const puber = re.value as Puber
 
         G.decrConnCnt(puber.chain, puber.pid)   
-        
+        // let ptc = G.puberTopicCnt(pubId)
+        // let tc = G.topicCnt()
         clearSubContext(puber)
         
         G.delPuber(pubId)
@@ -156,6 +163,8 @@ namespace Matcher {
             return Err(`unregist puber error: ${re.value}`)
         }
         const suber = re.value as Suber
+        // let spc = G.suberPuberCnt(puber.chain, suber.id)
+
         if (!suber.pubers || suber.pubers.size < 1) {
             log.error('Unregist puber error: empty puber member')
             return Err('unregist puber error: empty puber member')
@@ -163,7 +172,10 @@ namespace Matcher {
         // const pubs = Util.ldel(suber.pubers, pubId)
         suber.pubers.delete(pubId)
         G.updateAddSuber(suber.chain, suber)
+        // Assert.strictEqual(G.suberPuberCnt(puber.chain, suber.id), spc-1)
+        // Assert.strictEqual(G.topicCnt(), tc - ptc)
         log.info(`Unregist successfully: ${pubId} - ${suber.id}`)
+        Util.logGlobalStat()
         return Ok(true)
     }
 
@@ -187,7 +199,7 @@ namespace Matcher {
         return req.id
     }
 
-    export const setSubContext = (req: ReqT, subsId: string): ResultT => {
+    export const setSubContext =  (req: ReqT, subsId: string): ResultT => {
         // update subscribe request cache
         req.subsId = subsId
         G.updateAddReqCache(req)

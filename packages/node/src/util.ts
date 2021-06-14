@@ -1,4 +1,5 @@
 import { getAppLogger, Option, Some, None } from 'lib'
+import G from './global'
 import { ChainPidT } from './interface'
 
 const log = getAppLogger('util', true)
@@ -30,6 +31,16 @@ namespace Util {
 
     export const sleeps = async (s: number) => {
         return new Promise(resolve=>setTimeout(resolve, s * 1000))
+    }
+
+    export const logGlobalStat = () => {
+        log.warn('global stat: ', {
+            suber: G.suberCnt(),
+            puber: G.puberCnt(),
+            topic: G.topicCnt(),
+            subMap: G.subMapCnt(),
+            reqMap: G.reqMapCnt(),
+        })
     }
 }
 

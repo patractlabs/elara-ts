@@ -2,7 +2,6 @@ import { Err, Ok, getAppLogger, IDT, ResultT, RpcMethods, RpcMethodT } from 'lib
 import { SuberMap, PuberMap, ChainSuber, SubscripT, SubscripMap, ReqMap, ReqT } from './interface'
 import Suber from './suber'
 import Puber from './puber'
-import Util from './util'
 
 const log = getAppLogger('G', true)
 
@@ -39,7 +38,7 @@ const Subers: ChainSuber = {}
 const Pubers: PuberMap = {}
 
 /**
- * Top{
+ * ToppicSubed {
  *  'polkadot': {
  *      'dfaghlsjflslajslkgslgjklj': {
  *          id: 'sdfi23kjldsfds32',
@@ -50,9 +49,10 @@ const Pubers: PuberMap = {}
  *  }
  * }
  */
-const TopicSubed: { [key in string]: PidTopicMap } = {} 
+type TopicSubedT = { [key in string]: PidTopicMap }
+const TopicSubed: TopicSubedT = {} 
 
-let Chains: string[] = []
+let Chains: Set<string> = new Set()
 const Rpcs: RpcMethodT = RpcMethods
 const ReqMap: ReqMap = {}
 const SubMap: {[key in string]: IDT} = {} // subscriptionId to reqId
@@ -152,7 +152,7 @@ namespace G {
     }
 
     export const addSubTopic = (chain: string, pid: IDT, topic: SubscripT): void => {
-        log.info('Into add sub topic: ', chain, pid, topic)
+        // log.info('Into add sub topic: ', chain, pid, topic)
         chain = chain.toLowerCase()
         const newSub: SubscripMap = {}
         newSub[topic.id!] = topic
@@ -163,8 +163,7 @@ namespace G {
                 ...TopicSubed[chain][pid],
                 ...newSub
             }
-            log.warn('after add sub topic: ', JSON.stringify(TopicSubed[chain][pid]))
-
+            // log.warn('after add sub topic: ', JSON.stringify(TopicSubed))
             return
         }
 
@@ -179,14 +178,15 @@ namespace G {
             ...TopicSubed[chain],
             ...tops
         }
-        log.warn('after add sub topic: ', JSON.stringify(TopicSubed[chain][pid]))
+        
+        // log.warn('after add sub topic: ', JSON.stringify(TopicSubed))
     }
 
     export const remSubTopic = (chain: string, pid: IDT, subsId: string): void => {
-        log.warn(`Subscribed topics before delete: `, TopicSubed[chain][pid])
+        // log.warn(`Subscribed topics before delete: `, TopicSubed[chain][pid])
         chain = chain.toLowerCase()
         delete TopicSubed[chain][pid][subsId] 
-        log.warn(`Subscribed topics after delete: `, TopicSubed[chain][pid])
+        // log.warn(`Subscribed topics after delete: `, TopicSubed[chain][pid])
 
     }
 
@@ -210,33 +210,32 @@ namespace G {
         return TopicSubed[chain] || {}
     }
 
-    export const getAllSubTopics = () => {
+    export const getAllSubTopics = (): TopicSubedT => {
         return TopicSubed
     }
 
-    export const initChains = (chains: string[]): void => {
-        Chains.push(...chains)
+    export const initChains = (chains: Set<string>): void => {
+        Chains = new Set([...Chains, ...chains])
     }
 
     export const addChain = (chain: string): void => {
         // log.warn('chains before add: ', Chains)
         chain = chain.toLowerCase()
-        if (Chains.indexOf(chain) !== -1)  {
+        if (Chains.has(chain))  {
             log.warn('Chain is exist: ', chain)
             return
         }
-        Chains.push(chain)
+        Chains.add(chain)
         // log.warn('chains after add: ', Chains)
     }
 
     export const remChain = (chain: string): void => {
         // log.warn('chains before remove: ', Chains)
-        const news = Util.ldel(Chains, chain)
-        Chains = news
+        Chains.delete(chain)
         // log.warn('chains after remove: ', Chains)
     }
 
-    export const getChains = (): string[] => {
+    export const getChains = (): Set<string> => {
         return Chains
     }
 
@@ -293,6 +292,46 @@ namespace G {
             return 0
         }
         return ConnCntMap[chain][pid]
+    }
+
+
+    // for test
+    export const puberCnt = (): number => {
+        return Object.keys(Pubers).length
+    }
+
+    export const puberTopicCnt = (pubId: IDT): number => {
+        return Pubers[pubId].topics?.size || 0
+    }
+
+    export const suberCnt = (): number => {
+        let cnt = 0
+        for (let c in Subers) {
+            cnt += Object.keys(Subers[c]).length
+        }
+        return cnt
+    }
+
+    export const suberPuberCnt = (chain: string, subId: IDT): number => {
+        return Subers[chain][subId].pubers?.size || 0
+    }
+
+    export const topicCnt = (): number => {
+        let cnt = 0
+        for (let c in TopicSubed) {
+            for (let p in TopicSubed[c]) {
+                cnt += Object.keys(TopicSubed[c][p]).length
+            }
+        }
+        return cnt
+    }
+
+    export const subMapCnt = (): number => {
+        return Object.keys(SubMap).length
+    }
+
+    export const reqMapCnt = (): number => {
+        return Object.keys(ReqMap).length
     }
 }
 
