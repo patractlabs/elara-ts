@@ -29,6 +29,20 @@ namespace Util {
         })
     }
 
+    export const logMemory = () => {
+        const mem = process.memoryUsage()
+        const format = (bytes: number) => {
+            return (bytes / 1024 / 1024).toFixed(2) + 'MB'
+        }
+        log.warn('Memory usage: ', {
+            rss: format(mem.rss),
+            heapTotal: format(mem.heapTotal),
+            heapUsed: format(mem.heapUsed),
+            external: format(mem.external),
+            arrbuff: format(mem.arrayBuffers)
+        })
+    }
+
     export const sleeps = async (s: number) => {
         return new Promise(resolve=>setTimeout(resolve, s * 1000))
     }

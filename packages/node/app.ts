@@ -7,24 +7,25 @@ import Util from './src/util'
 import { ChainPidT } from './src/interface'
 import Dao from './src/dao'
 import Conf from './config'
+// import { writeHeapSnapshot } from 'v8'
 
 const log = getAppLogger('Node', true)
 const Server =  Http.createServer()
-const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
+const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false, backlog: 10})
 
 namespace Response {
-    const end = (res: Http.ServerResponse, data: any, code: number, md5?: string) => {
+    const end = async (res: Http.ServerResponse, data: any, code: number, md5?: string) => {
         res.writeHead(code, {'Content-Type': 'text/plain', 'Trailer': 'Content-MD5'})
         res.addTrailers({'Content-MD5': md5 || '7878'})
         res.write(data)
         res.end()
     }
 
-    export const Ok = (res: Http.ServerResponse, data: any) => {
+    export const Ok = async (res: Http.ServerResponse, data: any) => {
         end(res, data, 200)
     }
 
-    export const Fail = (res: Http.ServerResponse, data: any, code: number) => {
+    export const Fail = async (res: Http.ServerResponse, data: any, code: number) => {
         end(res, data, code)
     }
 }
@@ -46,18 +47,19 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
             'Content-Type': 'application/json; charset=UTF-8'
         }
     }, (res) => {
-        let data = ''
-        res.on('data', (dat) => {
-            data += dat
-        })
-        res.on('close', () => {
-            // log.warn('new response: ', data.toString())
-            if (!res.statusCode || res.statusCode !== 200) {
-                Response.Fail(resp, data, res.statusCode || 500)
-            } else {
-                Response.Ok(resp, data)
-            }
-        })
+        res.pipe(resp)
+        // let data = ''
+        // res.on('data', (dat) => {
+        //     data += dat
+        // })
+        // res.on('close', () => {
+        //     // log.warn('new response: ', data.toString())
+        //     if (!res.statusCode || res.statusCode !== 200) {
+        //         Response.Fail(resp, data, res.statusCode || 500)
+        //     } else {
+        //         Response.Ok(resp, data)
+        //     }
+        // })
     })
     req.write(body)
     req.end()
@@ -79,15 +81,14 @@ const pathOk = (url: string, host: string): Option<ChainPidT> => {
 Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse) => {
     // method check
     if (!isMethodOk(req.method!)) {
-        Response.Fail(res, 'Invalid method, only POST support', 400)
-        return
+        // log.warn('method: ', req.method)
+        return Response.Fail(res, 'Invalid method, only POST support', 400)
     }
 
     // path check
     let re = pathOk(req.url!, req.headers.host!)
     if (isNone(re)) {
-        Response.Fail(res, 'Invalid request', 400)
-        return
+        return Response.Fail(res, 'Invalid request', 400)
     }
     const cp = re.value as ChainPidT
     let data = ''
@@ -95,18 +96,15 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         data += chunk
     })
     req.on('end', async () => {
-        // no more data
         try {
             JSON.parse(data)
         } catch (err) {
-            Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400)
-            return
+            return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400)
         }
         // transmit request 
         let re = await post(cp, data, res)
         if (isErr(re)) {
-            Response.Fail(res, re.value, 500)
-            return
+            return Response.Fail(res, re.value, 500)
         }
         const request = re.value as Http.ClientRequest
         request.on('error', (err: Error) => {
@@ -123,8 +121,7 @@ Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
     const re: any = Util.urlParse(path)
     if (isNone(re)) {
         log.error('Invalid socket request: ', path)
-        socket.end('HTTP/1.1 400 Invalid request \r\n\r\n','ascii')
-        return
+        return socket.end('HTTP/1.1 400 Invalid request \r\n\r\n','ascii')
     }
  
     // only handle urlReg pattern request
@@ -200,8 +197,16 @@ const run = async () => {
     await Suber.init()
     let conf = Conf.getServer()
     Server.listen(conf.port, () => {
-        log.info('Elara node server listen on port: ', conf.port)
+        log.info('Elara node transpond server listen on port: ', conf.port)
     })
+    // setInterval(() => {
+    //     Util.logMemory()
+        
+    // }, 5000)
+
+    // setInterval(() => {
+    //     writeHeapSnapshot('./'+Date.now() + '.heapsnapshot')
+    // }, 60000)
 }
 
 run()

@@ -244,7 +244,7 @@ const reqCacheClear = async (pubers: Set<IDT>) => {
 const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     // chain valid check
     Dao.getChainConfig(chain)
-    const ws = new WebSocket(url)
+    const ws = new WebSocket(url, { perMessageDeflate: false })
     const suber =  { id: randomId(), ws, url, chain, pubers } as Suber
     G.updateAddSuber(chain, suber)
 

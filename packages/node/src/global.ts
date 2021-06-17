@@ -281,6 +281,9 @@ namespace G {
 
     export const decrConnCnt = (chain: string, pid: IDT) => {
         ConnCntMap[chain][pid] -= 1
+        if (ConnCntMap[chain][pid] < 1) {
+            delete ConnCntMap[chain][pid]
+        }
     }
 
     export const delConnCnt = (chain: string, pid: IDT) => {

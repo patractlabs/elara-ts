@@ -176,6 +176,7 @@ namespace Matcher {
         // Assert.strictEqual(G.topicCnt(), tc - ptc)
         log.info(`Unregist successfully: ${pubId} - ${suber.id}`)
         Util.logGlobalStat()
+        // global.gc()
         return Ok(true)
     }
 
