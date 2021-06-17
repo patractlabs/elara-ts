@@ -43,7 +43,7 @@ const suberUnsubscribe = (chain: string, subId: IDT, topic: string, subsId: stri
         method: Topic.getUnsub(topic),
         params: [subsId]
     }
-    suber.ws.send(JSON.stringify(unsub))
+    suber.ws.send(Util.reqFastStr(unsub))
 }
 
 const clearSubContext = (puber: Puber) => {
@@ -121,8 +121,6 @@ namespace Matcher {
         }
         const suber = re.value as Suber
 
-        // let spc = G.suberPuberCnt(chain, suber.id)
-
         // update suber.pubers
         suber.pubers = suber.pubers || new Set<IDT>()
         suber.pubers.add(puber.id)
@@ -134,7 +132,6 @@ namespace Matcher {
 
         // side context set
         G.incrConnCnt(chain, puber.pid)
-        // Assert.strictEqual(G.suberPuberCnt(chain, suber.id), spc+1)
         return Ok(true)
     }
 
@@ -151,10 +148,7 @@ namespace Matcher {
         const puber = re.value as Puber
 
         G.decrConnCnt(puber.chain, puber.pid)   
-        // let ptc = G.puberTopicCnt(pubId)
-        // let tc = G.topicCnt()
-        clearSubContext(puber)
-        
+        clearSubContext(puber) 
         G.delPuber(pubId)
 
         re = G.getSuber(puber.chain, puber.subId!)
@@ -163,19 +157,15 @@ namespace Matcher {
             return Err(`unregist puber error: ${re.value}`)
         }
         const suber = re.value as Suber
-        // let spc = G.suberPuberCnt(puber.chain, suber.id)
 
         if (!suber.pubers || suber.pubers.size < 1) {
             log.error('Unregist puber error: empty puber member')
             return Err('unregist puber error: empty puber member')
         }
-        // const pubs = Util.ldel(suber.pubers, pubId)
         suber.pubers.delete(pubId)
         G.updateAddSuber(suber.chain, suber)
-        // Assert.strictEqual(G.suberPuberCnt(puber.chain, suber.id), spc-1)
-        // Assert.strictEqual(G.topicCnt(), tc - ptc)
         log.info(`Unregist successfully: ${pubId} - ${suber.id}`)
-        Util.logGlobalStat()
+        // Util.logGlobalStat()
         // global.gc()
         return Ok(true)
     }
@@ -188,7 +178,7 @@ namespace Matcher {
             jsonrpc: data.jsonrpc,
             isSubscribe: isSubReq(method),
             method, 
-            params: JSON.stringify(data.params) || 'none'
+            params: `${data.params}` || 'none'
         } as ReqT
 
         G.updateAddReqCache(req)

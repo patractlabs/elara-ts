@@ -11,6 +11,7 @@ import { getAppLogger, IDT, PResultT, Err, Ok, isErr, PVoidT, ResultT } from 'li
 import Matcher from './matcher'
 import Suber from './suber'
 import Conf from '../config'
+import Util from './util'
 
 const log = getAppLogger('Puber', true)
 
@@ -60,7 +61,7 @@ const suberSend = async (pubId: IDT, chain: string, data: WsData): PVoidT => {
     const reqId = Matcher.newRequest(pubId, data)
     log.info('Send new message to suber, request ID: ', reqId)
     data.id = reqId   // id bind
-    suber.ws.send(JSON.stringify(data)) 
+    suber.ws.send(Util.reqFastStr(data)) 
 }
 
 
@@ -70,7 +71,7 @@ const isSubed = (chain: string, pid: IDT, data: WsData): boolean => {
     for (let id in topics) {
         log.info('topic sub ID: ', id)
         const sub = topics[id]
-        const params = JSON.stringify(data.params) || 'none'
+        const params = `${data.params}` || 'none'
         if (sub.method === data.method && sub.params === params) {
             return true
         }
@@ -139,10 +140,11 @@ namespace Puber {
         let dat: WsData
         const pubId = puber.id
         const chain = puber.chain
+        log.warn('puber mesage: ', data, data.toString())
         try {
             dat = JSON.parse(data.toString()) as WsData
         } catch (err) {
-            log.error('Parse message to JSON error: ', err)  
+            log.error('Parse message to JSON error')  
             puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
             return
         }

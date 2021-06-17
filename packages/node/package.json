@@ -11,6 +11,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "config": "^3.3.6",
+    "fast-json-stringify": "^2.7.6",
     "lib": "file:../lib",
     "ws": "^7.4.6"
   },

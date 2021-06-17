@@ -1,5 +1,6 @@
 import { getAppLogger, Option, Some, None } from 'lib'
 import G from './global'
+import FastStr from 'fast-json-stringify'
 import { ChainPidT } from './interface'
 
 const log = getAppLogger('util', true)
@@ -11,6 +12,39 @@ const UrlReg = (() => {
 
 
 namespace Util {
+
+    export const reqFastStr = FastStr({
+        title: 'req schema',
+        type: 'object',
+        properties: {
+            id: { type: 'string' },
+            jsonrpc: { type: 'string', default: '2.0'},
+            method: { type: 'string' },
+            params: { type: 'array', default: [] }
+        }
+    })
+
+    export const respFastStr = FastStr({
+        title: 'resp schema',
+        type: 'object',
+        properties: {
+            id: { type: 'string' },
+            jsonrpc: { type: 'string', default: '2.0'},
+            method: { type: 'string' },
+            // params: { type: 'object', properties: {
+            //     result: {
+            //         type: 'object'
+            //     },
+            //     subscription: { type: 'string' }
+            // } },
+            result: { type: 'string' },
+            error: { type: 'object', properties: {
+                code: { type: 'number' },
+                message: { type: 'string' }
+            }}
+        }
+    })
+
     export const urlParse = (url: string): Option<ChainPidT> => {
         if (UrlReg.test(url)) {
             const parse = UrlReg.exec(url)
