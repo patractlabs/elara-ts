@@ -192,10 +192,10 @@ const recoverSubedTopic = (chain: string, pid: IDT, subsId: string): ResultT => 
     // send subscribe
     re = G.getReqId(subsId)
     if (isErr(re)) { return re }
-    const req = re.value as ReqT
     
     // update req cache
     re = G.getReqCache(re.value)
+    const req = re.value as ReqT
     // SBH
     if (isErr(re)) { return re }
 
@@ -203,9 +203,9 @@ const recoverSubedTopic = (chain: string, pid: IDT, subsId: string): ResultT => 
 }
 
 const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
-    log.warn(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers}]`)
+    log.warn(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers.toString()}]`)
     for (let pubId of pubers) {
-
+        log.warn('puber id to recover: ', pubId)
         let re = await recoverPuber(pubId, subId)
         if (isErr(re)) {
             log.error(`Handle re open error: `, re.value)
@@ -218,14 +218,14 @@ const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set
         }
         // re subscribe topic
         for (let subsId of puber.topics!) {
-
+            log.warn('subscribe topic id to recover: ', subsId)
             let re = recoverSubedTopic(chain, puber.pid, subsId)
             if (isErr(re)) {
                 log.error(`Handle re open error: `, re.value)
                 continue
             }
             const req = re.value as ReqT
-                
+            log.warn('request cache: ', req)
             let params = []
             if (req.params !== 'none') {
                 params = JSON.parse(req.params)
@@ -252,6 +252,7 @@ const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set
 }
 
 const reqCacheClear = async (pubers: Set<IDT>) => {
+    log.info('clear request cache of pubers: ', pubers)
     const reqs = G.getAllReqCache()
     for (let reqId in reqs) {
         if (pubers.has(reqs[reqId].pubId)) {
@@ -264,7 +265,7 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     // chain valid check
     // Dao.getChainConfig(chain)
     const ws = new WebSocket(url, { perMessageDeflate: false })
-    const suber =  { id: randomId(), ws, url, chain, pubers } as Suber
+    let suber: any =  { id: randomId(), ws, url, chain, pubers } as Suber
     log.info('create new suber with puber: ', pubers)
     G.updateAddSuber(chain, suber)
 
@@ -282,12 +283,12 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     })
 
     ws.on('error', (err) => {
-        log.error(`${chain} socket error: `, err)
+        log.error(`${chain} suber[${suber.id}] socket error: `, err)
         suber.ws.close()
     })
 
     ws.on('close', async (code: number, reason: string) => {
-        log.error(`${chain} socket closed: `, code, reason)
+        log.error(`${chain} suber[${suber.id}] socket closed: `, code, reason)
 
         const re = G.getSuber(chain, suber.id)
         if (isErr(re)) {
@@ -295,25 +296,26 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
             return
         }
         const subTmp = re.value as Suber
-        let pubers = subTmp.pubers || new Set<IDT>()
-        log.warn(`Ready to create new suber, transmit pubers: `, pubers, subTmp)
+        let pubers = new Set(subTmp.pubers) // new heap space
+        log.warn(`Ready to create new suber, transmit pubers: `, pubers)
         const serConf = Conf.getServer()
         if (G.getTryCnt(chain) >= serConf.maxReconnTry) {
+            // try to clear request cache of suber.pubers before delete,
+            // which wont clear on subscribe request cache
+            reqCacheClear(pubers)
             // clear all the puber resource
             await closeHandler(chain, subTmp)
             pubers = new Set<IDT>()  // clear pubers after handle done
         }
-        // try to clear request cache of suber.pubers before delete,
-        // which wont clear on subscribe request cache
-        reqCacheClear(pubers)
-        
-        // delete suber before
 
+        // delete suber before
+        delete suber.ws
         G.delSuber(chain, suber.id)
+        suber = null    // ?
 
         // try to reconnect
         delays(3, () => {
-            log.warn(`create new suber try to connect`)
+            log.warn(`create new suber try to connect ${G.getTryCnt(chain) + 1} times, pubers `, pubers)
             newSuber(chain, url, pubers)
             G.incrTryCnt(chain)
         })
