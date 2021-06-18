@@ -30,7 +30,7 @@ import Util from './util'
 const log = getAppLogger('matcher', true)
 
 const suberUnsubscribe = (chain: string, subId: IDT, topic: string, subsId: string) => {
-    log.warn('Into unsubcribe: ', chain, subId, topic, subsId)
+    log.info(`Suber[${subId}] unsubcribe topic[${topic}] id[${subsId}] of chain ${chain} `, chain, subId, topic, subsId)
     const re = G.getSuber(chain, subId)
     if (isErr(re)) {
         log.error('get suber to unsubcribe error: ', re.value)
@@ -48,17 +48,15 @@ const suberUnsubscribe = (chain: string, subId: IDT, topic: string, subsId: stri
 
 const clearSubContext = (puber: Puber) => {
     // sub context: 1. subed topics 2. subreqMap 3. reqCache for subscribe
-    log.warn(`Into clear puber [${puber.id}] subscription context: `, puber.chain, puber.pid)
+    log.info(`Into clear puber [${puber.id}] subscription context: `, puber.chain, puber.pid)
     const chain = puber.chain
     const pid = puber.pid
     const subId = puber.subId!
     
     const topics = G.getSubTopics(chain, pid)
-    log.warn(`topics of chain[${chain}] pid[${pid}] to unsubscribe`, topics)
+    log.info(`topics of chain[${chain}] pid[${pid}] to unsubscribe`, Object.keys(topics))
     for (let subsId of puber.topics || []) {
-        log.info('subscribe id: ', subsId)
         const subscript = topics[subsId] as SubscripT
-        log.info('subscription: ', subscript)
         if (subscript.method) {
             suberUnsubscribe(chain, subId, subscript.method, subsId)
         }
@@ -132,6 +130,7 @@ namespace Matcher {
 
         // side context set
         G.incrConnCnt(chain, puber.pid)
+        log.info(`match puber[${puber.id}] to suber[${suber.id}]`)
         return Ok(true)
     }
 
@@ -167,6 +166,7 @@ namespace Matcher {
         log.info(`Unregist successfully: ${pubId} - ${suber.id}`)
         // Util.logGlobalStat()
         // global.gc()
+        log.info('After unregist global stat: ', Util.globalStat())
         return Ok(true)
     }
 
@@ -187,10 +187,11 @@ namespace Matcher {
         if (isUnsubReq(data.method!)) {
             unsubRequest(pubId, data)
         }
+        log.info('After request global stat: ', Util.globalStat())  // only for test
         return req.id
     }
 
-    export const setSubContext =  (req: ReqT, subsId: string): ResultT => {
+    export const setSubContext = (req: ReqT, subsId: string): ResultT => {
         // update subscribe request cache
         req.subsId = subsId
         G.updateAddReqCache(req)
@@ -210,8 +211,10 @@ namespace Matcher {
         // if unsubscribe, dont update
         re = G.getReqId(subsId)
         if (isErr(re)) {
-            G.addSubReqMap(subsId, req.id)
+            log.info(`add new subscribe request map: `, subsId, req.id)
+            G.addSubReqMap(subsId, req.id)  
         }
+        log.info(`After set subscribe context global stat: `, Util.globalStat())    // for test
         return Ok(0)
     }
 }

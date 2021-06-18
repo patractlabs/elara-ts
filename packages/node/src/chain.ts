@@ -1,6 +1,6 @@
 /// chain list init and handler the chain update
 
-import { getAppLogger, isErr, PVoidT } from 'lib'
+import { getAppLogger, PVoidT, PResultT } from 'lib'
 import Conf from '../config'
 import Dao, { chainPSub } from '../src/dao'
 import G from './global'
@@ -13,17 +13,6 @@ enum Topic {
     ChainUpdate = 'chain-update'
 }
 
-const fetchChains = async (): PVoidT => {
-    let chains = await Dao.getChainList()
-    if (isErr(chains)) {
-        log.error('Fetch chains error: ', chains.value)
-        G.initChains(new Set())
-        return
-    }
-    // log.info('chain list: ', chains)
-    G.initChains(new Set(chains.value))
-}
-
 // chain events
 const chainAddHandler = async (chain: string): PVoidT => {
     log.info('Into chain add handler: ', chain)
@@ -31,14 +20,12 @@ const chainAddHandler = async (chain: string): PVoidT => {
     // reinit subers of chain 
     const wsConf = Conf.getWs()
     Suber.initChainSuber(chain, wsConf.poolSize)
-
-    // update G.chain
-    G.addChain(chain)
 }
 
 const chainDelHandler = async (chain: string): PVoidT => {
     log.info('Into chain delete handler: ', chain)
     // TODO ?
+    G.remChain(chain)
 }
 
 const chainUpdateHandler = async (chain: string): PVoidT => {
@@ -79,8 +66,8 @@ chainPSub.on('error', (err) => {
 
 namespace Chain {
 
-    export const init = async () => {
-        return fetchChains()
+    export const fetchChains = async (): PResultT => {
+        return Dao.getChainList()
     }
 }
 

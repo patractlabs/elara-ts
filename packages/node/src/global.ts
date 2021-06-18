@@ -239,6 +239,10 @@ namespace G {
         return Chains
     }
 
+    export const updateChains = (chains: Set<string>) => {
+        Chains = chains
+    }
+
     export const getRpcMap = (): RpcMethodT => {
         return Rpcs
     }
