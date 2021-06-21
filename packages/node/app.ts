@@ -40,6 +40,7 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
     }
     const conf = re.value as ChainConfig
     let url = `http://${conf.baseUrl}:${conf.rpcPort}`
+    const start = Util.traceStart()
     const req = Http.request(url, {
         method: 'POST',
         headers: {
@@ -48,7 +49,8 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
         }
     }, (res) => {
         res.pipe(resp)
-        log.info(`new rpc response stream: chain[${chain}] pid[${cp.pid}] body[${body}]`)
+        const time = Util.traceEnd(start)
+        log.info(`new rpc response: chain[${chain}] pid[${cp.pid}] body[${body}] time[${time}]`)
     })
     req.write(body)
     req.end()
@@ -83,10 +85,16 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
     }
     const cp = re.value as ChainPidT
     let data = ''
+    let dstart = 0
     req.on('data', (chunk) => {
+        if (data === '') {
+            dstart = Util.traceStart()
+        }
         data += chunk
     })
     req.on('end', async () => {
+        const dtime = Util.traceEnd(dstart)
+        log.info(`handle rpc request body time[${dtime}]`)
         try {
             JSON.parse(data)
         } catch (err) {
@@ -129,7 +137,10 @@ wss.on('connection', async (ws, req: any) => {
 
     log.info(`New socket connection chain ${req.chain} pid[${req.pid}], current total connections `, wss.clients.size)
     // 
+    const start = Util.traceStart()
     let re = await Puber.onConnect(ws, req.chain, req.pid)
+    const time = Util.traceEnd(start)
+    log.info(`chain ${req.chain} pid[${req.pid}] puber connect time: ${time}`)
     if (isErr(re)) {
         log.error('Connect handle error: ', re.value)
         if (re.value.indexOf('no valid subers of chain') !== 1) {

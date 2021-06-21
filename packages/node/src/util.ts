@@ -1,6 +1,7 @@
 import { getAppLogger, Ok, PResultT, Err } from 'lib'
+import { performance } from 'perf_hooks'
 import G from './global'
-import FastStr from 'fast-json-stringify'
+// import FastStr from 'fast-json-stringify'
 
 const log = getAppLogger('util', true)
 // /chain/pid
@@ -11,33 +12,42 @@ const UrlReg = (() => {
 
 namespace Util {
 
-    export const reqFastStr = FastStr({
-        title: 'req schema',
-        type: 'object',
-        properties: {
-            id: { type: 'string' },
-            jsonrpc: { type: 'string', default: '2.0'},
-            method: { type: 'string' },
-            params: { type: 'array', default: [] }
-        }
-    })
+    export const reqFastStr = 
+    (obj:any) => {
+        return JSON.stringify(obj)
+    }
+    // FastStr({
+    //     title: 'req schema',
+    //     type: 'object',
+    //     properties: {
+    //         id: { type: 'string' },
+    //         jsonrpc: { type: 'string', default: '2.0'},
+    //         method: { type: 'string' },
+    //         params: { type: 'array', default: [] }
+    //     }
+    // })
 
-    export const respFastStr = FastStr({
-        title: 'resp schema',
-        type: 'object',
-        properties: {
-            id: { type: 'string' },
-            jsonrpc: { type: 'string', default: '2.0'},
-            method: { type: 'string' },
-            result: { type: 'string' },
-            error: { type: 'object', properties: {
-                code: { type: 'number' },
-                message: { type: 'string' }
-            }}
-        }
-    })
+    export const respFastStr = 
+    (obj:any) => {
+        return JSON.stringify(obj)
+    }
+    // FastStr({
+    //     title: 'resp schema',
+    //     type: 'object',
+    //     properties: {
+    //         id: { type: 'string' },
+    //         jsonrpc: { type: 'string', default: '2.0'},
+    //         method: { type: 'string' },
+    //         result: { type: 'string' },
+    //         error: { type: 'object', properties: {
+    //             code: { type: 'number' },
+    //             message: { type: 'string' }
+    //         }}
+    //     }
+    // })
 
     export const urlParse = async (url: string): PResultT => {
+        const start = traceStart()
         if (UrlReg.test(url)) {
             const parse = UrlReg.exec(url)
             const chain = parse![1].toLowerCase()
@@ -52,6 +62,8 @@ namespace Util {
                 pid: parse![2]
             })
         }
+        const time = traceEnd(start)
+        log.info(`url parse time: ${time}`)
         return Err(`Invalid request path`)
     }
 
@@ -81,6 +93,24 @@ namespace Util {
 
     export const globalStat = () => {
         return `suber: ${G.suberCnt()}, puber: ${G.puberCnt()}, topic: ${G.topicCnt()}, subMap: ${G.subMapCnt()}, reqMap: ${G.reqMapCnt()}`
+    }
+
+    export const logDebugResp = (res: any) => {
+        let data = ''
+        res.on('data', (chunk) => {
+            data += chunk
+        })
+        res.on('end', () => {
+            log.warn('New rpc response: ', data)
+        })
+    }
+
+    export const traceStart = (): number => {
+        return performance.now()
+    }
+
+    export const traceEnd = (start: number): string => {
+        return (performance.now() - start).toFixed(0) + 'ms'
     }
 }
 

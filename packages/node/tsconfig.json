@@ -5,11 +5,11 @@
     "outDir": "./dist",                              /* Redirect output structure to the directory. */
     "removeComments": true,                      /* Do not emit comments to output. */
     "noEmitOnError": true,                          /* 编译出错不生成文件*/
-    "strict": true,                                 /* Enable all strict type-checking options. */
+    // "strict": true,                                 /* Enable all strict type-checking options. */
 
     /* Additional Checks */
     "noUnusedLocals": true,                      /* Report errors on unused locals. */
-    "noImplicitAny": true,
+    // "noImplicitAny": true,
     "noUnusedParameters": true,                  /* Report errors on unused parameters. */
     "noImplicitReturns": true,                   /* Report error when not all code paths in function return a value. */
     "noFallthroughCasesInSwitch": true,          /* Report errors for fallthrough cases in switch statement. */

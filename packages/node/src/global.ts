@@ -340,6 +340,15 @@ namespace G {
     export const reqMapCnt = (): number => {
         return Object.keys(ReqMap).length
     }
+
+    export const stat = (): string => {
+        return `
+        suber: ${suberCnt()}
+        puber: ${Object.keys(Pubers).length}
+        subTopic: ${topicCnt()}
+        subMap: ${Object.keys(SubMap).length}
+        reqMap: ${Object.keys(ReqMap).length}`
+    }
 }
 
 export = G

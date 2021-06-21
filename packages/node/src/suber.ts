@@ -61,7 +61,6 @@ const dataParse = async (data: WebSocket.Data): PResultT => {
         return Err(`${re.value}`)
     }
     const reqId = re.value as IDT
-
     // handle method cache
     re = G.getReqCache(reqId)  
     if (isErr(re)) {
@@ -118,7 +117,6 @@ const dataParse = async (data: WebSocket.Data): PResultT => {
 
 // send the message back to puber
 const puberSend = async (pubId: IDT, dat: WebSocket.Data) => {
-
     let re = G.getPuber(pubId)
     if (isErr(re)) {
         log.error('Invalid puber: ', re.value)
@@ -131,8 +129,12 @@ const puberSend = async (pubId: IDT, dat: WebSocket.Data) => {
 }
 
 const msgCb = async (data: WebSocket.Data) => {
-    log.warn('new suber message: ', data)
+    const start = Util.traceStart()
     let re = await dataParse(data)
+    const time = Util.traceEnd(start)
+
+    // const time = Util.trace(start as TraceT)
+    log.warn('new suber message parse time: ', time)
     if (isErr(re)) {
         log.error('Parse message data error: ', re.value)
         return

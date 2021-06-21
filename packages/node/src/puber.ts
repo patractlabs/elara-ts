@@ -29,6 +29,7 @@ const getSuberBypubId = (pubId: IDT, chain: string): ResultT => {
 }
 
 const suberSend = async (pubId: IDT, chain: string, data: WsData): PVoidT => {
+    const start = Util.traceStart()
     let re = getSuberBypubId(pubId, chain)
     let suber: Suber
     if (isErr(re)) {
@@ -62,7 +63,8 @@ const suberSend = async (pubId: IDT, chain: string, data: WsData): PVoidT => {
     const reqId = Matcher.newRequest(pubId, data)
     data.id = reqId   // id bind
     suber.ws.send(Util.reqFastStr(data)) 
-    log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: `, reqId)
+    const time = Util.traceEnd(start)
+    log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${reqId} time[${time}]`)
 }
 
 
@@ -122,12 +124,14 @@ namespace Puber {
             ws.terminate()
             return Err('Out of connectino limit')
         }
-    
+
         const puber = create(ws, chain, pid)
 
         // regist in Matcher
+        const start = Util.traceStart()
         let re = await Matcher.regist(puber)
-
+        const time = Util.traceEnd(start)
+        log.info(`matche register puber[${puber.id}] time: ${time}`)
         if (isErr(re)) {
             const err = `Matcher regist error: ${re.value}`
             return Err(err)
@@ -139,6 +143,7 @@ namespace Puber {
 
     export const onMessage = async (puber: Puber, data: WebSocket.Data): PVoidT => {
         let dat: WsData
+        const start = Util.traceStart()
         const pubId = puber.id
         const chain = puber.chain
         log.info(`new puber[${puber.id}] request of chain ${puber.chain}: `, data)
@@ -154,7 +159,8 @@ namespace Puber {
             log.warn(`The topic [${dat.method}] has been subscribed, no need to subscribe twice!`)
             return puber.ws.send('No need to subscribe twice')
         }
-    
+        const time = Util.traceEnd(start)
+        log.info(`on puber socket message time[${time}]`)
         // transmit requset & record subscription topic
         suberSend(pubId, chain, dat)
     }
