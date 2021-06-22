@@ -34,6 +34,8 @@ export const getAppLogger = (head: string, out: boolean = false): any => {
         backups: 5, // default 5
         daysToKeep: 0,  // 大于0则删除x天之前的日志
         compress: true,     // 开启gzip压缩
+        pm2: true,
+        replaceConsole: false,
     }
     
     config.categories[heads] = {
