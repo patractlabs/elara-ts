@@ -11,6 +11,7 @@ import { getAppLogger, IDT, PResultT, Err, Ok, isErr, PVoidT, ResultT } from 'li
 import Matcher from './matcher'
 import Suber from './suber'
 import Conf from '../config'
+import Util from './util'
 
 const log = getAppLogger('Puber', true)
 
@@ -28,6 +29,7 @@ const getSuberBypubId = (pubId: IDT, chain: string): ResultT => {
 }
 
 const suberSend = async (pubId: IDT, chain: string, data: WsData): PVoidT => {
+    const start = Util.traceStart()
     let re = getSuberBypubId(pubId, chain)
     let suber: Suber
     if (isErr(re)) {
@@ -53,24 +55,26 @@ const suberSend = async (pubId: IDT, chain: string, data: WsData): PVoidT => {
         suber.pubers = suber.pubers || new Set()
         suber.pubers.add(puber.id)
         G.updateAddSuber(chain, suber)
+        log.info(`Try to realloc new suber success: suber[${suber.id}]`)
     } else {
         suber = re.value as Suber
     }
 
     const reqId = Matcher.newRequest(pubId, data)
-    log.info('Send new message to suber, request ID: ', reqId)
     data.id = reqId   // id bind
-    suber.ws.send(JSON.stringify(data)) 
+    suber.ws.send(Util.reqFastStr(data)) 
+    const time = Util.traceEnd(start)
+    log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${reqId} time[${time}]`)
 }
 
 
 const isSubed = (chain: string, pid: IDT, data: WsData): boolean => {
+    // method and params specify a subscribe topic
     const topics = G.getSubTopics(chain, pid)
-    log.info(`topic subescribed of chain[${chain}] project[${pid}]: `, topics)
+    log.info(`subscribed topics of chain[${chain}] pid[${pid}]: `, Object.keys(topics))
     for (let id in topics) {
-        log.info('topic sub ID: ', id)
         const sub = topics[id]
-        const params = JSON.stringify(data.params) || 'none'
+        const params = `${data.params}` || 'none'
         if (sub.method === data.method && sub.params === params) {
             return true
         }
@@ -96,11 +100,11 @@ namespace Puber {
         return puber
     }
 
-    export const updateTopics = (pubId: IDT, subsId: string): void => {
+    export const updateTopics = async (pubId: IDT, subsId: string): PVoidT => {
         let re = G.getPuber(pubId)
         if (isErr(re)) {
             // SBH
-            log.error(`update puber topics error: ${re.value}`)
+            log.error(`update puber[${pubId}] topics error: ${re.value}`)
             process.exit(1) // exit process or ?
         }
         const puber = re.value as Puber
@@ -114,47 +118,49 @@ namespace Puber {
         // connection limit 
         const wsConf = Conf.getWs()
         const curConn = G.getConnCnt(chain, pid)
-        log.warn('Max connection limit: ', wsConf.maxConn, curConn)
+        log.info(`current ws connection of chain ${chain} pid[${pid}]: ${curConn}/${wsConf.maxConn}`)
         if (curConn >= wsConf.maxConn) {
             ws.send('Out of connection limit')
             ws.terminate()
             return Err('Out of connectino limit')
         }
-    
+
         const puber = create(ws, chain, pid)
 
         // regist in Matcher
+        const start = Util.traceStart()
         let re = await Matcher.regist(puber)
-
+        const time = Util.traceEnd(start)
+        log.info(`matche register puber[${puber.id}] time: ${time}`)
         if (isErr(re)) {
             const err = `Matcher regist error: ${re.value}`
             return Err(err)
         }
 
-        log.info(`Create puber successfully [${puber.id}]-[${puber.subId}]`)
+        log.info(`puber[${puber.id}] of pid[${pid}] connect to chain ${chain} successfully`)
         return Ok(puber)
     }
 
     export const onMessage = async (puber: Puber, data: WebSocket.Data): PVoidT => {
         let dat: WsData
+        const start = Util.traceStart()
         const pubId = puber.id
         const chain = puber.chain
+        log.info(`new puber[${puber.id}] request of chain ${puber.chain}: `, data)
         try {
             dat = JSON.parse(data.toString()) as WsData
         } catch (err) {
-            log.error('Parse message to JSON error: ', err)  
-            puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
-            return
+            log.error('Parse message to JSON error')  
+            return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
-        log.info('Into message handler: ', dat)
     
         // topic bind to chain and params 
         if (isSubed(chain, puber.pid, dat)){
-            log.warn(`The topic [${dat.method}] has been subscribed,no need to subscribe twice!`)
-            puber.ws.send('No need to subscribe twice')
-            return
+            log.warn(`The topic [${dat.method}] has been subscribed, no need to subscribe twice!`)
+            return puber.ws.send('No need to subscribe twice')
         }
-    
+        const time = Util.traceEnd(start)
+        log.info(`on puber socket message time[${time}]`)
         // transmit requset & record subscription topic
         suberSend(pubId, chain, dat)
     }

@@ -8,7 +8,9 @@ interface WsConf {
 }
 
 interface ServerConf {
-    port: number
+    id: number,     // for chain group
+    port: number,
+    maxReconnTry: number    // max re-connection try 
 }
 
 namespace Conf {

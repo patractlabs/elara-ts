@@ -1,6 +1,6 @@
 import Http from 'http'
 import WebSocket from 'ws'
-import { getAppLogger, Ok, isNone, isErr, Option, ChainConfig, PResultT, Err } from 'lib'
+import { getAppLogger, Ok, isErr, ChainConfig, PResultT, Err } from 'lib'
 import Puber from './src/puber'
 import Suber from './src/suber'
 import Util from './src/util'
@@ -11,7 +11,7 @@ import Conf from './config'
 
 const log = getAppLogger('Node', true)
 const Server =  Http.createServer()
-const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false, backlog: 10})
+const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false})
 
 namespace Response {
     const end = async (res: Http.ServerResponse, data: any, code: number, md5?: string) => {
@@ -40,6 +40,7 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
     }
     const conf = re.value as ChainConfig
     let url = `http://${conf.baseUrl}:${conf.rpcPort}`
+    const start = Util.traceStart()
     const req = Http.request(url, {
         method: 'POST',
         headers: {
@@ -48,21 +49,12 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
         }
     }, (res) => {
         res.pipe(resp)
-        // let data = ''
-        // res.on('data', (dat) => {
-        //     data += dat
-        // })
-        // res.on('close', () => {
-        //     // log.warn('new response: ', data.toString())
-        //     if (!res.statusCode || res.statusCode !== 200) {
-        //         Response.Fail(resp, data, res.statusCode || 500)
-        //     } else {
-        //         Response.Ok(resp, data)
-        //     }
-        // })
+        const time = Util.traceEnd(start)
+        log.info(`new rpc response: chain[${chain}] pid[${cp.pid}] body[${body}] time[${time}]`)
     })
     req.write(body)
     req.end()
+    log.info(`Transpond rpc request: `, body)
     return Ok(req)
 }
 
@@ -70,7 +62,7 @@ const isMethodOk = (method: string): boolean => {
     return method === 'POST'
 }
 
-const pathOk = (url: string, host: string): Option<ChainPidT> => {
+const pathOk = async (url: string, host: string): PResultT => {
     let nurl = new URL(url, `http://${host}`)
     let path = nurl.pathname
     // chain pid valid check
@@ -80,22 +72,29 @@ const pathOk = (url: string, host: string): Option<ChainPidT> => {
 // Http rpc request 
 Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse) => {
     // method check
+    log.info(`new rpc request method[${req.method}]`)
     if (!isMethodOk(req.method!)) {
-        // log.warn('method: ', req.method)
         return Response.Fail(res, 'Invalid method, only POST support', 400)
     }
 
     // path check
-    let re = pathOk(req.url!, req.headers.host!)
-    if (isNone(re)) {
-        return Response.Fail(res, 'Invalid request', 400)
+    let re = await pathOk(req.url!, req.headers.host!)
+    if (isErr(re)) {
+        log.error(`request path check fail: ${re.value}`)
+        return Response.Fail(res, re.value, 400)
     }
     const cp = re.value as ChainPidT
     let data = ''
+    let dstart = 0
     req.on('data', (chunk) => {
+        if (data === '') {
+            dstart = Util.traceStart()
+        }
         data += chunk
     })
     req.on('end', async () => {
+        const dtime = Util.traceEnd(dstart)
+        log.info(`handle rpc request body time[${dtime}]`)
         try {
             JSON.parse(data)
         } catch (err) {
@@ -104,12 +103,13 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         // transmit request 
         let re = await post(cp, data, res)
         if (isErr(re)) {
+            log.error(`transpond rpc request error: ${re.value}`)
             return Response.Fail(res, re.value, 500)
         }
         const request = re.value as Http.ClientRequest
         request.on('error', (err: Error) => {
-            log.error('Request error: ', err)
-            Response.Fail(res, 'request error', 500)
+            log.error('request error: ', err)
+            Response.Fail(res, err, 500)
         })
     })
 })
@@ -117,11 +117,10 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
 // WebSocket request 
 Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
     const path = res.url!
-    log.warn('New socket request: ', path)
-    const re: any = Util.urlParse(path)
-    if (isNone(re)) {
-        log.error('Invalid socket request: ', path)
-        return socket.end('HTTP/1.1 400 Invalid request \r\n\r\n','ascii')
+    const re = await Util.urlParse(path)
+    if (isErr(re)) {
+        log.error('Invalid socket request: ', re.value)
+        return socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`,'ascii')
     }
  
     // only handle urlReg pattern request
@@ -136,9 +135,12 @@ Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
 // WebSocket connection event handle
 wss.on('connection', async (ws, req: any) => {
 
-    log.info(`New socket connection CHAIN[${req.chian}] PID[${req.pid}]: `, req.chain, req.pid, wss.clients.size)
+    log.info(`New socket connection chain ${req.chain} pid[${req.pid}], current total connections `, wss.clients.size)
     // 
+    const start = Util.traceStart()
     let re = await Puber.onConnect(ws, req.chain, req.pid)
+    const time = Util.traceEnd(start)
+    log.info(`chain ${req.chain} pid[${req.pid}] puber connect time: ${time}`)
     if (isErr(re)) {
         log.error('Connect handle error: ', re.value)
         if (re.value.indexOf('no valid subers of chain') !== 1) {
@@ -157,12 +159,12 @@ wss.on('connection', async (ws, req: any) => {
     })
  
     ws.on('close', (code, reason) => {
-        log.error('Client close connection to puber: ', code, reason, wss.clients.size)
+        log.warn(`Puber[${puber.id}] closed, code[${code}] reason[${reason}], current total connections `, wss.clients.size)
         Puber.clear(puber.id)
     })
 
     ws.on('error', (err) => {
-        log.error('Connection error: ', err)
+        log.error(`Puber[${puber.id}] Connection error: `, err)
         ws.terminate()
         Puber.clear(puber.id)
     })
@@ -199,14 +201,6 @@ const run = async () => {
     Server.listen(conf.port, () => {
         log.info('Elara node transpond server listen on port: ', conf.port)
     })
-    // setInterval(() => {
-    //     Util.logMemory()
-        
-    // }, 5000)
-
-    // setInterval(() => {
-    //     writeHeapSnapshot('./'+Date.now() + '.heapsnapshot')
-    // }, 60000)
 }
 
 run()
