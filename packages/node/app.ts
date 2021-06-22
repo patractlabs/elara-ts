@@ -11,7 +11,7 @@ import Conf from './config'
 
 const log = getAppLogger('Node', true)
 const Server =  Http.createServer()
-const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false, backlog: 10})
+const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false})
 
 namespace Response {
     const end = async (res: Http.ServerResponse, data: any, code: number, md5?: string) => {
@@ -201,14 +201,6 @@ const run = async () => {
     Server.listen(conf.port, () => {
         log.info('Elara node transpond server listen on port: ', conf.port)
     })
-    // setInterval(() => {
-    //     Util.logMemory()
-        
-    // }, 5000)
-
-    // setInterval(() => {
-    //     writeHeapSnapshot('./'+Date.now() + '.heapsnapshot')
-    // }, 60000)
 }
 
 run()

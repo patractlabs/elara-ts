@@ -387,7 +387,7 @@ namespace Suber {
         for (let c of chains) {
             initChainSuber(c, wsConf.poolSize)
         }
-        log.info('Init completely. ', G.getAllSubers())
+        log.info('Init completely.')
     }
 }
 
