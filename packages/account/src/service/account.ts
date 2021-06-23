@@ -18,9 +18,10 @@ namespace Account {
         uid: IDT,
         username: IDT,
         vip: number,
-        type: string
+        type: string,
+        apikey:string
     ): PResultT => {
-        log.info('Into account creat !', uid, username, vip, type)
+        log.info('Into account creat !', uid, username, vip, type,apikey)
         const timestamp = now()
         let createTime: number = timestamp
         const account: Account = {
@@ -29,6 +30,7 @@ namespace Account {
             vip,
             type,
             createTime,
+            apikey,
         }
         log.warn('Account to create: ', account)
         let re = await Dao.createAccount(account)
@@ -45,6 +47,7 @@ namespace Account {
                 uid: re.uid,
                 vip: re.vip,
                 username: re.username,
+                apikey: re.apikey,
                 projectNum: projectNum,
             }
         }

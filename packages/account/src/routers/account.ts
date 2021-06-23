@@ -50,7 +50,9 @@ let callback = async (ctx: KCtxT, next: NextT) => {
                     uid,
                     username,
                     config.defaultLevel,
-                    'github'
+                    'github',
+                    config.apikey
+                    
                 )
                 if (isErr(account)) {
                     //新建账户失败，重定向到登陆页
@@ -75,7 +77,7 @@ let logout = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-let test_home = async (ctx: KCtxT, next: NextT) => {
+let home = async (ctx: KCtxT, next: NextT) => {
     ctx.response.type = 'html'
     ctx.response.body = html_home
     return next()
@@ -87,7 +89,7 @@ module.exports = {
     'GET /auth/github/callback': callback, //github 验证回调
     'GET /auth/logout': logout, //退出登录
 
-    'GET /test/github/home': test_home,
+    'GET /auth/github/home': home,
 }
 
 const html_home = `
