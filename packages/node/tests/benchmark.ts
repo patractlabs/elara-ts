@@ -51,80 +51,106 @@ const topics = [
     'chain_subscribeNewHead', 'chain_subscribeAllHeads', 'chain_subscribeFinalizedHeads'
 ]
 
-const wsTestRunner = (loop: number, newConn: boolean, conn: number, type: number = 0) => {
+const sendReq = async (w: Ws, lis: string[]) => {
+    for (let m of lis) {
+        const req = `{"id": 1, "jsonrpc":"2.0", "method":"${m}","params":[]}`
+        // log.info('ws state: ', w.readyState, req)
+        if (w.readyState == 1) {
+            await Util.sleeps(0.1)
+            w.send(req)
+        }
+    }
+}
+
+const listenHandle = (w: Ws, lis: string[], newConn: boolean = false, loop?: number) => {
+    w.on('open', async () => {
+        log.info('new open--------------------')
+        if (newConn) {
+            sendReq(w, lis)
+        } else {
+            if (loop <= 0) { loop = Number.MAX_VALUE }
+            for (let i = 0; i < loop; i++) {
+                await Util.sleeps(3)
+                sendReq(w, lis)
+            }
+        }
+    })
+
+    w.on('close', (_code, _reason) => {
+        // log.info('closed: ', code, reason)
+    })
+
+    w.on('error', (err) => {
+        log.error('ws error: ', err)
+    })
+
+    w.on('message', (data) => {
+        log.info('new msg: ', data)
+    })
+}
+
+const wsTestRunner = async (loop: number, newConn: boolean, conn: number, type: number = 0) => {
     let wss = connBuild(conn, '127.0.0.1', 7001)
     let lis = topics
     if (type === 0) {
         lis = methods
     }
-    for (let w of wss) {
-        // w.removeAllListeners()
-        w.on('open', async () => {
-            log.info('new open--------------------')
-            if (loop <= 0) { loop = Number.MAX_VALUE } 
-            for (let i = 0; i < loop; i++) {
-            await Util.sleeps(15)
-            for (let m of lis) {
-                const req = `{"id": 1, "jsonrpc":"2.0", "method":"${m}","params":[]}`
-                // log.info('ws state: ', w.readyState, req)
-                if (w.readyState == 1) {
-                    await Util.sleeps(0.1)
-                    w.send(req)
-                }
-            }
-            }
-        })
-    
-        w.on('close', (_code, _reason) => {
-            // log.info('closed: ', code, reason)
-        })
-    
-        w.on('error', (err) => {
-            log.error('ws error: ', err)
-        })
-    
-        w.on('message', (data) => {
-            log.info('new msg: ', data)
-        })
-    }
-    if (newConn) {
-        clearConn(wss)
-        wss = connBuild(conn, '127.0.0.1', 7001)
+    if (loop <= 0) { loop = Number.MAX_VALUE } 
+    for (let i = 0; i < loop; i++) {
+
+        for (let w of wss) {
+            listenHandle(w, lis, newConn, loop)           
+        }
+        await Util.sleeps(10)
+        if (newConn) {
+            clearConn(wss)
+            wss = connBuild(conn, '127.0.0.1', 7001)
+        }
     }
 }
 
 const clearConn = (wss: any[]) => {
     for (let w of wss) {
         w.close()
-        delete wss[w]
     }
+    wss = []
+    log.info('----------------------close all-----------------------')
+
 }
 
-const connTestRunner = async (delay: number) => {
-    const wss = connBuild(100, '127.0.0.1', 7001)
+const connTestRunner = async (conn: number, delay: number) => {
+    let wss = []
+    let pat = 'jupiter/qwertyuiopasdfghjklzxcvb'
+    for (let i = 0; i < conn; i++) { 
+        const id = formatstr(i)
+        const ws = newConn('127.0.0.1', 7001, `${pat}${id}`)
+        ws.on('open', () => {
+            log.info('open ws id i==================: ', i)
+        })
+
+        ws.on('close', () => {
+            log.info('close===============: ', i)
+        })
+        wss.push(ws)
+    }
     await Util.sleeps(delay)
     clearConn(wss)
 }
 
 const connTest = async (loop: number) => {
-    if (loop <= 0) {
-        while (true) {
-            log.info('======================start new iteration=========================')
-            connTestRunner(1)
-            log.info('----------------------close all-----------------------')
-        }
-    } else {
-        for (let i = 0; i < loop; i++) {
-            connTestRunner(1)
-        }
-    }
+    if (loop <= 0) { loop = Number.MAX_VALUE }
+    for (let i = 0; i< loop; i++) {
+        await Util.sleeps(1)        
+        connTestRunner(100, 4)
+    } 
 }
 
 
 (async () => {
     if (true) {
-        wsTestRunner(0, false, 300)
+        wsTestRunner(0, true, 300)
     } else {
-        connTest(100)
+        // wsTestRunner(0, false, 100)
+        connTest(0)
     }
 })()
