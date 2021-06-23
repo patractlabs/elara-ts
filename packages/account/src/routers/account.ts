@@ -101,7 +101,7 @@ const html_home = `
         <title>patract.io 授权</title>
     </head>
     <body>
-        <a href= '/auth/github'> 登录</a>
+        <a href= 'account/auth/github'> 登录</a>
     </body>
     </html>`
 
