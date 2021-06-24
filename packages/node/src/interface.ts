@@ -11,8 +11,10 @@ export type PuberMap = { [key in IDT]: Puber }
 // request type 
 export interface ReqT {
     id: IDT,
+    chain: string,
+    pid: IDT,
     pubId: IDT,
-    subsId?: IDT,
+    subsId?: string,
     originId: number,
     isSubscribe: boolean,
     jsonrpc: string,
@@ -37,7 +39,8 @@ export interface WsData {
     jsonrpc: string,
     method?: string,
     result?: any,
-    params?: any
+    params?: any,
+    error?: any
 }
 
 export type ChainPidT = {

@@ -87,21 +87,17 @@ namespace G {
     export const updateAddSuber = (chain: string, suber: Suber): void => {
         chain = chain.toLowerCase()
         const sub: SuberMap = {}
-        // log.warn('subers before add: ', Subers[chain])
         sub[suber.id] = suber
         Subers[chain] = {
             ...Subers[chain],
             ...sub
         }
-        // log.warn('subers after add: ', Subers[chain])
     }
 
     export const delSuber = (chain: string, subId: IDT): void => {
-        // log.warn('subers before delete: ', Subers[chain])
         chain = chain.toLowerCase()
         Subers[chain][subId].pubers?.clear()
         delete Subers[chain][subId]
-        // log.warn('subers after delete: ', Subers[chain])
     }
 
     export const getPuber = (pubId: IDT): ResultT => {
@@ -116,28 +112,20 @@ namespace G {
     }
 
     export const updateAddPuber = (puber: Puber): void => {
-        // log.warn('pubers before add: ', Pubers)
         Pubers[puber.id] = puber
-        // log.warn('pubers after add: ', Pubers)
     }
 
     export const delPuber = (pubId: IDT): void => {
-        // log.warn('pubers before delete: ', Pubers)
         Pubers[pubId].topics?.clear()
         delete Pubers[pubId]
-        // log.warn('pubers after delete: ', Pubers)
     }
 
     export const updateAddReqCache = (req: ReqT): void => {
-        // log.warn('request cache before add-update: ', ReqMap)
         ReqMap[req.id] = req
-        // log.warn('request cache after add-update: ', ReqMap)
     }
 
     export const delReqCache = (reqId: IDT): void => {
-        // log.warn('request cache before del: ', ReqMap)
         delete ReqMap[reqId]
-        // log.warn('request cache after del: ', ReqMap)
     }
 
     export const getReqCache = (reqId: IDT): ResultT => {
@@ -152,7 +140,6 @@ namespace G {
     }
 
     export const addSubTopic = (chain: string, pid: IDT, topic: SubscripT): void => {
-        // log.info('Into add sub topic: ', chain, pid, topic)
         chain = chain.toLowerCase()
         const newSub: SubscripMap = {}
         newSub[topic.id!] = topic
@@ -163,7 +150,6 @@ namespace G {
                 ...TopicSubed[chain][pid],
                 ...newSub
             }
-            // log.warn('after add sub topic: ', JSON.stringify(TopicSubed))
             return
         }
 
@@ -178,16 +164,11 @@ namespace G {
             ...TopicSubed[chain],
             ...tops
         }
-        
-        // log.warn('after add sub topic: ', JSON.stringify(TopicSubed))
     }
 
     export const remSubTopic = (chain: string, pid: IDT, subsId: string): void => {
-        // log.warn(`Subscribed topics before delete: `, TopicSubed[chain][pid])
         chain = chain.toLowerCase()
         delete TopicSubed[chain][pid][subsId] 
-        // log.warn(`Subscribed topics after delete: `, TopicSubed[chain][pid])
-
     }
 
     export const getSubTopic = (chain: string, pid: IDT, subsId: IDT): ResultT => {
@@ -219,20 +200,16 @@ namespace G {
     }
 
     export const addChain = (chain: string): void => {
-        // log.warn('chains before add: ', Chains)
         chain = chain.toLowerCase()
         if (Chains.has(chain))  {
-            log.warn('Chain is exist: ', chain)
+            log.warn('duplex chain when add new chain: ', chain)
             return
         }
         Chains.add(chain)
-        // log.warn('chains after add: ', Chains)
     }
 
     export const remChain = (chain: string): void => {
-        // log.warn('chains before remove: ', Chains)
         Chains.delete(chain)
-        // log.warn('chains after remove: ', Chains)
     }
 
     export const getChains = (): Set<string> => {
@@ -260,9 +237,11 @@ namespace G {
     }
 
     export const delSubReqMap = (subscriptId: string): void => {
-        // log.warn(`SubMap before delete: `, SubMap)
         delete SubMap[subscriptId]
-        // log.warn(`SubMap after delete: `, SubMap)
+    }
+
+    export const getSubmap = () => {
+        return SubMap || {}
     }
 
     export const resetConnCnt = (chain: string) => {

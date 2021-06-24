@@ -4,9 +4,10 @@ import { getAppLogger, Ok, isErr, ChainConfig, PResultT, Err } from 'lib'
 import Puber from './src/puber'
 import Suber from './src/suber'
 import Util from './src/util'
-import { ChainPidT } from './src/interface'
+import { ChainPidT, WsData } from './src/interface'
 import Dao from './src/dao'
 import Conf from './config'
+import Matcher from './src/matcher'
 // import { writeHeapSnapshot } from 'v8'
 
 const log = getAppLogger('Node', true)
@@ -71,6 +72,7 @@ const pathOk = async (url: string, host: string): PResultT => {
 
 // Http rpc request 
 Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse) => {
+    // TODO request static and limit
     // method check
     log.info(`new rpc request method[${req.method}]`)
     if (!isMethodOk(req.method!)) {
@@ -116,6 +118,8 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
 
 // WebSocket request 
 Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
+    // TODO request static and limit
+
     const path = res.url!
     const re = await Util.urlParse(path)
     if (isErr(re)) {
@@ -138,35 +142,40 @@ wss.on('connection', async (ws, req: any) => {
     log.info(`New socket connection chain ${req.chain} pid[${req.pid}], current total connections `, wss.clients.size)
     // 
     const start = Util.traceStart()
-    let re = await Puber.onConnect(ws, req.chain, req.pid)
+    let re = await Matcher.regist(ws, req.chain, req.pid)
     const time = Util.traceEnd(start)
     log.info(`chain ${req.chain} pid[${req.pid}] puber connect time: ${time}`)
     if (isErr(re)) {
         log.error('Connect handle error: ', re.value)
+        let err = re.value
         if (re.value.indexOf('no valid subers of chain') !== 1) {
             ws.send(`no chain named ${req.chain}`)
-            ws.close(1001, 'Invalid chain')
-            return
+            err = `Invalid chain`
         }
-        ws.terminate()
-        return
+        return ws.close(1001, err)
     }
     const puber = re.value as Puber
 
-    ws.on('message', (data) => {
-        // log.info('New msg-evt: ', data)
-        Puber.onMessage(puber, data)
+    ws.on('message', async (data) => {
+        log.info(`new puber[${puber.id}] request of chain ${puber.chain}: `, data)
+        let dat: WsData
+        try {
+            dat = JSON.parse(data.toString())
+        } catch (err) {
+            log.error('Parse message to JSON error')  
+            return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
+        }
+        Puber.transpond(puber, dat)
     })
  
-    ws.on('close', (code, reason) => {
+    ws.on('close', async (code, reason) => {
         log.warn(`Puber[${puber.id}] closed, code[${code}] reason[${reason}], current total connections `, wss.clients.size)
-        Puber.clear(puber.id)
+        Matcher.unRegist(puber.id)
     })
 
     ws.on('error', (err) => {
         log.error(`Puber[${puber.id}] Connection error: `, err)
-        ws.terminate()
-        Puber.clear(puber.id)
+        // ws.close()
     })
     return
 })

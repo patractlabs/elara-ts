@@ -78,7 +78,7 @@ namespace Util {
         const format = (bytes: number) => {
             return (bytes / 1024 / 1024).toFixed(2) + 'MB'
         }
-        log.warn('Memory usage: ', {
+        log.info('Memory usage: ', {
             rss: format(mem.rss),
             heapTotal: format(mem.heapTotal),
             heapUsed: format(mem.heapUsed),
@@ -97,11 +97,11 @@ namespace Util {
 
     export const logDebugResp = (res: any) => {
         let data = ''
-        res.on('data', (chunk) => {
+        res.on('data', (chunk: any) => {
             data += chunk
         })
         res.on('end', () => {
-            log.warn('New rpc response: ', data)
+            log.info('New rpc response: ', data)
         })
     }
 

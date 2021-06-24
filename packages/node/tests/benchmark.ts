@@ -47,7 +47,7 @@ const methods = [
 ]
 
 const topics = [
-    'state_subscribeRuntimeVersion', 'state_subscribeStorage',
+    'state_subscribeRuntimeVersion', 
     'chain_subscribeNewHead', 'chain_subscribeAllHeads', 'chain_subscribeFinalizedHeads'
 ]
 
@@ -62,9 +62,9 @@ const sendReq = async (w: Ws, lis: string[]) => {
     }
 }
 
-const listenHandle = (w: Ws, lis: string[], newConn: boolean = false, loop?: number) => {
+const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = false) => {
     w.on('open', async () => {
-        log.info('new open--------------------')
+        // log.info('new open--------------------')
         if (newConn) {
             sendReq(w, lis)
         } else {
@@ -76,8 +76,8 @@ const listenHandle = (w: Ws, lis: string[], newConn: boolean = false, loop?: num
         }
     })
 
-    w.on('close', (_code, _reason) => {
-        // log.info('closed: ', code, reason)
+    w.on('close', (code, reason) => {
+        log.info('closed: ', code, reason)
     })
 
     w.on('error', (err) => {
@@ -99,7 +99,7 @@ const wsTestRunner = async (loop: number, newConn: boolean, conn: number, type: 
     for (let i = 0; i < loop; i++) {
 
         for (let w of wss) {
-            listenHandle(w, lis, newConn, loop)           
+            listenHandle(w, lis, loop, newConn)           
         }
         await Util.sleeps(10)
         if (newConn) {
@@ -148,7 +148,7 @@ const connTest = async (loop: number) => {
 
 (async () => {
     if (true) {
-        wsTestRunner(0, true, 300)
+        wsTestRunner(0, true, 300, 1)
     } else {
         // wsTestRunner(0, false, 100)
         connTest(0)
