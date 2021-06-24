@@ -5,8 +5,8 @@ export interface Account {
     username: IDT
     vip: number
     type: string
-    apikey: string
     createTime: number | string
+    apikey: string
     [key: string]: any
 }
 

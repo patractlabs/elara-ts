@@ -1,5 +1,5 @@
 import Koa from 'koa'
-import { accessLogger, getAppLogger } from 'lib'
+import {  getAppLogger } from 'lib'
 import routerCompose from './src/router-compose'
 import KoaBody from 'koa-body'
 import Passport from './src/lib/passport'
@@ -13,7 +13,6 @@ const config = setConfig()
 
 app.use(Session(config.session, app))
     .use(KoaBody({ multipart: true }))
-    .use(accessLogger(true))
     .use(Passport.initialize())
     .use(Passport.session())
     .use(responseTime)

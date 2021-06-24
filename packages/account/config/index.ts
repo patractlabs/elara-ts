@@ -36,10 +36,10 @@ export const setConfig = (options?: AccountConfig): AccountConfig => {
         github: {
             ClientID: 'd67ed989933a697a9f9e',
             ClientSecret: '7dadbfa07c43571d9bfedbcca0fe9d59ccc6cf92',
-            CallbackURL: 'http://192.168.2.94:8000/auth/github/callback',
+            CallbackURL: 'http://47.111.179.222:8000/account/auth/github/callback',
         },
         // login: 'https://elara.patract.io/login',
-        login: 'http://192.168.2.94:8000/auth/github/home',
+        login: 'http://47.111.179.222:8000/account/auth/github/home',
       defaultLevel: 0,
       apikey: "elara",
     }
