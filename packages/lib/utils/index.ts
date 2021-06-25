@@ -21,6 +21,3 @@ export const md5 = (msg: string): string => {
 export const randomReplaceId = (size: number = 16): number => {
     return Buffer.from(crypto.randomBytes(size)).readUIntLE(0, 4)
 }
-
-import redis from 'ioredis'
-export const Redis =  redis

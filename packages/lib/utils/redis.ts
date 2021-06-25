@@ -65,4 +65,4 @@ namespace Rd {
     }
 }
 
-export = Rd
+export default Rd

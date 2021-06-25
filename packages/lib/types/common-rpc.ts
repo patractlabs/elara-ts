@@ -4,14 +4,14 @@ export enum RpcStrategy {
     History = 'Histrory',
     Kv = 'Kv',                      // elara kv storage service
     Subscribe = 'Subscribe',        // subscription 
-    Unsub = 'Unsuvscribe',          // unsubscription
+    Unsub = 'Unsubscribe',          // unsubscription
     SyncAsBlock = 'SyncAsBlock',    // update as block update
     SyncLow = 'SyncLow',            // 10min or more
     SyncOnce = 'SyncOnce',     
     SyncHistory = 'SyncHistory',      // depends in parameter
 }
 
-export type RpcMethodT = {[key in RpcStrategy]: string[]}
+export type RpcMethodT = {[key in RpcStrategy]?: string[]}
 
 export const RpcMethods: RpcMethodT = {
     Abandon: [
@@ -42,7 +42,7 @@ export const RpcMethods: RpcMethodT = {
         // other subscription from elara-kv
     ],
     Subscribe: [
-        'author_submitAndWatchExtrinsic', // node direct?
+        // 'author_submitAndWatchExtrinsic', // node direct?
 
         'chain_subscribeAllHeads',
         'chain_subscribeNewHeads', 
@@ -51,8 +51,8 @@ export const RpcMethods: RpcMethodT = {
         'state_subscribeRuntimeVersion',    // ?
         'state_subscribeStorage', 
     ],
-    Unsuvscribe: [
-        'author_unwatchExtrinsic',
+    Unsubscribe: [
+        // 'author_unwatchExtrinsic',
 
         'chain_unsubscribeAllHeads',
         'chain_unsubscribeNewHeads',
