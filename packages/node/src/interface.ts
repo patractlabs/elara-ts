@@ -14,6 +14,7 @@ export interface ReqT {
     chain: string,
     pid: IDT,
     pubId: IDT,
+    subId: IDT,
     subsId?: string,
     originId: number,
     isSubscribe: boolean,

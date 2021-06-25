@@ -170,7 +170,10 @@ wss.on('connection', async (ws, req: any) => {
  
     ws.on('close', async (code, reason) => {
         log.warn(`Puber[${puber.id}] closed, code[${code}] reason[${reason}], current total connections `, wss.clients.size)
-        Matcher.unRegist(puber.id)
+        if (code === 1000) {
+            log.error(`server failed, close the current puber[${puber.id}]`)
+        }
+        Matcher.unRegist(puber.id, code)
     })
 
     ws.on('error', (err) => {

@@ -51,7 +51,7 @@ namespace Puber {
             return puber.ws.send('No need to subscribe twice')
         }
 
-        let re = Matcher.newRequest(chain, pid, id, data)
+        let re = Matcher.newRequest(chain, pid, id, puber.subId!, data)
         if (isErr(re)) {
             log.error(`create new request error: ${re.value}`)
             return puber.ws.send(re.value)

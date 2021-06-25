@@ -22,7 +22,7 @@ import Topic from './topic'
 
 const log = getAppLogger('matcher', true)
 
-const clearSubContext = async (puber: Puber) => {
+const clearSubContext = async (puber: Puber, code: number) => {
     // sub context: 1. subed topics 2. subreqMap 3. reqCache for subscribe
     // topic context which subscribed should be clear after unsubscribe response true
     // then clear the puber when all topic context clear
@@ -44,6 +44,22 @@ const clearSubContext = async (puber: Puber) => {
 
         G.delPuber(puber.id)
         log.info(`puber[${puber.id}] has no topics, clear done`)
+        return
+    }
+    if (code === 1000) {
+        log.error(`suber has been closed, no need to unsubscribe`)
+        // clear subscribe context
+        for (let subsId of puber.topics!) {
+            let re = G.getReqId(subsId)
+            if (isErr(re)) {
+                log.error(`clear subscribe context error: ${re.value}`)
+                process.exit(2)
+            }
+            G.delReqCache(re.value)
+            G.delSubReqMap(subsId)
+            G.remSubTopic(chain, pid, subsId)
+        }
+        G.delPuber(puber.id)
         return
     }
     // regist event
@@ -109,7 +125,7 @@ namespace Matcher {
         return Ok(puber)
     }
     
-    export const newRequest = (chain: string, pid: IDT, pubId: IDT, data: WsData): ResultT => {
+    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subId: IDT, data: WsData): ResultT => {
         const method = data.method!
         // TODO: subscribe & unsubscribe method to pre handle
         if (isUnsubReq(method)) {
@@ -124,6 +140,7 @@ namespace Matcher {
             id: randomId(), pubId,
             chain,
             pid,
+            subId,
             originId: data.id, 
             jsonrpc: data.jsonrpc,
             isSubscribe, 
@@ -161,7 +178,7 @@ namespace Matcher {
         return Ok(0)
     }
 
-    export const unRegist = async (pubId: IDT): PVoidT => {
+    export const unRegist = async (pubId: IDT, code: number): PVoidT => {
         /// when puber error or close,
         /// if suber close or error, will emit puber close
         
@@ -170,12 +187,11 @@ namespace Matcher {
             // SBH
             log.error('[SBH] Unregist puber error: ', re.value)
             process.exit(1)
-            // return Err(`unregist puber error: ${re.value}`)
         }
         const puber = re.value as Puber
 
         G.decrConnCnt(puber.chain, puber.pid)   
-        clearSubContext(puber) 
+        clearSubContext(puber, code) 
 
         re = G.getSuber(puber.chain, puber.subId!)
         if (isErr(re)) {

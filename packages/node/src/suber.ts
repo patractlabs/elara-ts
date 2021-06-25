@@ -1,6 +1,6 @@
 import { randomId } from 'lib/utils'
 import WebSocket from 'ws'
-import { ReqT, SubscripT, WsData } from './interface'
+import { ReqT, WsData } from './interface'
 import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PVoidT, PResultT } from 'lib'
 import G from './global'
 import Chain from './chain'
@@ -44,13 +44,7 @@ const parseReq =  (dat: WsData): ResultT => {
         log.info('receive second response of subscribe: ', subsId)
         const re = G.getReqId(subsId)
         if (isErr(re)) {
-            // process.exit(1)
-            if (G.reqMapCnt() < 10 && G.subMapCnt() < 10) {
-                log.error(`subMap: ${JSON.stringify(G.getSubmap())}, reqmap: ${JSON.stringify(G.getAllReqCache())}`)
-            }
-            // TODO unsub clear reqmap
-
-            return Err(`SubReqMap invalid, subscription id [${subsId}]`)
+            process.exit(1)
         }
         reqId = re.value as IDT
     } else if(dat.result === true) {
@@ -225,101 +219,89 @@ const closeHandler = async (chain: string, suber: Suber): PVoidT => {
         }
         // close puber conn
         const puber = re.value as Puber   
-        puber.ws.close(1001, 'cannot connect to server')
+
+        // TODO: suber is unavailable now
+        puber.ws.close(1000, 'cannot connect to server')
     }
 }
 
-const recoverPuber = async (pubId: IDT, subId: IDT): PResultT => {
-    let re = G.getPuber(pubId)
-    if (isErr(re)) { return re }
-
-    const puber = re.value as Puber
-
-    // rematche subId
-    puber.subId = subId
-    G.updateAddPuber(puber)
-    log.info(`Recover suber's id of puber[${pubId}] to: `, subId)
-    return Ok(puber)
-}
-
-const recoverSubedTopic = (chain: string, pid: IDT, subsId: string): ResultT => {
-    let re = G.getSubTopic(chain, pid, subsId)
-    if (isErr(re)) {
-        // try to clear
-        log.error('recover subscribed topics error: ', re.value)
-        G.remSubTopic(chain, pid, subsId)
-        re = G.getReqId(subsId)
-        G.delReqCache((re.value as SubscripT).id)
-        G.delSubReqMap(subsId)
-    }
- 
-    // send subscribe
-    re = G.getReqId(subsId)
-    if (isErr(re)) { return re }
-    
-    // update req cache
-    re = G.getReqCache(re.value)
-    // SBH
+const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
+    const {id, chain} = puber
+    puber.topics!.delete(subsId)
+    let re = G.getReqId(subsId)
     if (isErr(re)) { 
-        log.error(`[SBH] recover subscribe topic error: ${re.value}`)
-        process.exit(1)
-        return re 
+        log.error(`revocer puber[${id}] subscribe topic error: ${re.value}`)
+        process.exit(2)
+    }
+    re = G.getReqCache(re.value)
+    if (isErr(re)) {
+        log.error(`revocer puber[${id}] subscribe topic error: ${re.value}`)
+        process.exit(2)
     }
 
-    return Ok(re.value as ReqT)
+    const req = re.value as ReqT
+    let params = []
+    if (req.params !== 'none') {
+        params = JSON.parse(req.params)
+    }
+    ws.send(Util.reqFastStr({
+        id: req.id, 
+        jsonrpc: "2.0", 
+        method: req.method, 
+        params,
+    }))
+
+    // delete topic subed
+    G.remSubTopic(chain, puber.pid, subsId)
+    // delete subMap
+    G.delSubReqMap(subsId)
+
+    // no need to clear req cache, 
+    // req.subsId will be update after new message received
+    log.info(`Recover subscribed topic[${req.method}] params[${req.params}] of puber [${id}] done`)
 }
 
 const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
     log.info(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers.toString()}]`)
     for (let pubId of pubers) {
-        let re = await recoverPuber(pubId, subId)
+        let re = G.getPuber(pubId)
         if (isErr(re)) {
             log.error(`Handle re open error: `, re.value)
-            continue
+            process.exit(2)
         }
         const puber = re.value as Puber
+        // update suber id
+        puber.subId = subId
         if (!puber.topics) { 
             log.info(`No topics need to recover of puber [${pubId}]`) 
+            G.updateAddPuber(puber)
             continue
         }
         // re subscribe topic
         for (let subsId of puber.topics!) {
-            let re = recoverSubedTopic(chain, puber.pid, subsId)
-            if (isErr(re)) {
-                log.error(`Handle re open error: `, re.value)
-                continue
-            }
-            const req = re.value as ReqT
-            let params = []
-            if (req.params !== 'none') {
-                params = JSON.parse(req.params)
-            }
-            ws.send(Util.reqFastStr({
-                id: req.id, 
-                jsonrpc: "2.0", 
-                method: req.method, 
-                params,
-            }))
-
-            // delete topic subed
-            G.remSubTopic(chain, puber.pid, subsId)
-            // delete subMap
-            G.delSubReqMap(subsId)
-
-            // no need to clear req cache, 
-            // req.subsId will be update after new message received
-            log.info(`Recover subscribed topic[${req.method}] params[${req.params}] of puber [${pubId}] done`)
+            recoverPuberTopics(puber, ws, subsId)
         }
+        G.updateAddPuber(puber)
         log.info(`Recover puber[${pubId}] of chain ${chain} done`)
     }
 }
 
-const reqCacheClear = async (pubers: Set<IDT>) => {
+const clearReqcache = async (pubers: Set<IDT>) => {
     log.info('clear request cache of pubers: ', pubers)
     const reqs = G.getAllReqCache()
     for (let reqId in reqs) {
         if (pubers.has(reqs[reqId].pubId)) {
             G.delReqCache(reqId)
+        }
+    }
+}
+
+const clearNonSubReqcache = (subId: IDT) => {
+    const reqs = G.getAllReqCache()
+    for (let reqId in reqs) {
+        if (reqs[reqId].subId === subId && !reqs[reqId].isSubscribe) {
+            G.delReqCache(reqId)
+            log.info(`clear non-subscribe request cache: ${reqId}`)
         }
     }
 }
@@ -356,15 +338,19 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
         const re = G.getSuber(chain, suber.id)
         if (isErr(re)) {
             log.error(`Handle suber close event error: `, re.value)
-            return
+            process.exit(1)
         }
+
         const subTmp = re.value as Suber
+        // clear non-subscribe req cache  bind to suber
+        clearNonSubReqcache(subTmp.id)
+
         let pubers = new Set(subTmp.pubers) // new heap space
         const serConf = Conf.getServer()
         if (G.getTryCnt(chain) >= serConf.maxReconnTry) {
             // try to clear request cache of suber.pubers before delete,
             // which wont clear on subscribe request cache
-            reqCacheClear(pubers)
+            clearReqcache(pubers)
             // clear all the puber resource
             await closeHandler(chain, subTmp)
             pubers = new Set<IDT>()  // clear pubers after handle done
