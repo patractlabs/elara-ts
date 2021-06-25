@@ -1,0 +1,11 @@
+{
+    "server": {
+        "port": 7001,
+        "maxReconnTry": 60,
+        "id": 0
+    },
+    "ws": {
+        "maxConn": 10,
+        "poolSize": 5
+    }
+}

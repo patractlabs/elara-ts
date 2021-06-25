@@ -1,0 +1,27 @@
+{
+  "name": "node",
+  "version": "1.0.0",
+  "description": "node transpond service for elara fail",
+  "main": "app.ts",
+  "scripts": {
+    "test": "jest",
+    "coverage": "jest --coverage"
+  },
+  "author": "Bruce",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "config": "^3.3.6",
+    "fast-json-stringify": "^2.7.6",
+    "lib": "file:../lib",
+    "ws": "^7.4.6"
+  },
+  "devDependencies": {
+    "@types/autocannon": "^4.1.0",
+    "@types/config": "0.0.38",
+    "@types/jest": "^26.0.23",
+    "@types/ws": "^7.4.4",
+    "autocannon": "^7.3.0",
+    "jest": "^27.0.4",
+    "ts-jest": "^27.0.3"
+  }
+}

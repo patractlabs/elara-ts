@@ -36,8 +36,8 @@ app.on('error', (err) => {
     log.error('Stat service error: ', err)
 })
     
-app.listen('7003', () => {
-    log.info('Stat service listen on port 7003')
+app.listen('7002', () => {
+    log.info('Stat service listen on port 7002')
 })
 
 

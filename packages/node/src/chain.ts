@@ -1,8 +1,10 @@
 /// chain list init and handler the chain update
 
-import { getAppLogger, isErr, PVoidT, RpcMethods } from 'lib'
-import Dao, { chainPSub } from '../dao'
-import { G } from './global'
+import { getAppLogger, PVoidT, PResultT } from 'lib'
+import Conf from '../config'
+import Dao, { chainPSub } from '../src/dao'
+import G from './global'
+import Suber from './suber'
 const log = getAppLogger('sub-chain', true)
 
 enum Topic {
@@ -11,35 +13,25 @@ enum Topic {
     ChainUpdate = 'chain-update'
 }
 
-const fetchChains = async (): PVoidT => {
-    let chains = await Dao.getChainList()
-    if (isErr(chains)) {
-        log.error('Fetch chains error: ', chains.value)
-        G.chains = []
-        return
-    }
-    // log.info('chain list: ', chains)
-    G.chains = chains.value
-    G.rpcs = RpcMethods
-}
-
 // chain events
 const chainAddHandler = async (chain: string): PVoidT => {
     log.info('Into chain add handler: ', chain)
-    // TODO: chain-init logic
-    // update G.chain G.chainConf
-    // 
+
+    // reinit subers of chain 
+    const wsConf = Conf.getWs()
+    Suber.initChainSuber(chain, wsConf.poolSize)
 }
 
 const chainDelHandler = async (chain: string): PVoidT => {
     log.info('Into chain delete handler: ', chain)
-    // TODO
+    // TODO ?
+    G.remChain(chain)
 }
 
 const chainUpdateHandler = async (chain: string): PVoidT => {
     log.info('Into chain update handler: ', chain)
     // TODO
-    // update G.chain G.chainConf
+    // nothing to do now
 }
 
 // pattern subscription
@@ -74,30 +66,9 @@ chainPSub.on('error', (err) => {
 
 namespace Chain {
 
-    export const parseConfig = async (chain: string) => {
-        const conf = await Dao.getChainConfig(chain)
-        if (isErr(conf)) { 
-            log.error(`Parse config of chain[${chain}] error: `, conf.value)
-            return 
-        }
-        // what if json parse error
-        G.chainConf[chain] = {
-            ...conf.value,
-            extends: JSON.parse(conf.value.extends),
-            excludes: JSON.parse(conf.value.excludes)
-        }
-        // log.warn('chain conf: ', G.chainConf[chain])
-    }
-
-    export const init = async () => {
-        await fetchChains()
-        let parses: Promise<void>[] = []
-        log.warn('parse chain: ', G.chains)
-        for (let c of G.chains) {
-            parses.push(parseConfig(c))
-        }
-        return Promise.all(parses)
+    export const fetchChains = async (): PResultT => {
+        return Dao.getChainList()
     }
 }
 
-export = Chain
+export default Chain

@@ -13,7 +13,7 @@ const log = getAppLogger('esuber', true)
 const ENV = process.env.NODE_ENV
 const secure = ENV === 'pro' 
 
-namespace Suber {
+namespace Suducer {
     // init suber service,
     // 1. chains init
     // 2. ws pool init
@@ -26,7 +26,6 @@ namespace Suber {
     }
     
 }
-export const Service = S
 export * from './interface'
 export * from './global'
-export default Suber
+export default Suducer

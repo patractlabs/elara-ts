@@ -3,12 +3,16 @@
 /// 2. a ws Suber-binding map { chain: {chan: {id1: Suber}, rpc: {id2: Suber}}}, current choose.
 
 import WebSocket from 'ws'
-import { getAppLogger, IDT } from 'lib'
+import { getAppLogger, IDT, Kafka } from 'lib'
 import { G } from './global'
-import { Suber, SuberType, SuberPool, newSuber, ChainStat, SubStat, WsPool } from './interface'
+import { Suber, SuberType, SuberPool, 
+    newSuber, ChainStat, SubStat, WsPool,
+    SubProto
+} from './interface'
 import { SubMethod } from 'lib'
 import Dao from '../dao'
-import { Service } from '.'
+import Service  from './service'
+import Mq from './kafka'
 
 const log = getAppLogger('suber-p', true)
 
@@ -53,7 +57,7 @@ const generateUrl = (url: string, port: number, sec: boolean = false) => {
     return `${procol}${url}:${port}`
 }
 
-const cacheMsg = (chain: string) => {
+const cacheMsgListener = (chain: string) => {
 
     return  (msg: any) => {
         const dat = JSON.parse(msg)
@@ -61,6 +65,7 @@ const cacheMsg = (chain: string) => {
         // log.info('data: ', dat, method, G.idMethod)
         if (method) {
             delete G.idMethod[dat.id]
+            // cache H_[method]_[chain] { updateTime: 2021-0525, data: "{any}"}
             Dao.updateChainCache(chain, method, JSON.stringify(dat.result))
         } else {
             log.error('No this method: ', method)
@@ -68,7 +73,18 @@ const cacheMsg = (chain: string) => {
     }
 }
 
-const subMsg = (chain: string) => {
+/// kafka
+
+const buildSubProto = (chain: string, topic: string, data: any, subId: IDT): SubProto => {
+    return {
+        chain,
+        topic,
+        subId,
+        data
+    } 
+}
+
+const subMsgListener = (chain: string) => {
     // update redis cache
     const subMap: any = SubMethod
     log.info('Sub method map: ', subMap)
@@ -80,13 +96,13 @@ const subMsg = (chain: string) => {
             // update subscription id according to id
             // Method_chain_id: method
             log.info('Subscribe id is: ', dat.result)
+
         } else if (dat.params) {
             const re = dat.params.result
             const subId = dat.params.subscription
             const method = subMap[dat.method]
             log.warn('data method: ', dat.method)
             log.info(`Get chain[${chain}] ${method}-${subId} subscription data: `, re)
-            // cache result, H_[method]_[chain] { updateTime: 2021-0525, data: "{balala}"}
             // notify Matcher
 
             if (method === 'state_subscribeRuntimeVersion') {
@@ -94,11 +110,28 @@ const subMsg = (chain: string) => {
                 log.warn(`${chain} runtime version update`)
                 Service.Cache.syncOnceService(chain)
             }
+
+            // produce subscribe result msg
+            // chain, topic, group, data 
+            // msg wrap
+            const prot = buildSubProto(chain, method, re, dat.params.subscription)
+            const partition = Kafka.geneID()
+            const msg = Kafka.newMsg(prot, 'sub')   
+            const topic = Kafka.newTopic(chain, method)
+            Mq.producer.send({
+                topic,
+                messages: [msg],
+            }).then(re => {
+                log.warn('send kafka result: ', re)
+            }).catch(err => {
+                log.error('send kafka error: ', err)
+            })
+            log.warn('send kafka message: ', topic, msg)
         }
     }
 }
 
-const reqrespMsg = (chain: string) => {
+const reqrespMsgListener = (chain: string) => {
     return (msg: any) => {
         log.info('Req&Resp message: ', chain)
     }
@@ -155,9 +188,9 @@ namespace Pool {
 
     export const add = (chain: string, url: string, type: SuberType) => {
         chain = lowCase(chain)
-        let cb = cacheMsg(chain)
+        let cb = cacheMsgListener(chain)
         if (type === SuberType.Sub) {
-            cb = subMsg(chain)
+            cb = subMsgListener(chain)
         }
 
         const suber = createSuber(chain, url, type, cb)
@@ -169,9 +202,9 @@ namespace Pool {
         let wpool: WsPool = {}
         let cpool = G.cpool[chain]
         wpool[type] = {...(cpool && cpool[type]) || {}, ...spool}
-        log.info('cpool before: ', cpool)
+        // log.info('cpool before: ', cpool)
         G.cpool[chain] = {...cpool, ...wpool}
-        log.info(`Add suber [${chain}] [${type}] [${suber.id}] [${suber.chainId}]: `, G.cpool)
+        // log.info(`Add suber [${chain}] [${type}] [${suber.id}] [${suber.chainId}]: `, G.cpool)
     }
     
     export const del = (chain: string, type: SuberType, subId: IDT) => {

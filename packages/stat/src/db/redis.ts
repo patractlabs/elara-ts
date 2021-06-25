@@ -1,13 +1,8 @@
-import { Redis } from 'lib/utils'
+import { Redis } from 'lib'
+const DBT = Redis.DBT
 
-export const statRd = new Redis({
-    db: 2
-})
+export const statRd = Redis.newClient(DBT.Stat).client
 
-export const projRd = new Redis({
-    db:1
-})
+export const projRd = Redis.newClient(DBT.Project).client
 
-export const actRd = new Redis({
-    db: 0
-})
+export const actRd = Redis.newClient(DBT.Account).client
