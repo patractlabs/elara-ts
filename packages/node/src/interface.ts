@@ -8,6 +8,13 @@ export type ChainSuber = { [key in string]: SuberMap }
 
 export type PuberMap = { [key in IDT]: Puber }
 
+export enum ReqTyp {
+    Sub,
+    Unsub,
+    Rpc,
+    Close
+}
+
 // request type 
 export interface ReqT {
     id: IDT,
@@ -17,7 +24,7 @@ export interface ReqT {
     subId: IDT,
     subsId?: string,
     originId: number,
-    isSubscribe: boolean,
+    type: ReqTyp,
     jsonrpc: string,
     method: string,
     params: string

@@ -28,7 +28,7 @@ namespace Topic {
 
         "state_subscribeRuntimeVersion",    // state_runtimeVersion
         "state_subscribeStorage",           // state_storage
-        "author_submitAndWatchExtrinsic",   // ?
+        "author_submitAndWatchExtrinsic",   // author_extrinsicUpdate
     
         "subscribe_newHead"                 // chain_newHead
     ]
@@ -45,7 +45,7 @@ namespace Topic {
 
         "state_unsubscribeRuntimeVersion",    // state_runtimeVersion
         "state_unsubscribeStorage",           // state_storage
-        "author_unwatchExtrinsic",   // ?
+        "author_unwatchExtrinsic",            // author_extrinsicUpdate
     
         "unsubscribe_newHead"                 // chain_newHead
     ]

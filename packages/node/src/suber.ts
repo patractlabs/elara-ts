@@ -1,6 +1,6 @@
 import { randomId } from 'lib/utils'
 import WebSocket from 'ws'
-import { ReqT, WsData } from './interface'
+import { ReqT, ReqTyp, WsData } from './interface'
 import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PVoidT, PResultT } from 'lib'
 import G from './global'
 import Chain from './chain'
@@ -20,16 +20,24 @@ const delays = (sec: number, cb: () => void) => {
     }, sec * 1000);
 }
 
-const isUnsubscribe = (result: boolean) => {
-    return result === true || result === false
-}
+// const isUnsubscribe = (result: boolean, req: ReqT): boolean => {
+//     // method
+//     if (result === true || result === false) {
+//         return req.isUnsubscribe
+//     }
+//     return false
+// }
 
 const SubReg = (() => {
     return /[0-9a-zA-Z]{16}/
 })()
 
+const isSubID = (id: string): boolean => {
+    return SubReg.test(id) && id.length === 16
+}
+
 const isSubscribe = (isSub: boolean, result: any): boolean => {
-    return isSub && SubReg.test(result)
+    return isSub && isSubID(result)
 }
 
 const isSecondResp = (params: any) => {
@@ -37,39 +45,52 @@ const isSecondResp = (params: any) => {
     return params !== undefined
 }
 
+const isUnsubOnClose = (dat: WsData): boolean => {
+    if (!dat.id) { return false }
+    const isBool: boolean = dat.result === true || dat.result === false
+    return isSubID(dat.id!.toString()) && isBool
+}
+
 const parseReq =  (dat: WsData): ResultT => {
+    log.info('parse new request: ', JSON.stringify(dat))
     let reqId = dat.id // maybe null
+
+    if (dat.id === null) {
+        log.error(`Unexcepted response null id: ${dat}`)
+        return Err(`null id response: ${dat}`)
+    }
+    
+    // log.warn('sub test: ', isSubID(dat.id!.toString()))
     if (isSecondResp(dat.params)) {
         const subsId = dat.params.subscription
         log.info('receive second response of subscribe: ', subsId)
         const re = G.getReqId(subsId)
         if (isErr(re)) {
+            log.error(`parse request cache error: ${re.value}`)
             process.exit(1)
         }
         reqId = re.value as IDT
-    } else if(dat.result === true) {
-        // unsubscribe data
+    } else if(isUnsubOnClose(dat)) {
+        // unsubscribe data when puber close
         const re = G.getReqId((dat.id)!.toString())
         if (isErr(re)) {
-            log.error(`parse unsubscribe data error: ${dat}`)
+            log.error(`parse unsubscribe data error: ${JSON.stringify(dat)}`)
             process.exit(1)
         }
-        reqId = re.value
-    }
-
-    if (reqId === null) {
-        log.error(`Unexcepted response null id: ${dat}`)
-        return Err(`null id response: ${dat}`)
+        reqId = re.value    // the subscribe request id
+        log.info(`unsubscribe result when puber closed,fetch subscribe request ${reqId}`)
     }
 
     let re = G.getReqCache(reqId!)  
     if (isErr(re)) {
-        log.error(`get request cache error: `, re.value)
+        log.error(`[SBH] get request cache error: `, re.value)
+        process.exit(1)
         return Err(`suber message parse error: ${re.value}`)
     }
     const req = re.value as ReqT
-    if (dat.result === true) {
-        req.isSubscribe = false
+    if (dat.id && isUnsubOnClose(dat)) {
+        log.info(`set unsubscribe request context when puber close`)
+        // req.type = ReqTyp.Close   // to clear request cache
         req.params = req.subsId!
         req.originId = 0
     }
@@ -79,7 +100,6 @@ const parseReq =  (dat: WsData): ResultT => {
 const handleUnsubscribe = (req: ReqT, dres: boolean): void => {
     // rem subed topic, update puber.topics del submap
     // emit done event when puber.topics.size == 0
-    log.info(`into unsubscribe handle: ${JSON.stringify(req)}`)
     const re = G.getPuber(req.pubId)
     if (isErr(re)) {
         log.error(`handle unsubscribe error: ${re.value}`)
@@ -134,24 +154,26 @@ const dataParse = (data: WebSocket.Data): ResultT => {
     log.info('parse request cache result: ', JSON.stringify(req))
     // if suber close before message event,
     // request Cache will clear before suber delete
-    if (!req.isSubscribe) {
+    if (req.type !== ReqTyp.Sub) {
         // subscribe request cache will be clear on unsubscribe event
         log.info('delete request cache non-subscribe: ', req.id)
         G.delReqCache(req.id)
     }
 
     if (isSecondResp(dat.params)) {
+        log.warn(`subscribe second response: ${JSON.stringify(dat)}`)
         return Ok({req, data})
     }
 
+    const isClose = isUnsubOnClose(dat)
     const dres = dat.result
     dat.id = req.originId
     let dataToSend = Util.respFastStr(dat)
 
-    if (isUnsubscribe(dres)) {
+    if (req.type === ReqTyp.Unsub || isClose) {
         handleUnsubscribe(req, dres)
         if (req.originId === 0) { return Ok(true) }
-    } else if (isSubscribe(req.isSubscribe, dres)) {
+    } else if (isSubscribe(req.type === ReqTyp.Sub, dres)) {
         // first response of subscribe
         log.info(`first response of subscribe method[${req.method}] params[${req.params}] puber[${req.pubId}]: `, dat)
         const subsId = dat.result
@@ -193,7 +215,7 @@ const msgCb = (dat: WebSocket.Data) => {
         return
     }
     if (re.value === true) { 
-        log.info(`unsubscribe topic done after puber closed`)
+        log.info(`unsubscribe topic done after puber closed: ${Util.globalStat()}`)
         return 
     }
 
@@ -240,15 +262,12 @@ const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
     }
 
     const req = re.value as ReqT
-    let params = []
-    if (req.params !== 'none') {
-        params = JSON.parse(req.params)
-    }
+    log.info(`recover new subscribe topic request: ${JSON.stringify(req)}`)
     ws.send(Util.reqFastStr({
         id: req.id, 
         jsonrpc: "2.0", 
         method: req.method, 
-        params,
+        params: req.params || [],
     }))
 
     // delete topic subed
@@ -262,7 +281,7 @@ const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
 }
 
 const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
-    log.info(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers.toString()}]`)
+    log.info(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers.values()}]`)
     for (let pubId of pubers) {
         let re = G.getPuber(pubId)
         if (isErr(re)) {
@@ -299,7 +318,7 @@ const clearReqcache = async (pubers: Set<IDT>) => {
 const clearNonSubReqcache = (subId: IDT) => {
     const reqs = G.getAllReqCache()
     for (let reqId in reqs) {
-        if (reqs[reqId].subId === subId && !reqs[reqId].isSubscribe) {
+        if (reqs[reqId].subId === subId && reqs[reqId].type !== ReqTyp.Sub) {
             G.delReqCache(reqId)
             log.info(`clear non-subscribe request cache: ${reqId}`)
         }
@@ -452,8 +471,8 @@ namespace Suber {
         log.info(`Suber[${subId}] send unsubcribe topic[${topic}] id[${subsId}] of chain ${chain} `, chain, subId, topic, subsId)
     }
 
-    export const isSubscrieID = (id: string): boolean => {
-        return SubReg.test(id)
+    export const isSubscribeID = (id: string): boolean => {
+        return isSubID(id)
     }
 }
 

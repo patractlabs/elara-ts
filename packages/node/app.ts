@@ -192,6 +192,7 @@ errorTypes.map(type => {
             log.error(`process on ${type}: `, err)
             process.exit(1)
         } catch (_) {
+            log.error(`process catch ${type}: `, err)
             process.exit(2)
         }
     })

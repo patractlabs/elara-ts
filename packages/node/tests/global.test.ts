@@ -121,8 +121,6 @@ describe('subscribed topics suit', () => {
         expect(isErr(re)).toEqual(true)
         re = G.getSubTopics(chain, pid)
         expect(re).toEqual({})
-        re = G.getSubTopicsByChain(chain)
-        expect(re).toEqual({})
         re = G.getAllSubTopics()
         expect(re).toEqual({})
     })
@@ -150,22 +148,24 @@ describe('subscribed topics suit', () => {
 
 describe('request cache suit', () => {
     const id = randomId()
-    let req = {id, pubId: 12345678, originId: 1, isSubscribe: true, jsonrpc: "2.0", method: "system_health", params: "[]"} as ReqT
+    const chain = 'polkadot'
+    const pid = randomId()
+    let req = {id, pubId: 12345678, chain, pid, subId: id, originId: 1, type: 0, isSubscribe: true, jsonrpc: "2.0", method: "system_health", params: "[]"} as ReqT
     it('none', () => {
         let re: any = G.getReqCache(id)
         expect(isErr(re)).toEqual(true)
     })
 
     it('add request cache', () => {
-        G.updateAddReqCache(req)
+        G.addReqCache(req)
         let re: any = G.getReqCache(id)
         expect(isOk(re)).toEqual(true)
         expect(re.value).toEqual(req)
     })
 
     it('update request cache', () => {
-        req.subsId = 2
-        G.updateAddReqCache(req)
+        req.subsId = '2'
+        G.updateReqCache(req)
         let re: any = G.getReqCache(id)
         expect(re.value.subsId).toEqual(2)
     })

@@ -12,7 +12,7 @@ import WebSocket from 'ws'
 import EventEmitter from 'events'
 import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT } from 'lib'
 import G from './global'
-import { WsData, SubscripT, ReqT } from './interface'
+import { WsData, SubscripT, ReqT, ReqTyp } from './interface'
 import Puber from './puber'
 import Suber from './suber'
 import { randomId } from 'lib/utils'
@@ -28,7 +28,7 @@ const clearSubContext = async (puber: Puber, code: number) => {
     // then clear the puber when all topic context clear
     const {chain, pid, subId} = puber
     const topics = G.getSubTopics(chain, pid)
-    log.info(`clear subscribe context chain[${chain}] pid[${pid}] topics: `, Object.keys(topics))
+    log.info(`clear subscribe context chain[${chain}] pid[${pid}] code[${code}] topics: `, Object.keys(topics))
     const ptopics = puber.topics || new Set()
     const hasTopic = ptopics.size > 0
     if (!hasTopic) {
@@ -75,7 +75,7 @@ const clearSubContext = async (puber: Puber, code: number) => {
         const subscript = topics[subsId] as SubscripT
         Suber.unsubscribe(chain, subId!, subscript.method, subsId)
         // clearSubCache(chain, pid, subsId)
-        log.info(`unsubescribe topic[${subscript.method}] id[${subsId}] of chain ${chain} pid[${pid}] suber[${subId}]`)
+        log.info(`unsubscribe topic[${subscript.method}] id[${subsId}] of chain ${chain} pid[${pid}] suber[${subId}]`)
     }
 }
 
@@ -127,28 +127,31 @@ namespace Matcher {
     
     export const newRequest = (chain: string, pid: IDT, pubId: IDT, subId: IDT, data: WsData): ResultT => {
         const method = data.method!
-        // TODO: subscribe & unsubscribe method to pre handle
+        let type = ReqTyp.Rpc
+        
         if (isUnsubReq(method)) {
-            log.info(`pre handle unsubscribe request: ${method}: `, data.params, Suber.isSubscrieID(data.params[0]))
-            if (data.params.length < 1 || !Suber.isSubscrieID(data.params[0])) {
+            log.info(`pre handle unsubscribe request: ${method}: `, data.params, Suber.isSubscribeID(data.params[0]))
+            type = ReqTyp.Unsub
+            if (data.params.length < 1 || !Suber.isSubscribeID(data.params[0])) {
                 return Err(`invalid unsubscribe params: ${data.params[0]}`)
             }
+        } else if(isSubReq(method)) {
+            type = ReqTyp.Sub
         }
-
-        const isSubscribe = isSubReq(method)
         const req = { 
-            id: randomId(), pubId,
+            id: randomId(), 
+            pubId,
             chain,
             pid,
             subId,
             originId: data.id, 
             jsonrpc: data.jsonrpc,
-            isSubscribe, 
+            type, 
             method, 
-            params: `${data.params}` || 'none'
+            params: `${data.params}`
         } as ReqT
 
-        G.updateAddReqCache(req)
+        G.addReqCache(req)
 
         data.id = req.id
         log.info(`global stat after new request[${req.id}] : `, Util.globalStat())
@@ -159,7 +162,7 @@ namespace Matcher {
     export const setSubContext = (req: ReqT, subsId: string): ResultT => {
         // update subscribe request cache
         req.subsId = subsId
-        G.updateAddReqCache(req)
+        G.updateReqCache(req)
 
         // update submap
         G.addSubReqMap(subsId, req.id)
@@ -167,7 +170,7 @@ namespace Matcher {
         // update puber.topics
         let re = Puber.updateTopics(req.pubId, subsId)
         if (isErr(re)) {
-            return Err(`parase data error: ${re.value}`)
+            return Err(`update puber topics error: ${re.value}`)
         }
         const puber = re.value as Puber
 

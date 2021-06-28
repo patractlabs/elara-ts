@@ -35,10 +35,13 @@ namespace Puber {
             // puber may be closed
             return Err(`puber[${pubId}] may be closed`)
         }
-        const puber = re.value as Puber
-        puber.topics = puber.topics || new Set<string>()
+        let puber = re.value as Puber
+        puber.topics = puber.topics || new Set()
         puber.topics.add(subsId)
+
         G.updateAddPuber(puber)
+
+        log.info(`update puber[${pubId}] topic [${subsId}] done: ${puber.topics.values()}`)
         return Ok(puber)
     }
 
@@ -48,7 +51,8 @@ namespace Puber {
         // topic bind to chain and params 
         if (Matcher.isSubscribed(chain, pid, data)){
             log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)
-            return puber.ws.send('No need to subscribe twice')
+            data.error = {code: 1000, message: 'No need to subscribe twice'}
+            return puber.ws.send(JSON.stringify(data))
         }
 
         let re = Matcher.newRequest(chain, pid, id, puber.subId!, data)

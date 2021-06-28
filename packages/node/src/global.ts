@@ -5,8 +5,6 @@ import Puber from './puber'
 
 const log = getAppLogger('G', true)
 
-type PidTopicMap = { [key in string]: SubscripMap }
-
 /**
  * Subers {
  *  'polkadot': {
@@ -49,7 +47,7 @@ const Pubers: PuberMap = {}
  *  }
  * }
  */
-type TopicSubedT = { [key in string]: PidTopicMap }
+type TopicSubedT = { [key in string]: SubscripMap }
 const TopicSubed: TopicSubedT = {} 
 
 let Chains: Set<string> = new Set()
@@ -120,7 +118,15 @@ namespace G {
         delete Pubers[pubId]
     }
 
-    export const updateAddReqCache = (req: ReqT): void => {
+    export const addReqCache = (req: ReqT): void => {
+        if (ReqMap[req.id]) {
+            log.error(`add new request cache error: ${req.id} exist`)
+            process.exit(2)
+        }
+        ReqMap[req.id] = req
+    }
+
+    export const updateReqCache = (req: ReqT): void => {
         ReqMap[req.id] = req
     }
 
@@ -140,55 +146,42 @@ namespace G {
     }
 
     export const addSubTopic = (chain: string, pid: IDT, topic: SubscripT): void => {
-        chain = chain.toLowerCase()
+        const key = `${chain.toLowerCase()}-${pid}`
         const newSub: SubscripMap = {}
         newSub[topic.id!] = topic
 
-        if (TopicSubed[chain] && TopicSubed[chain][pid]) {
-            
-            TopicSubed[chain][pid] = {
-                ...TopicSubed[chain][pid],
-                ...newSub
-            }
-            return
-        }
-
-        if (!TopicSubed[chain]) {
-            TopicSubed[chain] = {}
-        }
-
-        const tops: PidTopicMap = {}
-        tops[pid] = newSub
-        
-        TopicSubed[chain] = {
-            ...TopicSubed[chain],
-            ...tops
+        TopicSubed[key] = {
+            ...TopicSubed[key],
+            ...newSub
         }
     }
 
     export const remSubTopic = (chain: string, pid: IDT, subsId: string): void => {
         chain = chain.toLowerCase()
-        delete TopicSubed[chain][pid][subsId] 
+        const key = `${chain}-${pid}`
+        if (!TopicSubed[key]) return
+        
+        delete TopicSubed[key][subsId] 
+        if (Object.keys(TopicSubed[key])) {
+            delete TopicSubed[key]
+        }
     }
 
     export const getSubTopic = (chain: string, pid: IDT, subsId: IDT): ResultT => {
-        const ct = TopicSubed[chain]
-        if (!ct || !ct[pid] || !ct[pid][subsId]) {
-            return Err(`Invalid subscribed topic: ${subsId}`)
+        const key = `${chain.toLowerCase()}-${pid}`
+        if (!TopicSubed[key] || !TopicSubed[key][subsId]) {
+            return Err(`Invalid subscribed topic: chain ${chain} pid[${pid} id[${subsId}]`)
         }
-        return Ok(TopicSubed[chain][pid][subsId])
+        return Ok(TopicSubed[key][subsId])
     }
 
     export const getSubTopics = (chain: string, pid: IDT): SubscripMap => {
         chain = chain.toLowerCase()
-        if (!TopicSubed[chain] || !TopicSubed[chain][pid]) {
+        const key = `${chain}-${pid}`
+        if (!TopicSubed[key]) {
             return {}
         }
-        return TopicSubed[chain][pid]
-    }
-
-    export const getSubTopicsByChain = (chain: string): PidTopicMap => {
-        return TopicSubed[chain] || {}
+        return TopicSubed[key]
     }
 
     export const getAllSubTopics = (): TopicSubedT => {
@@ -226,6 +219,10 @@ namespace G {
 
     /// subscribe id - req id map
     export const addSubReqMap = (subscriptId: string, id: IDT) => {
+        if (SubMap[subscriptId]) {
+            log.error(`add new subscribe map error: subscribe ID exist`)
+            process.exit(2)
+        }
         SubMap[subscriptId] = id
     }
 
@@ -305,9 +302,7 @@ namespace G {
     export const topicCnt = (): number => {
         let cnt = 0
         for (let c in TopicSubed) {
-            for (let p in TopicSubed[c]) {
-                cnt += Object.keys(TopicSubed[c][p]).length
-            }
+            cnt += Object.keys(TopicSubed[c]).length
         }
         return cnt
     }

@@ -5,7 +5,7 @@ import Conf from '../config'
 import Dao, { chainPSub } from '../src/dao'
 import G from './global'
 import Suber from './suber'
-const log = getAppLogger('sub-chain', true)
+const log = getAppLogger('chain', true)
 
 enum Topic {
     ChainAdd    = 'chain-add',
