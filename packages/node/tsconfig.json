@@ -29,6 +29,8 @@
   "include": [
     "src/**/*",
     "config/**/*",
+    "test/**/*",
+    "config/*.json",
     "./app.ts"
   ]
 }
