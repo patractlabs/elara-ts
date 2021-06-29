@@ -33,34 +33,45 @@ export const RpcMethods: RpcMethodT = {
         // unkonwn
         'offchain_localStorageSet',
     ],
+
     Histrory: [
         
         'state_getStorage',
         'state_queryStorageAt',
     ],
+
     Kv: [
         // other subscription from elara-kv
     ],
-    Subscribe: [
-        // 'author_submitAndWatchExtrinsic', // node direct?
 
+    Subscribe: [
         'chain_subscribeAllHeads',
         'chain_subscribeNewHeads', 
         'chain_subscribeFinalizedHeads', 
+        // 'subscribe_newHead',
         
-        'state_subscribeRuntimeVersion',    // ?
+        'state_subscribeRuntimeVersion',   
         'state_subscribeStorage', 
-    ],
-    Unsubscribe: [
-        // 'author_unwatchExtrinsic',
 
+        'grandpa_subscribeJustifications',
+
+        'author_submitAndWatchExtrinsic',   // extrinsic lifetime
+    ],
+
+    Unsubscribe: [
         'chain_unsubscribeAllHeads',
         'chain_unsubscribeNewHeads',
         'chain_unsubscribeFinalizedHeads', 
+        // 'unsubscribe_newHead',                 // chain_newHead
 
         'state_unsubscribeRuntimeVersion', 
         'state_unsubscribeStorage',
+
+        'grandpa_unsubscribeJustifications',  // grandpa_justifications
+
+        'author_unwatchExtrinsic',            // author_extrinsicUpdate
     ],
+
     SyncAsBlock: [
         'system_syncState',
         'system_health',
@@ -154,4 +165,8 @@ export const SubMethod = {
     
     'state_runtimeVersion': 'state_subscribeRuntimeVersion',    // ?
     'state_storage': 'state_subscribeStorage', 
+
+    'grandpa_justifications': 'grandpa_subscribeJustifications',
+
+    'author_extrinsicUpdate': 'author_submitAndWatchExtrinsic'
 }
