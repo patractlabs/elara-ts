@@ -66,8 +66,8 @@ const parseReq =  (dat: WsData): ResultT => {
         log.info('receive second response of subscribe: ', subsId)
         const re = G.getReqId(subsId)
         if (isErr(re)) {
-            log.error(`parse request cache error: ${re.value}`)
-            process.exit(1)
+            log.error(`parse request cache error: ${re.value}, puber has been closed.`)
+            return Ok(true)
         }
         reqId = re.value as IDT
     } else if(isUnsubOnClose(dat)) {
@@ -85,7 +85,6 @@ const parseReq =  (dat: WsData): ResultT => {
     if (isErr(re)) {
         log.error(`[SBH] get request cache error: `, re.value)
         process.exit(1)
-        return Err(`suber message parse error: ${re.value}`)
     }
     const req = re.value as ReqT
     if (dat.id && isUnsubOnClose(dat)) {
@@ -148,6 +147,9 @@ const dataParse = (data: WebSocket.Data): ResultT => {
     if (isErr(re)) {
         log.error(`parse request cache error: `, re.value)
         return Err(`${re.value}`)
+    }
+    if (re.value === true) {
+        return re
     }
 
     const req = re.value as ReqT
