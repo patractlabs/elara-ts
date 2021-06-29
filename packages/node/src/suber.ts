@@ -83,7 +83,9 @@ const parseReq =  (dat: WsData): ResultT => {
 
     let re = G.getReqCache(reqId!)  
     if (isErr(re)) {
-        log.error(`[SBH] get request cache error: `, re.value)
+        // 
+        log.error(`get request cache error: ${re.value}, puber has been closed `)
+        return Ok(true)
         process.exit(1)
     }
     const req = re.value as ReqT
