@@ -43,3 +43,13 @@ export type TopicT = {
     topic: string,
     params: any[]
 }
+
+export interface CacheT {
+    readonly syncAsBlock: string[],
+    readonly syncOnce: string[]
+}
+
+export interface PubsubT {
+    readonly sub: string[],
+    readonly unsub: string[]
+}

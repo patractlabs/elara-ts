@@ -4,7 +4,7 @@
 import { getAppLogger, isNone, RpcMapT, RpcStrategy } from 'lib'
 import { G } from './global'
 import Chain from './chain'
-import Pool from './wspool'
+import Pool from './pool'
 import { SuducerT } from './suducer'
 import { randomReplaceId } from 'lib/utils'
 
@@ -148,13 +148,6 @@ namespace Reqresp {
     }
 
     // TODO abandon list filter
-}
-
-namespace History {
-    // getStorage ..., polling ...
-    const historyService = (chain: string) => {
-
-    }
 }
 
 const extendsHandler = (chain: string) => {

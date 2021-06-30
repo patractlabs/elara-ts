@@ -1,14 +1,86 @@
 import { getAppLogger, ChainConfig, RpcMethodT, RpcMapT, RpcStrategy, IDT } from 'lib'
 import { None, Some, Option } from 'lib'
-import { ChainPoolT, ChainT, SuducerMap, SuducersT } from './interface'
+import { CacheT, ChainPoolT, ChainT, SuducerMap, SuducersT, PubsubT } from './interface'
 import Suducer, { SuducerT } from './suducer'
 
 const log = getAppLogger('global', true)
+
+const Caches: CacheT = {
+    syncAsBlock: [
+        "system_syncState",
+        "system_health",
+        "chain_getHeader",
+        "chain_getBlock",
+        "chain_getBlockHash",
+        "chain_getFinalizedHead"
+    ],
+    syncOnce: [
+        "rpc_methods",
+        "system_version",
+        "system_chain",
+        "system_chainType",
+        "system_properties",
+        "state_getMetadata" 
+    ]
+}
+const Pubsubs: PubsubT = {
+    sub: [
+        "chain_subscribeAllHeads",
+        "chain_subscribeNewHeads", 
+        "chain_subscribeFinalizedHeads", 
+        "state_subscribeRuntimeVersion",   
+        "state_subscribeStorage", 
+        "grandpa_subscribeJustifications"
+    ],
+    unsub: [
+        "chain_unsubscribeAllHeads",
+        "chain_unsubscribeNewHeads",
+        "chain_unsubscribeFinalizedHeads", 
+        "state_unsubscribeRuntimeVersion", 
+        "state_unsubscribeStorage",
+        "grandpa_unsubscribeJustifications"
+    ]
+}
+
+const Extrinsics: PubsubT = {
+    sub: ["author_submitAndWatchExtrinsic"],
+    unsub: ["author_unwatchExtrinsic"]
+}
+type StringMapT = {[key in string]: string}
+const Submap: StringMapT = {
+    "chain_allHead": "chain_subscribeAllHeads",
+    "chain_newHead": "chain_subscribeNewHeads", 
+    "chain_finalizedHead": "chain_subscribeFinalizedHeads", 
+    
+    "state_runtimeVersion": "state_subscribeRuntimeVersion", 
+    "state_storage": "state_subscribeStorage", 
+
+    "grandpa_justifications": "grandpa_subscribeJustifications",
+
+    "author_extrinsicUpdate": "author_submitAndWatchExtrinsic"
+}
 
 const Chains: ChainT = {}
 const Suducers: SuducerMap = {}
 
 export namespace G {
+    // strategy 
+    export const getCacheMap = (): CacheT => {
+        return Caches
+    }
+
+    export const getPubsubMap = (): PubsubT => {
+        return Pubsubs
+    }
+
+    export const getExtrinMap = (): PubsubT => {
+        return Extrinsics
+    }
+
+    export const getSubMap = (): StringMapT => {
+        return Submap
+    }
+
     // chain config op
     export const addChain = (chain: ChainConfig): void => {
         const name = chain.name.toLowerCase()

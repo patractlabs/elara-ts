@@ -5,12 +5,12 @@
 import WebSocket from 'ws'
 import { getAppLogger, IDT, isNone, Kafka } from 'lib'
 import { G } from './global'
-import { SuducerPool, ChainStat, WsPool, SubProto } from './interface'
+import { SuducerPool, WsPool, SubProto } from './interface'
 import { SubMethod } from 'lib'
 import Dao from './dao'
 import Service  from './service'
-import Mq from './mq/kafka'
 import Suducer, { SuducerStat, SuducerT } from './suducer'
+import Mq from './mq'
 
 const log = getAppLogger('Suducer-pool', true)
 
@@ -100,6 +100,8 @@ const subMsgListener = (chain: string) => {
             const partition = Kafka.geneID()
             const msg = Kafka.newMsg(prot, 'sub')   
             const topic = Kafka.newTopic(chain, method)
+
+            // TODO
             Mq.producer.send({
                 topic,
                 messages: [msg],
@@ -121,39 +123,37 @@ const reqrespMsgListener = (chain: string) => {
 
 const newSuducer = (chain: string, url: string, type: SuducerT, cb: (data: any) => void): Suducer => {
 
-    // TODO: need to close the Suducer or unsubscribe when 
-    // something unexpected occured
     const ws: WebSocket = new WebSocket(url)
     let suducer: Suducer = Suducer.create(chain, type, ws, url)
     const sign = `Chain[${chain}]-Url[${url}]-Type[${type}]-ID[${suducer.id}]`
-    // 
+    
     ws.once('open', () => {
         log.info(`Suducer ${sign} opened`)
+
         // set the status ok
         suducer.stat = SuducerStat.Active
         G.updateSuducer(suducer)
 
-        // re subscribe  according to sub status      
-        log.warn('G cpool status: ', G.cpool[chain][type]!['status'] )  
-        if (type === SuducerT.Sub && G.cpool[chain][type]!['status'] === 'death') {
-            log.warn('Rescribe the topics')
-            G.cpool[chain][type]!['status'] = 'active'
-            // 
-            Service.Subscr.subscribeService(chain)
-            log.warn('after re subscribe: ', G.cpool)
-        }
+        // // re subscribe  according to sub status      
+        // log.warn('G cpool status: ', G.cpool[chain][type]!['status'] )  
+        // if (type === SuducerT.Sub && G.cpool[chain][type]!['status'] === 'death') {
+        //     log.warn('Rescribe the topics')
+        //     G.cpool[chain][type]!['status'] = 'active'
+            
+        //     Service.Subscr.subscribeService(chain)
+        //     log.warn('after re subscribe: ', G.cpool)
+        // }
     })
  
     ws.on('error', (err: Error) => {
         log.error(`Suducer err-evt ${sign}: `, err)
     })
 
-
-    // BUG: will create another connection
     ws.on('close', (code: number, reason: string) => {
         log.error(`Suducer close-evt ${sign}: `, code, reason, suducer.ws.readyState)
 
         Pool.del(chain, type, suducer.id!)
+        G.delSuducer()
         // set pool subscribe status fail        
         log.warn('Pool state after del: ', G.cpool)
         delays(3, () => Pool.add(chain, url, type))

@@ -1,7 +1,7 @@
 import WebSocket from 'ws'
 import { IDT } from 'lib'
 import { randomId, md5 } from 'lib/utils'
-import { ChainStat, TopicT } from './interface'
+import { TopicT } from './interface'
 import G from './global'
 
 
@@ -27,7 +27,6 @@ interface Suducer {
     cluster: number,    // 0 no-cluster, 1-N cluster ID, default 0
     topic?: TopicT,      //  when type === Sub
     stat?: SuducerStat,
-    // chainStat?: ChainStat,
 }
 
 namespace Suducer {
