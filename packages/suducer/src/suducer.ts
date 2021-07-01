@@ -7,8 +7,7 @@ import G from './global'
 
 export enum SuducerT {
     Sub     = 'sub',        // suscription except author_submitAndWatchExtrinistic
-    Cache   = 'cache',      // cacheable,
-    Reqresp = 'reqresp'
+    Cache   = 'cache'      // cacheable,
 }
 
 export enum SuducerStat {
@@ -43,7 +42,6 @@ namespace Suducer {
             url,
             type,
         }
-        G.addSuducer(suducer)
         return suducer
     }
 

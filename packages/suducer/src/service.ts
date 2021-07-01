@@ -1,205 +1,156 @@
 /// service strategy: once request of chain received, init all 
 /// the service of this chain. otherwise not init
 /// 
-import { getAppLogger, isNone, RpcMapT, RpcStrategy } from 'lib'
+import { getAppLogger, isNone } from 'lib'
 import { G } from './global'
 import Chain from './chain'
 import Pool from './pool'
 import { SuducerT } from './suducer'
-import { randomReplaceId } from 'lib/utils'
+import { randomId } from 'lib/utils'
+import { CacheStrategyT, ReqT } from './interface'
 
 const log = getAppLogger('suducer', true)
 
-// init resource
-const setup = async (secure: boolean) => {
-    // init a ws connection for all chains
-    await Chain.init()
-    if (G.chains.length < 1) {
-        log.error("Chain init failed. No chain exist!")
-        process.exit(1)
-    }
-    await Pool.init(secure)
-    // log.info('G rpcs: ', G.rpcs)
-    log.info('G chains: ', G.chains)
-    log.info('G pool: ', G.cpool)
-}
-
-
-const generateID = (): number => {
-    return randomReplaceId()
-}
-
-const buildReq = (id: number, method: string, params: any[]): string => {
-    return JSON.stringify({
-        "id": id,
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": params,
-    })
-}
-
-const isAbandon = (method: string): Boolean => {
-    const abans = G.rpcs.Abandon!
-    log.info('Abandon rpc list: ', abans)
-    if (abans.indexOf(method) !== -1) {
-        return true
-    }
-    return false
+const buildReq = (id: string, method: string, params: any[]): ReqT => {
+    return { id, jsonrpc: "2.0", method, params }
 }
 
 // no parameters allowed
-const send = (chain: string, method: string, type: SuducerT) => {
-    const id = generateID()
-    const req = buildReq(id, method, ['0x1cb6f36e027abb2091cfb5110ab5087f0323475657e0890fbdbf66fb24b4649e'])
-    if (type === SuducerT.Cache) {
-        G.idMethod[id] = method     // id-method map for ws response msg
+const sendWithoutParam = (chain: string, method: string, type: SuducerT) => {
+    let id: string
+
+    switch(type) {
+        case SuducerT.Sub:
+            // topic - subscribe id
+            id = randomId().toString()
+            break
+        case SuducerT.Cache:
+            id = `${chain}-${method}`
+            // method cache
+            break
+        default:
+            log.error(`no this suducer type: ${type}`)
+            return
     }
+    // all the cache & subscribe method has no params
+    const req = buildReq(id, method, [])
     Pool.send(chain, type, req)
 }
 
-namespace Cacheable {
-    // TODO cacheable trategy expiration?
-    // when chain is update, G.chain G.chainConf should be updated
+const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT, stratgy?: CacheStrategyT) => {
 
-    const excuteActiveSyncList = (chain: string, stratgy: RpcStrategy) => {
-        const rpcs = G.getRpcByType(stratgy)  // donot change this rpcs
-        // extends list
-        const extens: string[] = G.getExtends(chain, stratgy)
-        const nrpcs = [...rpcs, ...extens]
+    // TODO v0.2: extends & excludes list
+    // const extens: string[] = G.getExtends(chain, stratgy as any)
+    // const nrpcs = [...rpcs, ...extens]
+    // const excludes = G.getExcludes(chain)
+    // log.info(`Extends & excludes list of chain[${chain}]: `, extens, excludes)
 
-        const excludes = G.getExcludes(chain)
-        log.info(`Extends & excludes list of chain[${chain}]: `, extens, excludes)
-        // log.info(`Rpc list of chain[${chain}]-[${stratgy}] to sync: `, rpcs)
-        for (let r of nrpcs) {
-            if (excludes.indexOf(r) !== -1) {
-                log.warn(`Rpc method[${r}] of chain[${chain}] is excluded.`)
-                continue
-            }
-            send(chain, r, SuducerT.Cache)
-        }
+    for (let r of rpcs) {
+        sendWithoutParam(chain, r, type)
+        log.info(`new ${chain} request type[cache] method[${r}]`)
     }
+}
 
-    const runSyncJob = (second: number, strategy: RpcStrategy) => {
+namespace Cacheable {
+
+    const runSyncJob = (second: number, strategy: CacheStrategyT): void => {
+        const rpcs = G.getCacheByType(strategy) 
+        if (rpcs.length < 1) {
+            log.warn(`no item to excute in ${strategy} cache strategy`)
+            return
+        }
+        let re = G.getAllChains()
+        if (isNone(re)) {
+            log.error(`no invalid chain`)
+            return 
+        }
+        const chains = re.value
         const interval = setInterval(() => {
-            for (let c of G.chains) {
-                excuteActiveSyncList(c, strategy)
+            for (let chain of chains) {
+                excuteStrategyList(rpcs, chain, SuducerT.Cache)
             }
         }, second * 1000)
-        G.intervals[strategy] = interval
+        G.addInterval(strategy, interval)
     }
 
     const syncAsBlockService = async () => {
-        runSyncJob(5, RpcStrategy.SyncAsBlock, )
+        log.info(`run syncAsBlock service interval: 5s`)
+        runSyncJob(5, CacheStrategyT.SyncAsBlock, )
     }
 
     const syncLowService = () => {
-        runSyncJob(10 * 60, RpcStrategy.SyncLow)
+        log.info(`run syncLow service interval: 60s`)
+        runSyncJob(10 * 60, CacheStrategyT.SyncLow)
     }
 
     export const syncOnceService = (chain: string) => {
-        const rpcs = G.getRpcByType(RpcStrategy.SyncOnce)
-        let excludes = G.getExcludes(chain)
-        
-        for (let r of rpcs) {
-            if (excludes.indexOf(r) !== -1) { 
-                log.warn(`Rpc method [${r}] is excluded`)
-                continue 
-            }
-            send(chain, r, SuducerT.Cache)
-        }
+        log.info(`run syncOnce service chain ${chain}`)
+        const rpcs = G.getCacheByType(CacheStrategyT.SyncOnce)
+        excuteStrategyList(rpcs, chain, SuducerT.Cache)
     }
 
-    export const run = () => {
+    export const run = (chains: string[]) => {
         syncAsBlockService()
         syncLowService()
-        for (let c of G.chains) {
-            syncOnceService(c)
+
+        for (let chain of chains) {
+            let evt = G.getPoolEvt(chain, SuducerT.Cache)
+            if (!evt) {
+                log.error(`subscribe pool event error`)
+                process.exit(2)
+            }
+            evt.once('done', () => {
+                log.info(`chain ${chain} subscribe pool event done type cache`)
+                syncOnceService(chain)
+            })
         }
     }
 }
 
 namespace Subscribe {
 
-    export const subscribeService = (chain: string) => {
-        log.info('Into subscribe: ', chain)
-        const subs = G.getRpcByType(RpcStrategy.Subscribe)
-        let excludes = G.getExcludes(chain)
-        log.info('subscriptions-excludes: ', subs, excludes)
-        for (let s of subs) {
-            if (excludes.indexOf(s) !== -1) { 
-                log.warn(`topic [${s}] is excluded`)
-                send(chain, s, SuducerT.Sub)
-                continue 
+    export const subscribeService = async (chain: string) => {
+        const subs = G.getSubTopics()
+        excuteStrategyList(subs, chain, SuducerT.Sub)
+    }
+
+    export const run = async (chains: string[]) => {
+        for (let chain of chains) {
+            log.info(`run subscribe topic of chain ${chain}`)
+            let evt = G.getPoolEvt(chain, SuducerT.Sub)
+            if (!evt) {
+                log.error(`subscribe pool event error`)
+                process.exit(2)
             }
-        }
-    }
-
-    const kvService = (chain: string) => {
-        // TODO
-        // if kv config run config
-        // else as the direct request
-    }
-}
-
-namespace Reqresp {
-    // RpcStrategy.Direct
-    export const ReqrespService = () => {
-
-    }
-
-    // TODO abandon list filter
-}
-
-const extendsHandler = (chain: string) => {
-    let re = G.getChain(chain)
-    if (isNone(re)) {
-        log.error(`no this chain: ${chain}`)
-        return
-    }
-    const c = re.value
-    let extens = c['extends'] as RpcMapT
-
-    for (let r in extens) {
-        switch(extens[r]) {
-        case RpcStrategy.SyncOnce:
-            send(chain, r, SuducerT.Cache)   
-            break
-        case RpcStrategy.Subscribe:
-            break
-        case RpcStrategy.Unsub:
-            break
-        case RpcStrategy.History:
-            break
-        case RpcStrategy.Kv:
-            break
-        case RpcStrategy.SyncHistory:
-            break
-        case RpcStrategy.Abandon:
-            // SBH
-            break
-        default:
-            // Do nothing
-            // Direct, SyncLow, SyncAsBlock
-            log.warn(`New extends config of chain[${chain}]-[${r}], Do Nothing!`)
-            break
+            evt.once('done', () => {
+                log.info(`chain ${chain} subscribe pool event done`)
+                subscribeService(chain)
+            })
         }
     }
 }
 
 namespace Service {
     export const up = async (secure: boolean) => {
-        await setup(secure)
+        // init a ws connection for all chains
+        await Chain.init()
+        log.info(`chain init done`)
 
-        //TODO service trigger when Suducer OK
-        setTimeout(() => {
-            // Cacheable.run()
-            for (let c of G.chains) {
-                Subscr.subscribeService(c)
-            }
-        }, 1000);
+        await Pool.init(secure)
+
+        const re = G.getAllChains()
+        if (isNone(re)) { 
+            log.error(`no chains valid`)
+            process.exit(2) 
+        }
+        const chains = re.value
+
+        // cache service
+        Cacheable.run(chains)
+
+        // subscribe service
+        // Subscribe.run(chains)
     }
-    export const Cache = Cacheable
-    export const Subscr = Subscribe
 }
 
 export = Service

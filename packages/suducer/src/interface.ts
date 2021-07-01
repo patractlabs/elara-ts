@@ -39,17 +39,33 @@ export interface SubProto {
 }
 
 export type TopicT = {
-    id: string,
+    id?: string,
     topic: string,
     params: any[]
 }
 
-export interface CacheT {
-    readonly syncAsBlock: string[],
-    readonly syncOnce: string[]
+export enum CacheStrategyT {
+    SyncAsBlock = 'SyncAsBlock',
+    SyncOnce = 'SyncOnce',
+    SyncLow = 'SyncLow'
 }
 
-export interface PubsubT {
-    readonly sub: string[],
-    readonly unsub: string[]
+export enum PsubStrategyT {
+    Sub = 'Sub',
+    Unsub = 'Unsub'
+}
+
+export type CacheT = {
+    [key in CacheStrategyT]: string[]
+}
+
+export type PubsubT = {
+    [key in PsubStrategyT]: string[]
+}
+
+export interface ReqT {
+    id: string,
+    jsonrpc: string,
+    method: string,
+    params: any[]
 }

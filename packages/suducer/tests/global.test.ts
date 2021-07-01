@@ -31,7 +31,7 @@ describe('chain test suit', () => {
         expect(c.excludes).toEqual(['system_peers'])
         re = G.getChain('polkadot')
         expect(re.value).toEqual(chain)
-        re = G.getAllChains()
+        re = G.getAllChainConfs()
         expect(re.value['polkadot']).toEqual(chain)
     })
 

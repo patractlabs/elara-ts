@@ -1,6 +1,7 @@
 /// chain list init and handler the chain update
 
-import { ChainConfig, getAppLogger, isErr, PVoidT, RpcMethods } from 'lib'
+import { ChainConfig, getAppLogger, PVoidT } from 'lib'
+import { isErr } from 'lib'
 import Dao, { chainPSub } from './dao'
 import { G } from './global'
 import Conf from '../config'
@@ -10,18 +11,6 @@ enum Topic {
     ChainAdd    = 'chain-add',
     ChainDel    = 'chain-del',
     ChainUpdate = 'chain-update'
-}
-
-const fetchChains = async (): PVoidT => {
-    let chains = await Dao.getChainList()
-    if (isErr(chains)) {
-        log.error('Fetch chains error: ', chains.value)
-        G.chains = []
-        return
-    }
-    // log.info('chain list: ', chains)
-    G.chains = chains.value
-    G.rpcs = RpcMethods
 }
 
 // chain events
@@ -83,20 +72,24 @@ namespace Chain {
         }
         const chainf = conf.value as ChainConfig
         if (chainf.serverId != serverId) { 
-            log.warn(`chain serveId[${chainf.serverId}] not match, current server ID ${serverId}`)
+            log.warn(`chain ${chain} serveId[${chainf.serverId}] not match, current server ID ${serverId}`)
             return 
         }
-        // what if json parse error
         G.addChain(chainf)
-        log.warn('chain conf: ', chainf)
     }
 
     export const init = async () => {
-        await fetchChains()
+        let re = await Dao.getChainList()
+        if (isErr(re)) {
+            log.error(`fetch chain list error: ${re.value}`)
+            process.exit(2)
+        }
+        const chains = re.value
         let parses: Promise<void>[] = []
-        log.warn('parse chain: ', G.chains)
+        log.warn('fetch chain list: ', chains)
+
         const server = Conf.getServer()
-        for (let c of G.chains) {
+        for (let c of chains) {
             parses.push(parseConfig(c, server.id))
         }
         return Promise.all(parses)

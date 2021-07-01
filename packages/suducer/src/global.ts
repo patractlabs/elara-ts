@@ -1,12 +1,16 @@
+import EventEmitter from 'events'
 import { getAppLogger, ChainConfig, RpcMethodT, RpcMapT, RpcStrategy, IDT } from 'lib'
 import { None, Some, Option } from 'lib'
-import { CacheT, ChainPoolT, ChainT, SuducerMap, SuducersT, PubsubT } from './interface'
+import { CacheT, ChainPoolT, ChainT, SuducerMap, SuducersT, PubsubT, CacheStrategyT, PsubStrategyT, TopicT } from './interface'
+import { del } from './pool'
 import Suducer, { SuducerT } from './suducer'
 
 const log = getAppLogger('global', true)
 
+const Intervals: {[key in string]: NodeJS.Timeout} = {}
+
 const Caches: CacheT = {
-    syncAsBlock: [
+    SyncAsBlock: [
         "system_syncState",
         "system_health",
         "chain_getHeader",
@@ -14,17 +18,18 @@ const Caches: CacheT = {
         "chain_getBlockHash",
         "chain_getFinalizedHead"
     ],
-    syncOnce: [
+    SyncOnce: [
         "rpc_methods",
         "system_version",
         "system_chain",
         "system_chainType",
         "system_properties",
         "state_getMetadata" 
-    ]
+    ],
+    SyncLow: []
 }
 const Pubsubs: PubsubT = {
-    sub: [
+    Sub: [
         "chain_subscribeAllHeads",
         "chain_subscribeNewHeads", 
         "chain_subscribeFinalizedHeads", 
@@ -32,7 +37,7 @@ const Pubsubs: PubsubT = {
         "state_subscribeStorage", 
         "grandpa_subscribeJustifications"
     ],
-    unsub: [
+    Unsub: [
         "chain_unsubscribeAllHeads",
         "chain_unsubscribeNewHeads",
         "chain_unsubscribeFinalizedHeads", 
@@ -43,8 +48,8 @@ const Pubsubs: PubsubT = {
 }
 
 const Extrinsics: PubsubT = {
-    sub: ["author_submitAndWatchExtrinsic"],
-    unsub: ["author_unwatchExtrinsic"]
+    Sub: ["author_submitAndWatchExtrinsic"],
+    Unsub: ["author_unwatchExtrinsic"]
 }
 type StringMapT = {[key in string]: string}
 const Submap: StringMapT = {
@@ -62,15 +67,58 @@ const Submap: StringMapT = {
 
 const Chains: ChainT = {}
 const Suducers: SuducerMap = {}
+type TopicMapT = {[key in string]: IDT}
+const TopicSudidMap: {[key in string]: TopicMapT} = {}
+const PoolCnt: {[key in string]: number} = {}
+const PoolEvt: {[key in string]: EventEmitter} = {}
 
 export namespace G {
+    // pool count
+    export const setPoolCnt = (chain: string, type: SuducerT, cnt: number) => {
+        const key = `${chain.toLowerCase()}-${type}`
+        PoolCnt[key] = cnt
+    }
+
+    export const getPoolCnt = (chain: string, type: SuducerT): number => {
+        const key = `${chain.toLowerCase()}-${type}`
+        return PoolCnt[key]
+    }
+
+    export const decrPoolCnt = (chain: string, type: SuducerT): void => {
+        const key = `${chain.toLowerCase()}-${type}`
+        PoolCnt[key] -= 1
+    }
+
+    // pool event
+    export const setPoolEvt = (chain: string, type: SuducerT, evt: EventEmitter) => {
+        const key = `${chain.toLowerCase()}-${type}`
+        PoolEvt[key] = evt
+    }
+
+    export const getPoolEvt = (chain: string, type: SuducerT): EventEmitter => {
+        const key = `${chain.toLowerCase()}-${type}`
+        return PoolEvt[key]
+    }
+
     // strategy 
     export const getCacheMap = (): CacheT => {
         return Caches
     }
 
+    export const getCacheByType = (type: CacheStrategyT): string[] => {
+        return Caches[type]
+    }
+
     export const getPubsubMap = (): PubsubT => {
         return Pubsubs
+    }
+
+    export const getSubTopics = (): string[] => {
+        return Pubsubs[PsubStrategyT.Sub]
+    }
+
+    export const getUnsubTopics = (): string[] => {
+        return Pubsubs[PsubStrategyT.Unsub]
     }
 
     export const getExtrinMap = (): PubsubT => {
@@ -103,11 +151,31 @@ export namespace G {
         delete Chains[chain.toLowerCase()]
     }
 
-    export const getAllChains = (): Option<ChainT> => {
+    export const getAllChains = (): Option<string[]> => {
+        if (Chains === {}) {
+            return None
+        }
+        return Some(Object.keys(Chains))
+    }
+
+    export const getAllChainConfs = (): Option<ChainT> => {
         if (Chains === {}) {
             return None
         }
         return Some(Chains)
+    }
+
+    // intervals 
+    export const addInterval = (key: CacheStrategyT, interval: NodeJS.Timeout) => {
+        if (Intervals[key]) {
+            log.error(`add interval error: ${key} exist`)
+            return
+        }
+        Intervals[key] = interval
+    }
+
+    export const delInterval = (key: CacheStrategyT) => {
+        delete Intervals[key]
     }
 
     // suducer 
@@ -139,6 +207,23 @@ export namespace G {
     export const delSuducer = (chain: string, typ: SuducerT, sudId: IDT): void => {
         const key = `${chain.toLowerCase()}-${typ}`
         delete Suducers[key][sudId]
+    }
+
+    // topic - suducerId map
+    export const getSuducerId = (chain: string, method: string): Option<IDT> => {
+        if (!TopicSudidMap[chain] || !TopicSudidMap[chain][method]) {
+            return None
+        }
+        return Some(TopicSudidMap[chain][method])
+    }
+
+    export const addTopicSudid = (chain: string, method: string, sudid: IDT): void => {
+        TopicSudidMap[chain] = TopicSudidMap[chain] || {}
+        TopicSudidMap[chain][method] = sudid
+    }
+
+    export const delTOpicSudid = (chain: string, method: string): void => {
+        delete TopicSudidMap[chain][method]
     }
 
 

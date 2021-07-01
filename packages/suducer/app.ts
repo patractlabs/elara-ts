@@ -1,5 +1,6 @@
 import { getAppLogger, dotenvInit } from '../lib'
 import Chain from './src/chain'
+import Service from './src/service'
 import Suducer from './src/suducer'
 
 dotenvInit()
@@ -34,6 +35,6 @@ signalTraps.map((type: any) => {
 
 const run = async () => {
     log.info(`Suducer server run, env=${env}`)
-    await Chain.init()
+    Service.up(false)
 }
 run()
