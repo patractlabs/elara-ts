@@ -88,6 +88,11 @@ export namespace G {
         return PoolCnt[key]
     }
 
+    export const incrPoolCnt = (chain: string, type: SuducerT): void => {
+        const key = `${chain.toLowerCase()}-${type}`
+        PoolCnt[key] += 1
+    }
+
     export const decrPoolCnt = (chain: string, type: SuducerT): void => {
         const key = `${chain.toLowerCase()}-${type}`
         PoolCnt[key] -= 1
@@ -175,7 +180,8 @@ export namespace G {
     }
 
     // intervals 
-    export const addInterval = (key: CacheStrategyT, interval: NodeJS.Timeout) => {
+    export const addInterval = (chain: string, strategy: CacheStrategyT, interval: NodeJS.Timeout) => {
+        const key = `${chain.toLowerCase()}-${strategy}`
         if (Intervals[key]) {
             log.error(`add interval error: ${key} exist`)
             return
@@ -183,8 +189,8 @@ export namespace G {
         Intervals[key] = interval
     }
 
-    export const delInterval = (key: CacheStrategyT) => {
-        delete Intervals[key]
+    export const delInterval = (chain: string, strategy: CacheStrategyT) => {
+        delete Intervals[`${chain.toLowerCase()}-${strategy}`]
     }
 
     // suducer 

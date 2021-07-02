@@ -10,9 +10,13 @@ import { G } from './global'
 import { ReqT, TopicT } from './interface'
 import Dao from './dao'
 import Suducer, { SuducerStat, SuducerT } from './suducer'
-import { Producer } from './mq/redis'
-import { DBT } from '../../lib/utils/redis'
+import { Producer } from 'lib/utils/mq'
+import { DBT } from 'lib/utils/redis'
 import Service from './service'
+import { dotenvInit } from 'lib'
+dotenvInit()
+
+import Conf from '../config'
 
 const log = getAppLogger('pool', true)
 
@@ -29,7 +33,9 @@ const generateUrl = (url: string, port: number, sec: boolean = false) => {
     return `${procol}${url}:${port}`
 }
 
-const pro = new Producer(DBT.Pubsub)
+const rdConf = Conf.getRedis()
+log.warn(`current env ${process.env.NODE_ENV} redis conf: `, JSON.stringify(rdConf))
+const pro = new Producer({db: DBT.Pubsub, arg: {host: rdConf.host, port: rdConf.port}})
 
 const SubReg = (() => {
     return /[0-9a-zA-Z]{16}/
@@ -70,7 +76,7 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
                 log.error(`get pool event of chain ${chain} type ${type} error`)
                 process.exit(2)
             }
-            evt.emit('done')
+            evt.emit('open')
             log.info(`emit pool event done of chain ${chain} type ${type}`)
         }
     })
@@ -81,12 +87,27 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
 
     ws.on('close', (code: number, reason: string) => {
         log.error(`Suducer close-evt ${sign}: `, code, reason, suducer.ws.readyState)
+
+        if (type === SuducerT.Cache) {
+            // G.delInterval(chain, CacheStrategyT.SyncAsBlock)
+            let size = Conf.getServer().cachePoolSize
+            if (G.getPoolCnt(chain, type) < size) {
+                G.incrPoolCnt(chain, type)
+            }
+        }
         // keep the topic try to recover
+        
+
+        let evt = G.getPoolEvt(chain, type)
+        if (!evt) {
+            log.error(`get event error: chain ${chain} type[${type}]`)
+            process.exit(2)
+        }
+        
+        let close = evt.listeners('close')
+        log.warn(`close event listener: ${close}`)
 
         Pool.del(chain, type, suducer.id!)
-        G.delSuducer(chain, type, suducer.id)
-
-        // TODO: stop intervl 
 
         // set pool subscribe status fail        
         delays(3, () => Pool.add({chain, url, type, topic}))
@@ -94,7 +115,6 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
 
     ws.on('message', async (data: WebSocket.Data) => {
         const dat = JSON.parse(data.toString())
-        log.warn(`new data of chain ${chain} type ${type} topic ${topic}: ${data}`)
         // cache data
         if (dat.id) {
             const isCacheReq = (dat.id as string).startsWith('chain')
@@ -128,14 +148,14 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
         // subscribe data
         else if (dat.params) {
             // second response
-            log.info(`new subscribe data: ${JSON.stringify(dat.params)}`)
+            // log.info(`new subscribe data: ${JSON.stringify(dat.params)}`)
 
             const method = topic!
             pro.publish(`${chain}-${method}`, [method, JSON.stringify(dat.params.result)])
 
             if (method === 'state_subscribeRuntimeVersion') {
                 // update syncOnce 
-                log.warn(`runtime version update: ${dat.params.result}`)
+                log.warn(`runtime version update`)
                 Dao.updateChainCache(chain, method, dat.params.result)
                 Service.Cacheable.syncOnceService(chain)
             }
@@ -200,6 +220,10 @@ namespace Pool {
             process.exit(2)
         }
         const suducer = re.value as Suducer
+        if (!suducer || !suducer.ws) {
+            log.error(`socket has been closed: chain ${chain} type[${type}] method[${req.method}]`)
+            return
+        }
         suducer.ws.send(JSON.stringify(req))
         log.info(`chain ${chain} type ${type} send new request: ${JSON.stringify(req)} `)
     }
@@ -210,8 +234,9 @@ namespace Pool {
 
     const cachePoolInit = (chain: string, url: string) => {
         const type = SuducerT.Cache
+        const size = Conf.getServer().cachePoolSize
         G.setPoolEvt(chain, type, new EventEmitter())
-        G.setPoolCnt(chain, type, 1)
+        G.setPoolCnt(chain, type, size)
         add({chain, url, type})
     }
 

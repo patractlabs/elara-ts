@@ -1,26 +1,30 @@
 import Redis, { DBT } from 'lib/utils/redis'
 import { getAppLogger, KEYS } from 'lib'
+import { dotenvInit } from 'lib'
+dotenvInit()
+import Conf from '../../config'
 
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
 
-const log = getAppLogger('redis')
-
+const log = getAppLogger('redis', true)
+const rdConf = Conf.getRedis()
+log.warn(`current env ${process.env.NODE_ENV}, redis configure: ${JSON.stringify(rdConf)}`)
 // TODO redis pool
 
-const chainClient = Redis.newClient(DBT.Chain)
+const chainClient = Redis.newClient(DBT.Chain, {host: rdConf.host, port: rdConf.port})
 const chainRedis = chainClient.client
 
 Redis.onError(chainClient)
 Redis.onConnect(chainClient)
 
 // pubsub connection only support pub/sub relate command
-const chainPSClient = Redis.newClient(DBT.Chain)
+const chainPSClient = Redis.newClient(DBT.Chain, {host: rdConf.host, port: rdConf.port})
 
 Redis.onConnect(chainPSClient)
 Redis.onError(chainPSClient)
 
-const cacheClient = Redis.newClient(DBT.Cache)
+const cacheClient = Redis.newClient(DBT.Cache, {host: rdConf.host, port: rdConf.port})
 const cacheRedis = cacheClient.client
 
 Redis.onConnect(cacheClient)
@@ -57,7 +61,7 @@ namespace Rd {
             updateTime,
             result: JSON.stringify(result)
         } as CacheT
-        log.error('data to be dump: ', latest)
+        // log.error('data to be dump: ', latest)
         return cacheRedis.hmset(KCache.hCache(chain, method), latest)
     }
 

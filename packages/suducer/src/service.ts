@@ -51,7 +51,7 @@ const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT, strat
 
     for (let r of rpcs) {
         sendWithoutParam(chain, r, type)
-        log.info(`new ${chain} request type[cache] method[${r}]`)
+        // log.info(`new ${chain} request type[cache] method[${r}]`)
     }
 }
 
@@ -59,34 +59,28 @@ namespace Service {
 
     export namespace Cacheable {
 
-        const runSyncJob = (second: number, strategy: CacheStrategyT): void => {
+        const runSyncJob = (chain: string, second: number, strategy: CacheStrategyT): void => {
             const rpcs = G.getCacheByType(strategy) 
             if (rpcs.length < 1) {
-                log.warn(`no item to excute in ${strategy} cache strategy`)
+                log.warn(`no item to excute in chain ${chain} cache strategy: ${strategy}`)
                 return
             }
-            let re = G.getAllChains()
-            if (isNone(re)) {
-                log.error(`no invalid chain`)
-                return 
-            }
-            const chains = re.value
+      
             const interval = setInterval(() => {
-                for (let chain of chains) {
-                    excuteStrategyList(rpcs, chain, SuducerT.Cache)
-                }
+                log.info(`run chain ${chain} strategy ${strategy} cache job`)
+                excuteStrategyList(rpcs, chain, SuducerT.Cache)
             }, second * 1000)
-            G.addInterval(strategy, interval)
+            G.addInterval(chain, strategy, interval)
         }
     
-        const syncAsBlockService = async () => {
+        const syncAsBlockService = async (chain: string) => {
             log.info(`run syncAsBlock service interval: 5s`)
-            runSyncJob(5, CacheStrategyT.SyncAsBlock, )
+            runSyncJob(chain, 5, CacheStrategyT.SyncAsBlock)
         }
     
-        const syncLowService = () => {
+        const syncLowService = (chain: string) => {
             log.info(`run syncLow service interval: 60s`)
-            runSyncJob(10 * 60, CacheStrategyT.SyncLow)
+            runSyncJob(chain, 10 * 60, CacheStrategyT.SyncLow)
         }
     
         export const syncOnceService = (chain: string) => {
@@ -96,18 +90,18 @@ namespace Service {
         }
     
         export const run = (chains: string[]) => {
-            syncAsBlockService()
-            syncLowService()
-    
+            
             for (let chain of chains) {
                 let evt = G.getPoolEvt(chain, SuducerT.Cache)
                 if (!evt) {
                     log.error(`subscribe pool event error`)
                     process.exit(2)
                 }
-                evt.once('done', () => {
-                    log.info(`chain ${chain} subscribe pool event done type cache`)
+                evt.once('open', () => {
+                    log.error(`chain ${chain} subscribe pool event done type cache`)
                     syncOnceService(chain)
+                    syncAsBlockService(chain)
+                    syncLowService(chain)
                 })
             }
         }
@@ -129,7 +123,7 @@ namespace Service {
                     log.error(`subscribe pool event error`)
                     process.exit(2)
                 }
-                evt.once('done', () => {
+                evt.once('open', () => {
                     log.info(`chain ${chain} subscribe pool event done`)
                     subscribeService(chain)
                 })

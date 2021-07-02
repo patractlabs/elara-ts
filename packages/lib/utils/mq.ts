@@ -1,5 +1,5 @@
-import Redis, { RClientT, DBT } from 'lib/utils/redis'
-import { getAppLogger } from 'lib'
+import Redis, { RClientT, DBT, RArgT } from './redis'
+import { getAppLogger } from './log'
 
 const log = getAppLogger('mq-redis', true)
 
@@ -10,8 +10,8 @@ export interface Subscriber {
 }
 
 export class Subscriber {
-    constructor(db: DBT = DBT.Pubsub) {
-        this.rd = Redis.newClient(db)
+    constructor(db: DBT = DBT.Pubsub, arg?: RArgT) {
+        this.rd = Redis.newClient(db, arg)
     }
 
     async subscribe(chan: string, cb: SubCbT, grp?: string, user?: string, ms: number = 5000): Promise<void> {
@@ -54,8 +54,8 @@ export interface Producer {
 }
 
 export class Producer {
-    constructor(db: DBT, grp?: string) {
-        this.rd = Redis.newClient(db)
+    constructor({db, grp, arg}: {db: DBT, grp?: string, arg?: RArgT}) {
+        this.rd = Redis.newClient(db, arg)
         if (grp) {
             this.grp = grp
         }
@@ -99,7 +99,7 @@ interface ConsumerInfoT {
 
 type ConsumerListT = ConsumerInfoT[]
 
-namespace Rmq {
+namespace Mq {
 
     export const streamInfo = async (chan: string): Promise<StreamInfoT> => {
         let re = await Mqrd.xinfo('STREAM', chan)
@@ -145,4 +145,4 @@ namespace Rmq {
         return res
     }
 }
-export default Rmq
+export default Mq
