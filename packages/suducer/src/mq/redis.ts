@@ -9,10 +9,6 @@ export interface Subscriber {
     rd: RClientT
 }
 
-const subListen = () => {
-
-}
-
 export class Subscriber {
     constructor(db: DBT = DBT.Pubsub) {
         this.rd = Redis.newClient(db)
@@ -150,21 +146,3 @@ namespace Rmq {
     }
 }
 export default Rmq
-
-const sub = new Subscriber()
-sub.subscribe('chan', console.log)
-sub.subscribe('chan', console.log, 'grp', 'bruce')
-sub.subscribe('chan', console.log)
-sub.subscribe('chan', console.log, 'grp', 'xn')
-
-const run = async() => {
-    let sinfo = await Rmq.streamInfo('chan')
-    log.info('stream info: ', JSON.stringify(sinfo), sinfo.groups, sinfo.firstEntry[0])
-
-    let ginfo = await Rmq.groupInfo('chan')
-    log.info('group info: ', JSON.stringify(ginfo), ginfo[0].name)
-
-    let cinfo = await Rmq.consumerInfo('grp', 'chan')
-    log.info('consumer info: ', JSON.stringify(cinfo), cinfo[0].name)
-}   
-// run()

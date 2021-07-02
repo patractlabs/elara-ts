@@ -2,7 +2,6 @@ import WebSocket from 'ws'
 import { IDT } from 'lib'
 import { randomId, md5 } from 'lib/utils'
 import { TopicT } from './interface'
-import G from './global'
 
 
 export enum SuducerT {
@@ -44,10 +43,5 @@ namespace Suducer {
         }
         return suducer
     }
-
-    export const init = () => {
-
-    }
-
 }
 export default Suducer

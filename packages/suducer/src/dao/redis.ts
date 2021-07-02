@@ -45,13 +45,18 @@ namespace Rd {
 
     /// cache operation
 
+    type CacheT = {
+        updateTime: number,
+        result: any
+    }
+
     export const setLatest = async (chain: string, method: string, result: any) => {
         // TODO whether expiration
         const updateTime = Date.now()
         const latest = {
             updateTime,
-            result
-        }
+            result: JSON.stringify(result)
+        } as CacheT
         log.error('data to be dump: ', latest)
         return cacheRedis.hmset(KCache.hCache(chain, method), latest)
     }
@@ -59,7 +64,6 @@ namespace Rd {
     export const getLatest = async (chain: string, method: string) => {
         return cacheRedis.hgetall(KCache.hCache(chain, method))
     }
-
 }
 
 export default Rd
