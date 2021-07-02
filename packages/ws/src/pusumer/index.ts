@@ -1,5 +1,4 @@
 import WebSocket from 'ws'
-import http from 'http'
 import httpProxy from 'http-proxy'
 import { getAppLogger } from 'lib'
 import { connHandler } from './handler'
@@ -12,7 +11,7 @@ const noop = () => {
     log.debug('noop')
 }
 
-const epuber = () => {
+export const epuber = () => {
     let interval: NodeJS.Timeout
 
     const wss = new WebSocket.Server({port}, () => {
@@ -40,10 +39,7 @@ const epuber = () => {
     })
     
     wss.on('error', (err) => {
-        log.error('Socket server error-evt: ', err);
-        // TODO
-        clearInterval(interval)
-
+        log.error('Socket server error-evt: ', err)
     })
 
     // ping-pong to detect broken connection
@@ -62,13 +58,13 @@ const epuber = () => {
 
 
 
-namespace NoServer {
+export namespace NoServer {
     const proxy = httpProxy.createProxyServer()
-    const Server = http.createServer((req, res) => {
-        proxy.web(req, res, {
-            target: 'http://localhost:90'
-        })
-    })
+    // const Server = http.createServer((req, res) => {
+    //     proxy.web(req, res, {
+    //         target: 'http://localhost:90'
+    //     })
+    // })
 
     proxy.on('error', (err) => {
         log.error('proxy error: ', err)
@@ -90,7 +86,7 @@ namespace NoServer {
     // })
 
     wss.on('connection', (ws, req) => {
-        log.info('new connection')
+        log.info('new connection: ', req)
 
         ws.on('message', (msg) => {
             log.info('new message :', msg)

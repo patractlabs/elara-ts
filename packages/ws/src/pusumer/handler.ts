@@ -14,7 +14,7 @@ export const connHandler = (ws: WebSocket, req: any) => {
     // 1. message listener 
     // 2. esuber-trigger
     // 3. Matcher
-    log.info('Into conn handler')
+    log.info('Into conn handler', req)
     // log.info('ws client: ', ws)
     // log.info('ws request: ', req)
 

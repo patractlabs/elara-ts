@@ -1,7 +1,5 @@
 import Koa from 'koa'
-import Suducer from './src/suducer'
 import { getAppLogger } from 'lib'
-import Conf from './config'
 import Pusumer from './src/pusumer'
 
 // dotenvInit()                    // if use .env
@@ -14,7 +12,6 @@ const log = getAppLogger("ws", true)
 app.listen("7001", async () => {
     log.info("Api server listen on port: 7001")
 
-    await Suducer.init()
     // log.info('Global chain exts: ', G.chainConf, G.chains)
 
     Pusumer.init()

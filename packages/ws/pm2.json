@@ -1,6 +1,6 @@
 {
     "name": "elara-api",
-    "interpreter": 'C:\\Users\\Bruce\\AppData\\Roaming\\npm\\ts-node.cmd',
+    "interpreter": "C:\\Users\\Bruce\\AppData\\Roaming\\npm\\ts-node.cmd",
     "script": "./app.js",
     "cwd": "./",
     "watch": [

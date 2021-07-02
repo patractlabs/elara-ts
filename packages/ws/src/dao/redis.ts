@@ -1,26 +1,26 @@
-import { Redis } from 'lib'
+import Redis, { DBT } from '../../../lib/utils/redis'
 import { getAppLogger, KEYS } from 'lib'
 
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
 
-const log = getAppLogger('redis')
+const log = getAppLogger('redis', true)
 
 // TODO redis pool
-
-const chainClient = Redis.newClient(Redis.DBT.Chain)
+log.warn('dbt: ', DBT)
+const chainClient = Redis.newClient(DBT.Chain)
 const chainRedis = chainClient.client
 
 Redis.onError(chainClient)
 Redis.onConnect(chainClient)
 
 // pubsub connection only support pub/sub relate command
-const chainPSClient = Redis.newClient(Redis.DBT.Chain)
+const chainPSClient = Redis.newClient(DBT.Chain)
 
 Redis.onConnect(chainPSClient)
 Redis.onError(chainPSClient)
 
-const cacheClient = Redis.newClient(Redis.DBT.Cache)
+const cacheClient = Redis.newClient(DBT.Cache)
 const cacheRedis = cacheClient.client
 
 Redis.onConnect(cacheClient)
