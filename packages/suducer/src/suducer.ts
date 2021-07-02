@@ -2,8 +2,6 @@ import WebSocket from 'ws'
 import { IDT } from 'lib'
 import { randomId, md5 } from 'lib/utils'
 import { TopicT } from './interface'
-import G from './global'
-
 
 export enum SuducerT {
     Sub     = 'sub',        // suscription except author_submitAndWatchExtrinistic
@@ -44,10 +42,5 @@ namespace Suducer {
         }
         return suducer
     }
-
-    export const init = () => {
-
-    }
-
 }
 export default Suducer

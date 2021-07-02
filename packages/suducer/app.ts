@@ -1,7 +1,5 @@
 import { getAppLogger, dotenvInit } from '../lib'
-import Chain from './src/chain'
 import Service from './src/service'
-import Suducer from './src/suducer'
 
 dotenvInit()
 const env = process.env.NODE_ENV

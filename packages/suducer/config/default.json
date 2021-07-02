@@ -1,11 +1,11 @@
 {
     "server": {
         "id": 0,
-        "maxReconnTry": 60
+        "maxReconnTry": 60,
+        "cachePoolSize": 1
     },
     "redis": {
         "host": "127.0.0.1",
-        "port": 6379,
-        "index": 0
+        "port": 6379 
     }   
 }

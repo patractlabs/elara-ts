@@ -23,9 +23,10 @@ const sendWithoutParam = (chain: string, method: string, type: SuducerT) => {
         case SuducerT.Sub:
             // topic - subscribe id
             id = randomId().toString()
+            G.addSubCache(id, method)
             break
         case SuducerT.Cache:
-            id = `${chain}-${method}`
+            id = `chain-${chain}-${method}`
             // method cache
             break
         default:
@@ -44,93 +45,92 @@ const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT, strat
     // const nrpcs = [...rpcs, ...extens]
     // const excludes = G.getExcludes(chain)
     // log.info(`Extends & excludes list of chain[${chain}]: `, extens, excludes)
+    if (stratgy) { 
+        // TODO 
+    }
 
     for (let r of rpcs) {
         sendWithoutParam(chain, r, type)
-        log.info(`new ${chain} request type[cache] method[${r}]`)
-    }
-}
-
-namespace Cacheable {
-
-    const runSyncJob = (second: number, strategy: CacheStrategyT): void => {
-        const rpcs = G.getCacheByType(strategy) 
-        if (rpcs.length < 1) {
-            log.warn(`no item to excute in ${strategy} cache strategy`)
-            return
-        }
-        let re = G.getAllChains()
-        if (isNone(re)) {
-            log.error(`no invalid chain`)
-            return 
-        }
-        const chains = re.value
-        const interval = setInterval(() => {
-            for (let chain of chains) {
-                excuteStrategyList(rpcs, chain, SuducerT.Cache)
-            }
-        }, second * 1000)
-        G.addInterval(strategy, interval)
-    }
-
-    const syncAsBlockService = async () => {
-        log.info(`run syncAsBlock service interval: 5s`)
-        runSyncJob(5, CacheStrategyT.SyncAsBlock, )
-    }
-
-    const syncLowService = () => {
-        log.info(`run syncLow service interval: 60s`)
-        runSyncJob(10 * 60, CacheStrategyT.SyncLow)
-    }
-
-    export const syncOnceService = (chain: string) => {
-        log.info(`run syncOnce service chain ${chain}`)
-        const rpcs = G.getCacheByType(CacheStrategyT.SyncOnce)
-        excuteStrategyList(rpcs, chain, SuducerT.Cache)
-    }
-
-    export const run = (chains: string[]) => {
-        syncAsBlockService()
-        syncLowService()
-
-        for (let chain of chains) {
-            let evt = G.getPoolEvt(chain, SuducerT.Cache)
-            if (!evt) {
-                log.error(`subscribe pool event error`)
-                process.exit(2)
-            }
-            evt.once('done', () => {
-                log.info(`chain ${chain} subscribe pool event done type cache`)
-                syncOnceService(chain)
-            })
-        }
-    }
-}
-
-namespace Subscribe {
-
-    export const subscribeService = async (chain: string) => {
-        const subs = G.getSubTopics()
-        excuteStrategyList(subs, chain, SuducerT.Sub)
-    }
-
-    export const run = async (chains: string[]) => {
-        for (let chain of chains) {
-            log.info(`run subscribe topic of chain ${chain}`)
-            let evt = G.getPoolEvt(chain, SuducerT.Sub)
-            if (!evt) {
-                log.error(`subscribe pool event error`)
-                process.exit(2)
-            }
-            evt.once('done', () => {
-                log.info(`chain ${chain} subscribe pool event done`)
-                subscribeService(chain)
-            })
-        }
+        // log.info(`new ${chain} request type[cache] method[${r}]`)
     }
 }
 
 namespace Service {
+
+    export namespace Cacheable {
+
+        const runSyncJob = (chain: string, second: number, strategy: CacheStrategyT): void => {
+            const rpcs = G.getCacheByType(strategy) 
+            if (rpcs.length < 1) {
+                log.warn(`no item to excute in chain ${chain} cache strategy: ${strategy}`)
+                return
+            }
+      
+            const interval = setInterval(() => {
+                log.info(`run chain ${chain} strategy ${strategy} cache job`)
+                excuteStrategyList(rpcs, chain, SuducerT.Cache)
+            }, second * 1000)
+            G.addInterval(chain, strategy, interval)
+        }
+    
+        const syncAsBlockService = async (chain: string) => {
+            log.info(`run syncAsBlock service interval: 5s`)
+            runSyncJob(chain, 5, CacheStrategyT.SyncAsBlock)
+        }
+    
+        const syncLowService = (chain: string) => {
+            log.info(`run syncLow service interval: 60s`)
+            runSyncJob(chain, 10 * 60, CacheStrategyT.SyncLow)
+        }
+    
+        export const syncOnceService = (chain: string) => {
+            log.info(`run syncOnce service chain ${chain}`)
+            const rpcs = G.getCacheByType(CacheStrategyT.SyncOnce)
+            excuteStrategyList(rpcs, chain, SuducerT.Cache)
+        }
+    
+        export const run = (chains: string[]) => {
+            
+            for (let chain of chains) {
+                let evt = G.getPoolEvt(chain, SuducerT.Cache)
+                if (!evt) {
+                    log.error(`subscribe pool event error`)
+                    process.exit(2)
+                }
+                evt.once('open', () => {
+                    log.error(`chain ${chain} subscribe pool event done type cache`)
+                    syncOnceService(chain)
+                    syncAsBlockService(chain)
+                    syncLowService(chain)
+                })
+            }
+        }
+    }
+
+    
+    export namespace Subscribe {
+
+        export const subscribeService = async (chain: string) => {
+            const subs = G.getSubTopics()
+            excuteStrategyList(subs, chain, SuducerT.Sub)
+        }
+
+        export const run = async (chains: string[]) => {
+            for (let chain of chains) {
+                log.info(`run subscribe topic of chain ${chain}`)
+                let evt = G.getPoolEvt(chain, SuducerT.Sub)
+                if (!evt) {
+                    log.error(`subscribe pool event error`)
+                    process.exit(2)
+                }
+                evt.once('open', () => {
+                    log.info(`chain ${chain} subscribe pool event done`)
+                    subscribeService(chain)
+                })
+            }
+        }
+    }
+
     export const up = async (secure: boolean) => {
         // init a ws connection for all chains
         await Chain.init()
@@ -149,8 +149,8 @@ namespace Service {
         Cacheable.run(chains)
 
         // subscribe service
-        // Subscribe.run(chains)
+        Subscribe.run(chains)
     }
 }
 
-export = Service
+export default Service

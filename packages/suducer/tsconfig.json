@@ -8,8 +8,8 @@
     "strict": true,                                 /* Enable all strict type-checking options. */
 
     /* Additional Checks */
-    "noUnusedLocals": false,                      /* Report errors on unused locals. */
-    "noUnusedParameters": false,                  /* Report errors on unused parameters. */
+    "noUnusedLocals": true,                      /* Report errors on unused locals. */
+    "noUnusedParameters": true,                  /* Report errors on unused parameters. */
     "noImplicitReturns": true,                   /* Report error when not all code paths in function return a value. */
     "noFallthroughCasesInSwitch": true,          /* Report errors for fallthrough cases in switch statement. */
 
@@ -26,10 +26,9 @@
     "forceConsistentCasingInFileNames": true        /* Disallow inconsistently-cased references to the same file. */
   },
   "include": [
-    "src/**/*",
-    // "config/**/*",
-    "tests/**/*",
-    "config/**/*.json",
+    "./src/**/*",
+    "./tests/**/*",
+    "./config/**/*.json",
     "./app.ts"
   ]
 }

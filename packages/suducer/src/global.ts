@@ -1,8 +1,7 @@
 import EventEmitter from 'events'
-import { getAppLogger, ChainConfig, RpcMethodT, RpcMapT, RpcStrategy, IDT } from 'lib'
+import { getAppLogger, ChainConfig, RpcMapT, RpcStrategy, IDT } from 'lib'
 import { None, Some, Option } from 'lib'
-import { CacheT, ChainPoolT, ChainT, SuducerMap, SuducersT, PubsubT, CacheStrategyT, PsubStrategyT, TopicT } from './interface'
-import { del } from './pool'
+import { CacheT, ChainT, SuducerMap, SuducersT, PubsubT, CacheStrategyT, PsubStrategyT } from './interface'
 import Suducer, { SuducerT } from './suducer'
 
 const log = getAppLogger('global', true)
@@ -67,10 +66,15 @@ const Submap: StringMapT = {
 
 const Chains: ChainT = {}
 const Suducers: SuducerMap = {}
+
 type TopicMapT = {[key in string]: IDT}
 const TopicSudidMap: {[key in string]: TopicMapT} = {}
+
 const PoolCnt: {[key in string]: number} = {}
 const PoolEvt: {[key in string]: EventEmitter} = {}
+
+// requestId -- method
+const SubCache: {[key in string]: string} = {}
 
 export namespace G {
     // pool count
@@ -82,6 +86,11 @@ export namespace G {
     export const getPoolCnt = (chain: string, type: SuducerT): number => {
         const key = `${chain.toLowerCase()}-${type}`
         return PoolCnt[key]
+    }
+
+    export const incrPoolCnt = (chain: string, type: SuducerT): void => {
+        const key = `${chain.toLowerCase()}-${type}`
+        PoolCnt[key] += 1
     }
 
     export const decrPoolCnt = (chain: string, type: SuducerT): void => {
@@ -125,8 +134,13 @@ export namespace G {
         return Extrinsics
     }
 
-    export const getSubMap = (): StringMapT => {
+    export const getSubMaps = (): StringMapT => {
         return Submap
+    }
+
+    export const getSubMethod = (method: string): Option<string> => {
+        if (!Submap[method]) { return None}
+        return Some(Submap[method])
     }
 
     // chain config op
@@ -166,16 +180,17 @@ export namespace G {
     }
 
     // intervals 
-    export const addInterval = (key: CacheStrategyT, interval: NodeJS.Timeout) => {
+    export const addInterval = (chain: string, strategy: CacheStrategyT, interval: NodeJS.Timeout) => {
+        const key = `${chain.toLowerCase()}-${strategy}`
         if (Intervals[key]) {
             log.error(`add interval error: ${key} exist`)
             return
         }
         Intervals[key] = interval
     }
-
-    export const delInterval = (key: CacheStrategyT) => {
-        delete Intervals[key]
+    
+    export const delInterval = (chain: string, strategy: CacheStrategyT) => {
+        delete Intervals[`${chain.toLowerCase()}-${strategy}`]
     }
 
     // suducer 
@@ -221,19 +236,25 @@ export namespace G {
         TopicSudidMap[chain] = TopicSudidMap[chain] || {}
         TopicSudidMap[chain][method] = sudid
     }
-
-    export const delTOpicSudid = (chain: string, method: string): void => {
+    
+    export const delTopicSudid = (chain: string, method: string): void => {
         delete TopicSudidMap[chain][method]
     }
 
+    // requestID -- method
+    export const addSubCache = (reqId: string, method: string): void => {
+        // const key = `${chain.toLowerCase()}-${reqId}`
+        SubCache[reqId] = method
+    }
 
-    export let cpool: ChainPoolT  = {}
-    export let chains: string[] = []
-    export let intervals: {[key: string]: NodeJS.Timeout} = {}     // some schedulers
-    export let rpcs: RpcMethodT = {}
+    export const getSubCache = (reqId: string): Option<string> => {
+        if (!SubCache[reqId]) { return None }
+        return Some(SubCache[reqId])
+    }
 
-    export let ResultQueen = {}
-    export let idMethod: {[key in number]: string} = {}
+    export const delSubCache = (reqId: string): void => {
+        delete SubCache[reqId]
+    }
 
     // depends on chain evnet
     export const getExtends = (chain: string, strategy: RpcStrategy): string[] => {
@@ -260,18 +281,6 @@ export namespace G {
             return c['excludes'] as string[]
         }
         return []
-    }
-
-    export const getRpcs = (): RpcMethodT => {
-        return G.rpcs
-    }
-
-    export const getRpcByType = (strategy: RpcStrategy): string[] => {
-        if (!G.rpcs || !G.rpcs[strategy]) { 
-            log.warn('No this trategy rpcs: ', strategy)
-            return [] 
-        }
-        return G.rpcs[strategy]!
     }
 }
 export default G

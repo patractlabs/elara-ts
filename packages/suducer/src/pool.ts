@@ -7,16 +7,18 @@ import EventEmitter from 'events'
 import { ChainConfig, getAppLogger, IDT, isErr, isNone, Option } from 'lib'
 import { Ok, Err, PResultT  } from 'lib'
 import { G } from './global'
-import { SubProto, ReqT, TopicT } from './interface'
+import { ReqT, TopicT } from './interface'
 import Dao from './dao'
 import Suducer, { SuducerStat, SuducerT } from './suducer'
-import Mq from './mq'
+import { Producer } from 'lib/utils/mq'
+import { DBT } from 'lib/utils/redis'
+import Service from './service'
+import { dotenvInit } from 'lib'
+dotenvInit()
 
-const log = getAppLogger('Suducer-pool', true)
+import Conf from '../config'
 
-const lowCase = (str: string) => {
-    return str.toLowerCase()
-}
+const log = getAppLogger('pool', true)
 
 const delays = (sec: number, cb: () => void) => {
     const timer = setTimeout(() => {
@@ -31,85 +33,16 @@ const generateUrl = (url: string, port: number, sec: boolean = false) => {
     return `${procol}${url}:${port}`
 }
 
-const cacheMsgListener = (chain: string) => {
+const rdConf = Conf.getRedis()
+log.warn(`current env ${process.env.NODE_ENV} redis conf: `, JSON.stringify(rdConf))
+const pro = new Producer({db: DBT.Pubsub, arg: {host: rdConf.host, port: rdConf.port}})
 
-    return  (msg: any) => {
-        const dat = JSON.parse(msg)
-        const method = G.idMethod[dat.id]
-        // log.info('data: ', dat, method, G.idMethod)
-        if (method) {
-            delete G.idMethod[dat.id]
-            // cache H_[method]_[chain] { updateTime: 2021-0525, data: "{any}"}
-            Dao.updateChainCache(chain, method, JSON.stringify(dat.result))
-        } else {
-            log.error('No this method: ', method)
-        }
-    }
-}
+const SubReg = (() => {
+    return /[0-9a-zA-Z]{16}/
+})()
 
-/// kafka
-
-const buildSubProto = (chain: string, topic: string, data: any, subId: IDT): SubProto => {
-    return {
-        chain,
-        topic,
-        subId,
-        data
-    } 
-}
-
-// const subMsgListener = (chain: string) => {
-//     // update redis cache
-//     const subMap: any = SubMethod
-//     log.info('Sub method map: ', subMap)
-//     return (msg: any) => {
-//         const dat = JSON.parse(msg)
-//         // log.warn('parse data: ', dat)
-//         if (dat.result && dat.id) {
-//             // first time return subscription result
-//             // update subscription id according to id
-//             // Method_chain_id: method
-//             log.info('Subscribe id is: ', dat.result)
-
-//         } else if (dat.params) {
-//             const re = dat.params.result
-//             const subId = dat.params.subscription
-//             const method = subMap[dat.method]
-//             log.warn('data method: ', dat.method)
-//             log.info(`Get chain[${chain}] ${method}-${subId} subscription data: `, re)
-//             // notify Matcher
-
-//             if (method === 'state_subscribeRuntimeVersion') {
-//                 // update syncOnce data
-//                 log.warn(`${chain} runtime version update`)
-//                 Service.Cache.syncOnceService(chain)
-//             }
-
-//             // produce subscribe result msg
-//             // chain, topic, group, data 
-//             // msg wrap
-//             const prot = buildSubProto(chain, method, re, dat.params.subscription)
-//             const partition = Kafka.geneID()
-//             const msg = Kafka.newMsg(prot, 'sub')   
-//             const topic = Kafka.newTopic(chain, method)
-
-//             // TODO
-//             Mq.producer.send({
-//                 topic,
-//                 messages: [msg],
-//             }).then(re => {
-//                 log.warn('send kafka result: ', re)
-//             }).catch(err => {
-//                 log.error('send kafka error: ', err)
-//             })
-//             log.warn('send kafka message: ', topic, msg)
-//         }
-//     }
-// }
-
-const msgCb = (data: WebSocket.Data) => {
-    const dat = JSON.parse(data.toString())
-    log.warn('new data')
+const isSubID = (id: string): boolean => {
+    return SubReg.test(id) && id.length === 16
 }
 
 type SuducerArgT = {chain: string, url: string, type: SuducerT, topic?: string}
@@ -143,7 +76,7 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
                 log.error(`get pool event of chain ${chain} type ${type} error`)
                 process.exit(2)
             }
-            evt.emit('done')
+            evt.emit('open')
             log.info(`emit pool event done of chain ${chain} type ${type}`)
         }
     })
@@ -154,18 +87,79 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
 
     ws.on('close', (code: number, reason: string) => {
         log.error(`Suducer close-evt ${sign}: `, code, reason, suducer.ws.readyState)
+
+        if (type === SuducerT.Cache) {
+            // G.delInterval(chain, CacheStrategyT.SyncAsBlock)
+            let size = Conf.getServer().cachePoolSize
+            if (G.getPoolCnt(chain, type) < size) {
+                G.incrPoolCnt(chain, type)
+            }
+        }
         // keep the topic try to recover
+        
+
+        let evt = G.getPoolEvt(chain, type)
+        if (!evt) {
+            log.error(`get event error: chain ${chain} type[${type}]`)
+            process.exit(2)
+        }
+        
+        let close = evt.listeners('close')
+        log.warn(`close event listener: ${close}`)
 
         Pool.del(chain, type, suducer.id!)
-        G.delSuducer(chain, type, suducer.id)
+
         // set pool subscribe status fail        
-        log.warn('Pool state after del: ', G.cpool)
         delays(3, () => Pool.add({chain, url, type, topic}))
     })
 
-    ws.on('message', (data: WebSocket.Data) => {
+    ws.on('message', async (data: WebSocket.Data) => {
         const dat = JSON.parse(data.toString())
-        log.warn(`new data of chain ${chain} type ${type} topic ${topic}: ${data}`)
+        // cache data
+        if (dat.id) {
+            const isCacheReq = (dat.id as string).startsWith('chain')
+            if (isCacheReq) {
+                let pat = dat.id.split('-')
+                const chain = pat[1]
+                const method = pat[2]
+                // 
+                log.info(`cache message： chain ${chain} method[${method}]`)
+                Dao.updateChainCache(chain, method, dat.result)
+            } else if(isSubID(dat.result)) {
+                // first subscribe response
+                log.info(`first subscribe response chain ${chain} topic[${topic}]`)
+                // G.addSubTopic(chain, dat.result, method)
+                let re: any = G.getSuducerId(chain, topic!)
+                if (isNone(re)) {
+                    log.error(`get suducer id error: invalid chain ${chain} method ${topic}`)
+                    process.exit(2)
+                }
+                const sudId = re.value
+                re = G.getSuducer(chain, type, sudId)
+                if (isNone(re)) {
+                    log.error(`get suducer error: chain ${chain} type[${type}] id[${sudId}]`)
+                    process.exit(2)
+                }
+                let suducer = re.value as Suducer
+                suducer.topic = { ...suducer.topic, id: dat.result} as TopicT
+                G.updateSuducer(suducer)
+            }
+        }
+        // subscribe data
+        else if (dat.params) {
+            // second response
+            // log.info(`new subscribe data: ${JSON.stringify(dat.params)}`)
+
+            const method = topic!
+            pro.publish(`${chain}-${method}`, [method, JSON.stringify(dat.params.result)])
+
+            if (method === 'state_subscribeRuntimeVersion') {
+                // update syncOnce 
+                log.warn(`runtime version update`)
+                Dao.updateChainCache(chain, method, dat.params.result)
+                Service.Cacheable.syncOnceService(chain)
+            }
+        }
     })
 
     return suducer
@@ -175,11 +169,6 @@ namespace Pool {
 
     export const add = (arg: SuducerArgT) => {
         let {chain, url, type, topic} = arg
-        // // message listen
-        // let cb = cacheMsgListener(chain)
-        // if (type === SuducerT.Sub) {
-        //     cb = subMsgListener(chain)
-        // }
 
         const suducer = newSuducer({chain, url, type, topic})
         G.addSuducer(suducer)
@@ -191,7 +180,7 @@ namespace Pool {
     export const del = (chain: string, type: SuducerT, sudId: IDT) => {
         G.delSuducer(chain, type, sudId)
         if (type === SuducerT.Sub) {
-            G.delTOpicSudid(chain, type)
+            G.delTopicSudid(chain, type)
         }
     }
 
@@ -231,6 +220,10 @@ namespace Pool {
             process.exit(2)
         }
         const suducer = re.value as Suducer
+        if (!suducer || !suducer.ws) {
+            log.error(`socket has been closed: chain ${chain} type[${type}] method[${req.method}]`)
+            return
+        }
         suducer.ws.send(JSON.stringify(req))
         log.info(`chain ${chain} type ${type} send new request: ${JSON.stringify(req)} `)
     }
@@ -241,8 +234,9 @@ namespace Pool {
 
     const cachePoolInit = (chain: string, url: string) => {
         const type = SuducerT.Cache
+        const size = Conf.getServer().cachePoolSize
         G.setPoolEvt(chain, type, new EventEmitter())
-        G.setPoolCnt(chain, type, 1)
+        G.setPoolCnt(chain, type, size)
         add({chain, url, type})
     }
 
@@ -279,4 +273,4 @@ namespace Pool {
     }
 }
 
-export = Pool
+export default Pool
