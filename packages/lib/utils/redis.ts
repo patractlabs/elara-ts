@@ -3,27 +3,29 @@ import { getAppLogger } from './log'
 
 const log = getAppLogger('Redis', true)
 
+export enum DBT {
+    Account = 0,
+    Project = 1,
+    Stat    = 2,
+    Chain   = 3,
+    Cache   = 4,
+    Pubsub  = 8,
+}
+
+export interface RArgT {
+    port?: number,
+    host?: string,
+    options?: RedisOptions
+}
+
+export type RdT = Redis.Redis
+
+export interface RClientT {
+    client: RdT,
+    db: DBT
+}
+
 namespace Rd {
-    export enum DBT {
-        Account = 0,
-        Project = 1,
-        Stat    = 2,
-        Chain   = 3,
-        Cache   = 4,
-    }
-
-    type RdT = Redis.Redis
-
-    interface RArgT {
-        port?: number,
-        host?: string,
-        options?: RedisOptions
-    }
-
-    interface RClientT {
-        client: RdT,
-        db: DBT
-    }
 
     export const newClient = (db: DBT, arg?: RArgT): RClientT => {
         const options = {
