@@ -188,7 +188,7 @@ export namespace G {
         }
         Intervals[key] = interval
     }
-
+    
     export const delInterval = (chain: string, strategy: CacheStrategyT) => {
         delete Intervals[`${chain.toLowerCase()}-${strategy}`]
     }
@@ -236,7 +236,7 @@ export namespace G {
         TopicSudidMap[chain] = TopicSudidMap[chain] || {}
         TopicSudidMap[chain][method] = sudid
     }
-
+    
     export const delTopicSudid = (chain: string, method: string): void => {
         delete TopicSudidMap[chain][method]
     }

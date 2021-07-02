@@ -3,7 +3,6 @@ import { IDT } from 'lib'
 import { randomId, md5 } from 'lib/utils'
 import { TopicT } from './interface'
 
-
 export enum SuducerT {
     Sub     = 'sub',        // suscription except author_submitAndWatchExtrinistic
     Cache   = 'cache'      // cacheable,
