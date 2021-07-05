@@ -7,7 +7,6 @@ const KChain = KEYS.Chain
 const log = getAppLogger('redis', true)
 
 // TODO redis pool
-log.warn('dbt: ', DBT)
 const chainClient = Redis.newClient(DBT.Chain)
 const chainRedis = chainClient.client
 

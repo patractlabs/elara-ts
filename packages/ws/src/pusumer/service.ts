@@ -34,9 +34,6 @@ const server = () => {
                 wss.emit('connection', ws, req)
             })
         }
-      
-
-
     })
 
     wss.on('connection', (ws: WebSocket, req: any) => {
@@ -85,23 +82,28 @@ namespace Service {
     }
 
     export namespace Cache {
-
+        // --> suducer
 
     }
 
     export namespace SubnoParam {
+        // --> suducer
 
     }
 
     export namespace History {
-
+        // --> pg SQL history
     }
 
     export namespace SubParam {
+        // subscribe_storage with key --> kv
+        // watchExtrinistic --> node
+
 
     }
 
     export namespace Direct {
+        // --> node
 
     }
 }

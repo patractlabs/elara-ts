@@ -14,12 +14,16 @@
     "kafkajs": "^1.15.0",
     "koa": "^2.13.1",
     "lib": "file:../lib",
+    "pg": "^8.6.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.6.4",
     "ws": "^7.4.5"
   },
   "devDependencies": {
     "@types/config": "0.0.38",
     "@types/http-proxy": "^1.17.6",
     "@types/koa": "^2.13.1",
+    "@types/sequelize": "^4.28.9",
     "@types/ws": "^7.4.4",
     "jest": "^27.0.6",
     "ts-jest": "^27.0.3"

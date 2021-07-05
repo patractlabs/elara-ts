@@ -1,4 +1,10 @@
 {
+    "server": {
+        "id": 0,
+        "port": 7001,
+        "maxWsConn": 10,
+        "maxReConn": 60
+    },
     "redis": {
         "host": "127.0.0.1",
         "port": 6379,

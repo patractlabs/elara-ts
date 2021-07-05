@@ -1,114 +1,87 @@
-import WebSocket from 'ws'
-import httpProxy from 'http-proxy'
-import { getAppLogger } from 'lib'
-import { connHandler } from './handler'
-import Service from './service'
+import WebSocket, { EventEmitter } from 'ws'
+import { getAppLogger, IDT, ResultT, Err, Ok, PVoidT, isNone } from 'lib'
+import { Option, None, Some } from 'lib'
+import { randomId } from 'lib/utils'
+import { WsData } from '../interface'
+// import Matcher from './matcher'
 
-const log = getAppLogger("ws", true)
-const port = 7003
+const log = getAppLogger('Pusumer', true)
 
-const noop = () => {
-    log.debug('noop')
+interface Pusumer {
+    id: IDT,
+    pid: IDT,
+    chain: string,
+    ws: WebSocket,
+    subId?: IDT,            // suber id
+    topics?: Set<string>,   // {subscribeId}
+    event?: EventEmitter
 }
 
-export const epuber = () => {
-    let interval: NodeJS.Timeout
-
-    const wss = new WebSocket.Server({port}, () => {
-        log.info('WebSocket server start on port: ', port)
-    })
-
-    wss.on('headers', (head) => {
-        log.info('Socket server header-evt: ', head)
-    })
-
-    // req: http.IncomingMessage
-    wss.on('connection', (ws: WebSocket, req: any) => {
-        // TODO
-        // 1. regist to Matcher
-        // 2. statistic connection count
-        // 3. open message listener  
-
-        connHandler(ws, req)
-    })
-
-    wss.on('close', (msg: any) => {
-        log.error('Socket server close-evt', msg)
-        // TODO
-        clearInterval(interval)
-    })
-    
-    wss.on('error', (err) => {
-        log.error('Socket server error-evt: ', err)
-    })
-
-    // ping-pong to detect broken connection
-    interval = setInterval(() => {
-        log.info('broadcast')
-        wss.clients.forEach((ws: any) => {
-            log.info('ws status:', ws.isAlive)
-            if (ws.isAlive === false) {
-                return ws.terminate()
-            }
-            ws.isAlive = false
-            ws.ping(noop)
-        })
-    }, 5000)
-}
-
-
-
-export namespace NoServer {
-    const proxy = httpProxy.createProxyServer()
-    // const Server = http.createServer((req, res) => {
-    //     proxy.web(req, res, {
-    //         target: 'http://localhost:90'
-    //     })
-    // })
-
-    proxy.on('error', (err) => {
-        log.error('proxy error: ', err)
-    })
-    const wss = new WebSocket.Server({noServer: true})
-
-    // Server.listen(port, () => {
-    //     log.info('Http server listen on port: ', port)
-    // })
-
-    // Server.on('upgrade', (req, socket, head) => {
-    //     // const pathName = new URL(req.url).pathname
-    //     const pathName = ''
-    //     log.info('path name: ', pathName, req.url)
-        
-    //     wss.handleUpgrade(req, socket, head, (ws) => {
-    //         wss.emit('connection', ws, req)
-    //     })
-    // })
-
-    wss.on('connection', (ws, req) => {
-        log.info('new connection: ', req)
-
-        ws.on('message', (msg) => {
-            log.info('new message :', msg)
-        })
-    })
-
-}
 namespace Pusumer {
-    export const init = () => {
-        Service.up()
-        // NoServer
+    export namespace G {
+        const Pusumers: {[key in string]: Pusumer } = {}
+        export const get = (pusId: IDT): Option<Pusumer> => {
+            if (!Pusumers[pusId]) {
+                return None
+            }
+            return Some(Pusumers[pusId])
+        }
 
-        // const wss = new WebSocket.Server({
-        //     port,
-        // })
+        export const updateOrAdd = (pusumer: Pusumer): void => {
+            Pusumers[pusumer.id] = pusumer
+        }
+    }
 
-        // wss.on('connection', (ws, req) => {
-        //     log.info('new connection')
-        //     ws.on('message', (msg) => {
-        //         log.info('new msg: ', msg)
-        //     })
-        // })
+    export const create = (ws: WebSocket, chain: string, pid: IDT): Pusumer => {
+        const pusumer = { id: randomId(), pid, chain, ws } as Pusumer
+        G.updateOrAdd(pusumer)
+        return pusumer
+    }
+
+    export const updateTopics = (pusId: IDT, subsId: string): ResultT => {
+        let re = G.get(pusId)
+        if (isNone(re)) {
+            log.error(`update puber[${pusId}] topics error: no this pusumer ${pusId}`)
+            // puber may be closed
+            return Err(`puber[${pusId}] may be closed`)
+        }
+        let puber = re.value as Pusumer
+        puber.topics = puber.topics || new Set()
+        puber.topics.add(subsId)
+
+        G.updateOrAdd(puber)
+
+        log.info(`update puber[${pusId}] topic [${subsId}] done: ${puber.topics.values()}`)
+        return Ok(puber)
+    }
+
+    export const transpond = async (puber: Pusumer, data: WsData): PVoidT => {
+        const { id, chain, pid }  = puber
+        log.info(id, chain, pid, data)
+        // // topic bind to chain and params 
+        // if (Matcher.isSubscribed(chain, pid, data)){
+        //     log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)
+        //     data.error = {code: 1000, message: 'No need to subscribe twice'}
+        //     return puber.ws.send(JSON.stringify(data))
+        // }
+
+        // let re = Matcher.newRequest(chain, pid, id, puber.subId!, data)
+        // if (isErr(re)) {
+        //     log.error(`create new request error: ${re.value}`)
+        //     return puber.ws.send(re.value)
+        // }
+        // const dat = re.value
+
+        // re = Matcher.getSuber(chain, id)
+        // if (isErr(re)) {
+        //     log.error(`[SBH] send message error: ${re.value}`)
+        //     process.exit(1) 
+        // }
+        // const suber = re.value 
+
+        // // transpond requset
+        // log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
+        // return suber.ws.send(JSON.stringify(dat))
     }
 }
 
