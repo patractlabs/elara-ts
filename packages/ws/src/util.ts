@@ -1,4 +1,5 @@
 import { performance } from 'perf_hooks'
+import Http from 'http'
 import { Ok, Err, PResultT, getAppLogger } from '../../lib'
 import { G } from './chain'
 
@@ -41,6 +42,25 @@ namespace Util {
 
     export const globalStat = () => {
         // return `suber: ${G.suberCnt()}, puber: ${G.puberCnt()}, topic: ${G.topicCnt()}, subMap: ${G.subMapCnt()}, reqMap: ${G.reqMapCnt()}`
+    }
+
+    
+}
+
+export namespace Response {
+    const end = async (res: Http.ServerResponse, data: any, code: number, md5?: string) => {
+        res.writeHead(code, {'Content-Type': 'text/plain', 'Trailer': 'Content-MD5'})
+        res.addTrailers({'Content-MD5': md5 || '7878'})
+        res.write(data)
+        res.end()
+    }
+
+    export const Ok = async (res: Http.ServerResponse, data: any) => {
+        end(res, data, 200)
+    }
+
+    export const Fail = async (res: Http.ServerResponse, data: any, code: number) => {
+        end(res, data, code)
     }
 }
 

@@ -2,10 +2,10 @@ import Http from 'http'
 import WebSocket from 'ws'
 import { getAppLogger, Ok, isErr, ChainConfig, PResultT, Err, ResultT } from 'lib'
 import Util from './src/util'
-import { ChainPidT, WsData } from './src/interface'
+import { ChainPidT, ReqDataT, WsData } from './src/interface'
 import Dao from './src/dao'
 import Conf from './config'
-import { dispatch } from './src/dispatcher'
+import { dispatchWs, dispatchRpc } from './src/dispatcher'
 import Service from './src/service'
 import Matcher from './src/pusumer/matcher'
 import Pusumer from './src/pusumer'
@@ -104,7 +104,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
     req.on('end', async () => {
         const dtime = Util.traceEnd(dstart)
         log.info(`handle rpc request body time[${dtime}]`)
-        let dat: WsData
+        let dat: ReqDataT
         try {
             let re = dataCheck(data)
             if (isErr(re)) {
@@ -115,7 +115,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
             return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400)
         }
         // dispatch request 
-        dispatch(cp.chain, dat.method!, dat.params, res)
+        dispatchRpc(cp.chain, dat, res)
     })
 })
 
@@ -166,7 +166,7 @@ wss.on('connection', async (ws, req: any) => {
             // return send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
         // TODO: response
-        dispatch(req.chain, dat.method!, dat.params)
+        dispatchWs(req.chain, dat.method!, dat.params, pusumer)
     })
  
     ws.on('close', async (code, reason) => {

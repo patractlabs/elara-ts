@@ -1,5 +1,12 @@
 import { IDT } from "../../lib"
 
+export type ReqDataT = {
+    id: string,
+    jsonrpc: string,
+    method: string,
+    params: any[]
+}
+
 export type WsData = {
     id?: string,
     jsonrpc: string,
@@ -32,4 +39,9 @@ export interface ReqT {
     jsonrpc: string,
     method: string,
     params: string
+}
+
+export interface CacheResultT {
+    result: any,
+    updateTime: number
 }

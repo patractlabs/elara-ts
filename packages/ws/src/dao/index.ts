@@ -18,6 +18,10 @@ namespace Dao {
     export const updateChainCache = async (chain: string, method: string, data: any): PResultT => {
         return Ok(await Rd.setLatest(chain, method, data))
     }
+
+    export const getChainCache = async (chain: string, method: string) => {
+        return Rd.getLatest(chain, method)
+    }
 }
 
 export const chainPSub = Rd.chainPSub

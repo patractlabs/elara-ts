@@ -1,14 +1,13 @@
 import { getAppLogger } from 'lib'
+import Dao from '../dao'
 
 const log = getAppLogger('suducer', true)
 
-const isSub = (method: string): boolean => {
-    return method.includes('sub')
-}
+
 
 const sendCache = async (chain: string, method: string) => {
     log.info(`new sudecer cache request, chain ${chain} method[${method}]`)
-    return 
+    return Dao.getChainCache(chain, method)
 }
 
 const sendSub = async (chain: string, topic: string) => {
@@ -44,12 +43,16 @@ namespace Suducer {
         "state_getMetadata" 
     ]
 
-    export const send = (chain: string, method: string, params: any[]) => {
+    export const isSub = (method: string): boolean => {
+        return method.includes('sub')
+    }
+
+    export const send = async (chain: string, method: string, params: any[]) => {
         log.info(`new suducer request chain ${chain} method ${method} params ${params}`)
         if (isSub(method)) {
-            sendSub(chain, method)
+            return sendSub(chain, method)
         } else {
-            sendCache(chain, method)
+            return sendCache(chain, method)
         }
     }
 }
