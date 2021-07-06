@@ -22,6 +22,8 @@ let ID_CNT: number = 0
 
 const TryCntMap: {[key in string]: number} = {}
 
+const ConnCntMap: {[key in string]: {[key in string]: number}} = {}
+
 namespace G {
     export const getID = (): number => {
         return ID_CNT++
@@ -37,6 +39,31 @@ namespace G {
 
     export const getTryCnt = (chain: string) => {
         return TryCntMap[chain] || 0
+    }
+
+    //
+    export const incrConnCnt = (chain: string, pid: IDT) => {
+        ConnCntMap[chain] = ConnCntMap[chain] || {}
+        ConnCntMap[chain][pid] = ConnCntMap[chain][pid] || 0
+        ConnCntMap[chain][pid] += 1
+    }
+
+    export const decrConnCnt = (chain: string, pid: IDT) => {
+        ConnCntMap[chain][pid] -= 1
+        if (ConnCntMap[chain][pid] < 1) {
+            delete ConnCntMap[chain][pid]
+        }
+    }
+
+    export const delConnCnt = (chain: string, pid: IDT) => {
+        delete ConnCntMap[chain][pid]
+    }
+
+    export const getConnCnt = (chain: string, pid: IDT): number => {
+        if (!ConnCntMap[chain] || !ConnCntMap[chain][pid]) {
+            return 0
+        }
+        return ConnCntMap[chain][pid]
     }
 
     // 

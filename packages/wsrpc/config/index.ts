@@ -50,7 +50,7 @@ export const UnsafeMethods = new Set([
     'system_removeReservedPeer',
     
     'author_insertKey',
-    'author_rotateKey',
+    'author_rotateKeys',
     'author_removeExtrinsic',
     
     // unkonwn

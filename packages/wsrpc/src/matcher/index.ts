@@ -10,9 +10,9 @@
 
 import WebSocket from 'ws'
 import EventEmitter from 'events'
-import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT } from 'lib'
+import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option } from 'lib'
 import GG from '../global'
-import { WsData, SubscripT, ReqT, ReqTyp } from '../interface'
+import { WsData, SubscripT, ReqT, ReqTyp, ReqDataT } from '../interface'
 import Puber from '../puber'
 import Suber from './suber'
 import { randomId } from 'lib/utils'
@@ -42,7 +42,7 @@ const clearSubContext = async (puber: Puber, code: number) => {
             }
         }
 
-        GG.delPuber(puber.id)
+        Puber.G.del(puber.id)
         log.info(`puber[${puber.id}] has no topics, clear done`)
         return
     }
@@ -59,16 +59,16 @@ const clearSubContext = async (puber: Puber, code: number) => {
             GG.delSubReqMap(subsId)
             GG.remSubTopic(chain, pid, subsId)
         }
-        GG.delPuber(puber.id)
+        Puber.G.del(puber.id)
         return
     }
     // regist event
     puber.event = new EventEmitter()
-    GG.updateAddPuber(puber)
+    Puber.G.updateOrAdd(puber)
 
     // clear event
     puber.event.on('done', () => {
-        GG.delPuber(puber.id)
+        Puber.G.del(puber.id)
         log.info(`clear subercribe context of puber[${puber.id}] done`)
     })
     for (let subsId of puber.topics || new Set()) {
@@ -80,7 +80,7 @@ const clearSubContext = async (puber: Puber, code: number) => {
 }
 
 const connLimit = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
-    const wsConf = Conf.getWs()
+    const wsConf = Conf.getWsPool()
     const curConn = GG.getConnCnt(chain, pid)
     log.info(`current ws connection of chain ${chain} pid[${pid}]: ${curConn}/${wsConf.maxConn}`)
     if (curConn >= wsConf.maxConn) {
@@ -99,6 +99,8 @@ const isUnsubReq = (method: string): boolean => {
 }
 
 namespace Matcher {
+    export const Rpcs = [""]
+
     export const regist = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
         let re: ResultT = await connLimit(ws, chain, pid)
         if (isErr(re)) { return re }
@@ -113,11 +115,11 @@ namespace Matcher {
         // update suber.pubers
         suber.pubers = suber.pubers || new Set<IDT>()
         suber.pubers.add(puber.id)
-        GG.updateAddSuber(chain, suber)
+        Suber.G.updateOrAdd(chain, suber)
 
         // update puber.subId
         puber.subId = suber.id
-        GG.updateAddPuber(puber)
+        Puber.G.updateOrAdd(puber)
 
         // side context set
         GG.incrConnCnt(chain, puber.pid)
@@ -125,7 +127,7 @@ namespace Matcher {
         return Ok(puber)
     }
     
-    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subId: IDT, data: WsData): ResultT => {
+    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subId: IDT, data: ReqDataT): ResultT => {
         const method = data.method!
         let type = ReqTyp.Rpc
         
@@ -153,7 +155,7 @@ namespace Matcher {
 
         GG.addReqCache(req)
 
-        data.id = req.id
+        data.id = req.id as string
         log.info(`global stat after new request[${req.id}] : `, Util.globalStat())
         return Ok(data)
     }
@@ -185,10 +187,10 @@ namespace Matcher {
         /// when puber error or close,
         /// if suber close or error, will emit puber close
         
-        let re = GG.getPuber(pubId)
-        if (isErr(re) || !re.value.subId) {
+        let re: Option<any> = Puber.G.get(pubId)
+        if (isNone(re) || !re.value.subId) {
             // SBH
-            log.error('[SBH] Unregist puber error: ', re.value)
+            log.error(`[SBH] Unregist puber error: invalid puber ${pubId}`)
             process.exit(1)
         }
         const puber = re.value as Puber
@@ -196,9 +198,9 @@ namespace Matcher {
         GG.decrConnCnt(puber.chain, puber.pid)   
         clearSubContext(puber, code) 
 
-        re = GG.getSuber(puber.chain, puber.subId!)
-        if (isErr(re)) {
-            log.error('Unregist puber error: ', re.value)
+        re = Suber.G.get(puber.chain, puber.subId!)
+        if (isNone(re)) {
+            log.error(`Unregist puber error: invalid suber ${puber.subId} of chain ${puber.chain}`)
             return
         }
         const suber = re.value as Suber
@@ -208,19 +210,19 @@ namespace Matcher {
             process.exit(1)
         }
         suber.pubers.delete(pubId)
-        GG.updateAddSuber(suber.chain, suber)
+        Suber.G.updateOrAdd(suber.chain, suber)
         log.info(`Unregist successfully: ${pubId} - ${suber.id}, global stat: `, Util.globalStat())
         // global.gc()
     }
 
     export const getSuber = (chain: string, pubId: IDT): ResultT => {
-        let re = GG.getPuber(pubId)
-        if (isErr(re)) {
-            return re
+        let re: Option<any> = Puber.G.get(pubId)
+        if (isNone(re)) {
+            return Err(`no puber ${pubId}`)
         }
         const puber = re.value as Puber
-        re = GG.getSuber(chain, puber.subId!)
-        if (isErr(re)) {
+        re = Suber.G.get(chain, puber.subId!)
+        if (isNone(re)) {
             return Err(`No valid suber of chain[${chain}]-subID[${puber.subId}]`)
         }
         return Ok(re.value as Suber)
@@ -238,6 +240,10 @@ namespace Matcher {
             }
         }
         return false
+    }
+
+    export const init = async () => {
+        Suber.init()
     }
 }
 

@@ -1,7 +1,7 @@
 import { randomId } from 'lib/utils'
 import WebSocket from 'ws'
 import { ReqT, ReqTyp, WsData, ChainSuber, SuberMap } from '../interface'
-import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PVoidT, PResultT, isNone } from 'lib'
+import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PVoidT, PResultT, isNone, Option, None, Some } from 'lib'
 import GG from '../global'
 import Chain from '../chain'
 import Dao from '../dao'
@@ -349,8 +349,8 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
         log.error(`${chain} suber[${suber.id}] socket closed: `, code, reason)
 
         const re = Suber.G.get(chain, suber.id)
-        if (isErr(re)) {
-            log.error(`Handle suber close event error: `, re.value)
+        if (isNone(re)) {
+            log.error(`Handle suber close event error: invalid suber ${suber.id} of chain ${chain}`)
             process.exit(1)
         }
 
@@ -415,12 +415,12 @@ namespace Suber {
          */
         const Subers: ChainSuber = {}
 
-        export const get = (chain: string, subId: IDT): ResultT => {
+        export const get = (chain: string, subId: IDT): Option<Suber> => {
             chain = chain.toLowerCase()
             if (!Subers[chain] || !Subers[chain][subId]) {
-                return Err(`No this suber ${subId} of ${chain}`)
+                return None
             }
-            return Ok(Subers[chain][subId])
+            return Some(Subers[chain][subId])
         }
     
         export const getByChain = (chain: string): SuberMap => {
@@ -490,8 +490,8 @@ namespace Suber {
 
     export const unsubscribe = async (chain: string, subId: IDT, topic: string, subsId: string) => {
         const re = G.get(chain, subId)
-        if (isErr(re)) {
-            log.error('[SBH] get suber to unsubcribe error: ', re.value)
+        if (isNone(re)) {
+            log.error(`[SBH] get suber to unsubcribe error: invalid suber ${subId} of chain ${chain}`)
             process.exit(1)
         }
         const suber = re.value as Suber

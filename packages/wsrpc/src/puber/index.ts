@@ -19,16 +19,21 @@ interface Puber {
 
 namespace Puber {
     export namespace G {
-        const Dispatchers: {[key in string]: Puber } = {}
+        const Pubers: {[key in string]: Puber } = {}
         export const get = (dispId: IDT): Option<Puber> => {
-            if (!Dispatchers[dispId]) {
+            if (!Pubers[dispId]) {
                 return None
             }
-            return Some(Dispatchers[dispId])
+            return Some(Pubers[dispId])
         }
 
         export const updateOrAdd = (puber: Puber): void => {
-            Dispatchers[puber.id] = puber
+            Pubers[puber.id] = puber
+        }
+
+        export const del = (pubId: IDT) => {
+            Pubers[pubId].topics?.clear()
+            delete Pubers[pubId]
         }
     }
 

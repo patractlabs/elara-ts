@@ -35,7 +35,7 @@ export interface ReqT {
     pubId: IDT,
     subId: IDT,
     subsId?: string,
-    originId: number,
+    originId: IDT,
     type: ReqTyp,
     jsonrpc: string,
     method: string,
