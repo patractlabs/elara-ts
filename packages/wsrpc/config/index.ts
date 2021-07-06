@@ -18,7 +18,9 @@ interface RedisConf {
 
 interface PoolConf {
     sub: number,
-    chan: number
+    chan: number,
+    maxConn: number,
+    poolSize: number
 }
 
 namespace Conf {
@@ -35,5 +37,25 @@ namespace Conf {
 
 }
 
-export = Conf
+export const UnsafeMethods = new Set([
+    // export sensitive info
+    'system_nodeRoles',
+    'system_localListenAddresses',
+    'system_localPeerId',
+    
+    // change the chain data
+    'system_addLogFilter',
+    'system_resetLogFilter',
+    'system_addReservedPeer',
+    'system_removeReservedPeer',
+    
+    'author_insertKey',
+    'author_rotateKey',
+    'author_removeExtrinsic',
+    
+    // unkonwn
+    'offchain_localStorageSet'
+])
+
+export default Conf
 

@@ -13,7 +13,7 @@ import http from 'http'
 import { getAppLogger } from 'lib'
 
 
-const log = getAppLogger('pusumer', true)
+const log = getAppLogger('puber', true)
 
 const server = () => {
 
@@ -78,7 +78,7 @@ const server = () => {
 namespace Service {
     export const up = () => {
         server()
-        log.info('Pusumer service up!')
+        log.info('Puber service up!')
     }
 
     export namespace Cache {

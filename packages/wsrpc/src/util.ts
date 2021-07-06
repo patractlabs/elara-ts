@@ -1,15 +1,50 @@
 import { performance } from 'perf_hooks'
 import Http from 'http'
-import { Ok, Err, PResultT, getAppLogger } from '../../lib'
-import { G } from './chain'
+import { Ok, Err, PResultT, getAppLogger } from 'lib'
+import Chain from './chain'
 
 const log = getAppLogger('util', true)
+const G = Chain.G
 
 const UrlReg = (() => {
     return /^\/([a-zA-Z]{4,20})\/([a-z0-9]{32})$/
 })()
 
 namespace Util {
+    export const reqFastStr = 
+    (obj:any) => {
+        return JSON.stringify(obj)
+    }
+    // FastStr({
+    //     title: 'req schema',
+    //     type: 'object',
+    //     properties: {
+    //         id: { type: 'string' },
+    //         jsonrpc: { type: 'string', default: '2.0'},
+    //         method: { type: 'string' },
+    //         params: { type: 'array', default: [] }
+    //     }
+    // })
+
+    export const respFastStr = 
+    (obj:any) => {
+        return JSON.stringify(obj)
+    }
+    // FastStr({
+    //     title: 'resp schema',
+    //     type: 'object',
+    //     properties: {
+    //         id: { type: 'string' },
+    //         jsonrpc: { type: 'string', default: '2.0'},
+    //         method: { type: 'string' },
+    //         result: { type: 'string' },
+    //         error: { type: 'object', properties: {
+    //             code: { type: 'number' },
+    //             message: { type: 'string' }
+    //         }}
+    //     }
+    // })
+    
     export const urlParse = async (url: string): PResultT => {
         const start = traceStart()
         if (UrlReg.test(url)) {
@@ -37,14 +72,11 @@ namespace Util {
 
     export const traceEnd = (start: number): string => {
         return (performance.now() - start).toFixed(0) + 'ms'
-
     }
 
     export const globalStat = () => {
         // return `suber: ${G.suberCnt()}, puber: ${G.puberCnt()}, topic: ${G.topicCnt()}, subMap: ${G.subMapCnt()}, reqMap: ${G.reqMapCnt()}`
     }
-
-    
 }
 
 export namespace Response {

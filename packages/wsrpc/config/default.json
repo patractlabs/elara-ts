@@ -13,8 +13,11 @@
 
     "wspool": {
         "sub": 1,
-        "chan": 1
+        "chan": 1,
+        "maxConn": 20,
+        "poolSize": 5
     },
+    
     "kafka": {
         "kafkaHost": "127.0.0.1:9092",
         "topic": "elara-dev",

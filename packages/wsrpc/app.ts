@@ -4,32 +4,16 @@ import { getAppLogger, Ok, isErr, ChainConfig, PResultT, Err, ResultT } from 'li
 import Util from './src/util'
 import { ChainPidT, ReqDataT, WsData } from './src/interface'
 import Dao from './src/dao'
-import Conf from './config'
-import { dispatchWs, dispatchRpc } from './src/dispatcher'
+import Conf, { UnsafeMethods } from './config'
+import { dispatchWs, dispatchRpc } from './src/puber'
 import Service from './src/service'
-import Matcher from './src/pusumer/matcher'
-import Pusumer from './src/pusumer'
+import Matcher from './src/matcher'
+import Puber from './src/puber'
+import { Response } from './src/util'
 
 const log = getAppLogger('app', true)
 const Server =  Http.createServer()
 const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false})
-
-namespace Response {
-    const end = async (res: Http.ServerResponse, data: any, code: number, md5?: string) => {
-        res.writeHead(code, {'Content-Type': 'text/plain', 'Trailer': 'Content-MD5'})
-        res.addTrailers({'Content-MD5': md5 || '7878'})
-        res.write(data)
-        res.end()
-    }
-
-    export const Ok = async (res: Http.ServerResponse, data: any) => {
-        end(res, data, 200)
-    }
-
-    export const Fail = async (res: Http.ServerResponse, data: any, code: number) => {
-        end(res, data, code)
-    }
-}
 
 export const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResultT => {
     const chain = cp.chain
@@ -70,10 +54,18 @@ const pathOk = async (url: string, host: string): PResultT => {
     return Util.urlParse(path)
 }
 
+const methodUnsafe = (method: string): boolean => {
+    if (UnsafeMethods.has(method)) return true
+    return false
+}
+
 const dataCheck = (data: string): ResultT => {
     let dat = JSON.parse(data) as WsData
     if (!dat.id || !dat.jsonrpc || !dat.method || !dat.params) {
         return Err('invalid request must be JSON {"id": string, "jsonrpc": "2.0", "method": "your method", "params": []}')
+    }
+    if (methodUnsafe(dat.method)) {
+        return Err(`Forbiden Access!`)
     }
     return Ok(dat)
 }
@@ -84,6 +76,10 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
     log.info(`new rpc request method[${req.method}]`)
     if (!isMethodOk(req.method!)) {
         return Response.Fail(res, 'Invalid method, only POST support', 400)
+    }
+
+    if (methodUnsafe(req.method!)) {
+        return Response.Fail(res, `Forbiden Access!`, 400)
     }
 
     // path check
@@ -147,9 +143,9 @@ wss.on('connection', async (ws, req: any) => {
         log.error(`socket connect error: ${re.value}`)
         return
     }
-    const pusumer = re.value as Pusumer
+    const puber = re.value as Puber
     log.info(`New socket connection chain ${req.chain} pid[${req.pid}], current total connections `, wss.clients.size)
-    const id = pusumer.id
+    const id = puber.id
 
     ws.on('message', async (data) => {
         log.info(`new puber[${id}] request of chain ${req.chain}: `, data)
@@ -158,7 +154,7 @@ wss.on('connection', async (ws, req: any) => {
             let re = dataCheck(data.toString())
             if (isErr(re)) {
                 log.error(`${re.value}`)
-                pusumer.ws.send(re.value)
+                puber.ws.send(re.value)
                 return // TODO socket.send
             }
             dat = re.value 
@@ -168,7 +164,7 @@ wss.on('connection', async (ws, req: any) => {
             // return send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
         // TODO: response
-        dispatchWs(req.chain, dat, pusumer)
+        dispatchWs(req.chain, dat, puber)
     })
  
     ws.on('close', async (code, reason) => {

@@ -1,7 +1,7 @@
 import EventEmitter from 'events'
 import Redis, { RClientT, DBT } from 'lib/utils/redis'
 import { getAppLogger } from 'lib'
-import { randomId } from '../../lib/utils'
+import { randomId } from 'lib/utils'
 
 const log = getAppLogger('mq', true)
 

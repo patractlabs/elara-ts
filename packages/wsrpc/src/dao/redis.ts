@@ -1,4 +1,4 @@
-import Redis, { DBT } from '../../../lib/utils/redis'
+import Redis, { DBT } from 'lib/utils/redis'
 import { getAppLogger, KEYS } from 'lib'
 
 const KCache = KEYS.Cache

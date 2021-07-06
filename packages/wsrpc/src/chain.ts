@@ -4,12 +4,13 @@ import { ChainConfig, getAppLogger, PVoidT } from 'lib'
 import { isErr } from 'lib'
 import Dao, { chainPSub } from './dao'
 import Conf from '../config'
+
 const log = getAppLogger('chain', true)
 
-enum Topic {
-    ChainAdd    = 'chain-add',
-    ChainDel    = 'chain-del',
-    ChainUpdate = 'chain-update'
+enum ChainEvt {
+    Add    = 'chain-add',
+    Del    = 'chain-del',
+    Update = 'chain-update'
 }
 
 // chain events
@@ -39,15 +40,15 @@ chainPSub.psubscribe('*', (err, topicNum) => {
 chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
     log.info('received new topic message: ', chan)
     switch(chan) {
-        case Topic.ChainAdd:
+        case ChainEvt.Add:
             log.info('Topic chain message: ', chain)
             chainAddHandler(chain)
             break
-        case Topic.ChainDel:
+        case ChainEvt.Del:
             log.info('Chain delete message: ', chain)
             chainDelHandler(chain)
             break
-        case Topic.ChainUpdate:
+        case ChainEvt.Update:
             log.info('chain update message: ', chain)
             chainUpdateHandler(chain)
             break
@@ -120,4 +121,4 @@ namespace Chain {
     }
 }
 
-export = Chain
+export default Chain

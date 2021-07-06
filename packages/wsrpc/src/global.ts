@@ -1,5 +1,5 @@
-import { getAppLogger, IDT } from "../../lib"
-import { ResultT, Err, Ok } from "../../lib"
+import { getAppLogger, IDT } from "lib"
+import { ResultT, Err, Ok } from "lib"
 import { ReqT } from "./interface"
 const log = getAppLogger('global', true)
 // subscribe type

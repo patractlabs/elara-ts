@@ -2,7 +2,7 @@
 import { Sequelize, DataTypes } from 'sequelize'
 import { getAppLogger } from 'lib'
 
-const log = getAppLogger('history', true)
+const log = getAppLogger('recorder', true)
 
 const Sq = new Sequelize({
     host: '127.0.0.1',
@@ -37,7 +37,7 @@ Sq.define('storage', {
     }
 })
 
-namespace History {
+namespace Recorder {
     export const Rpcs = [
         "chain_getHeader",      // block hash   0x*********** 64 length
         "chain_getBlockHash",   // block number 0x*
@@ -50,4 +50,4 @@ namespace History {
         log.info(`new history request chain ${chain} method ${method} params ${params}`)
     }
 }
-export default History
+export default Recorder

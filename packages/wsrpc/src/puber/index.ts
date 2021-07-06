@@ -5,9 +5,9 @@ import { randomId } from 'lib/utils'
 import { WsData } from '../interface'
 // import Matcher from './matcher'
 
-const log = getAppLogger('Pusumer', true)
+const log = getAppLogger('puber', true)
 
-interface Pusumer {
+interface Puber {
     id: IDT,
     pid: IDT,
     chain: string,
@@ -17,45 +17,45 @@ interface Pusumer {
     event?: EventEmitter
 }
 
-namespace Pusumer {
+namespace Puber {
     export namespace G {
-        const Pusumers: {[key in string]: Pusumer } = {}
-        export const get = (pusId: IDT): Option<Pusumer> => {
-            if (!Pusumers[pusId]) {
+        const Dispatchers: {[key in string]: Puber } = {}
+        export const get = (dispId: IDT): Option<Puber> => {
+            if (!Dispatchers[dispId]) {
                 return None
             }
-            return Some(Pusumers[pusId])
+            return Some(Dispatchers[dispId])
         }
 
-        export const updateOrAdd = (pusumer: Pusumer): void => {
-            Pusumers[pusumer.id] = pusumer
+        export const updateOrAdd = (puber: Puber): void => {
+            Dispatchers[puber.id] = puber
         }
     }
 
-    export const create = (ws: WebSocket, chain: string, pid: IDT): Pusumer => {
-        const pusumer = { id: randomId(), pid, chain, ws } as Pusumer
-        G.updateOrAdd(pusumer)
-        return pusumer
+    export const create = (ws: WebSocket, chain: string, pid: IDT): Puber => {
+        const puber = { id: randomId(), pid, chain, ws } as Puber
+        G.updateOrAdd(puber)
+        return puber
     }
 
-    export const updateTopics = (pusId: IDT, subsId: string): ResultT => {
-        let re = G.get(pusId)
+    export const updateTopics = (dispId: IDT, subsId: string): ResultT => {
+        let re = G.get(dispId)
         if (isNone(re)) {
-            log.error(`update puber[${pusId}] topics error: no this pusumer ${pusId}`)
+            log.error(`update puber[${dispId}] topics error: no this puber ${dispId}`)
             // puber may be closed
-            return Err(`puber[${pusId}] may be closed`)
+            return Err(`puber[${dispId}] may be closed`)
         }
-        let puber = re.value as Pusumer
+        let puber = re.value as Puber
         puber.topics = puber.topics || new Set()
         puber.topics.add(subsId)
 
         G.updateOrAdd(puber)
 
-        log.info(`update puber[${pusId}] topic [${subsId}] done: ${puber.topics.values()}`)
+        log.info(`update puber[${dispId}] topic [${subsId}] done: ${puber.topics.values()}`)
         return Ok(puber)
     }
 
-    export const transpond = async (puber: Pusumer, data: WsData): PVoidT => {
+    export const transpond = async (puber: Puber, data: WsData): PVoidT => {
         const { id, chain, pid }  = puber
         log.info(id, chain, pid, data)
         // // topic bind to chain and params 
@@ -85,4 +85,6 @@ namespace Pusumer {
     }
 }
 
-export default Pusumer
+export * from './dispatch'
+
+export default Puber

@@ -1,4 +1,5 @@
-import { IDT } from "../../lib"
+import { IDT } from "lib"
+import Suber from './matcher/suber'
 
 export type ReqDataT = {
     id: string,
@@ -41,7 +42,17 @@ export interface ReqT {
     params: string
 }
 
+export interface SubscripT {
+    id: string,
+    pubId: IDT,
+    method: string,
+    params: string
+}
+
 export interface CacheResultT {
     result: any,
     updateTime: number
 }
+
+export type SuberMap = { [key in IDT]: Suber }
+export type ChainSuber = { [key in string]: SuberMap } 
