@@ -3,13 +3,6 @@ import Dao from '../dao'
 
 const log = getAppLogger('suducer', true)
 
-
-
-const sendCache = async (chain: string, method: string) => {
-    log.info(`new sudecer cache request, chain ${chain} method[${method}]`)
-    return Dao.getChainCache(chain, method)
-}
-
 const sendSub = async (chain: string, topic: string) => {
     log.info(`new sudecer subscribe request, chain ${chain} method[${topic}]`)
     return 
@@ -55,6 +48,12 @@ namespace Suducer {
             return sendCache(chain, method)
         }
     }
+
+    export const sendCache = async (chain: string, method: string) => {
+        log.info(`new sudecer cache request, chain ${chain} method[${method}]`)
+        return Dao.getChainCache(chain, method)
+    }
+    
 }
 
 

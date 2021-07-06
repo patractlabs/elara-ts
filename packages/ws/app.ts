@@ -153,10 +153,12 @@ wss.on('connection', async (ws, req: any) => {
 
     ws.on('message', async (data) => {
         log.info(`new puber[${id}] request of chain ${req.chain}: `, data)
-        let dat: WsData
+        let dat: ReqDataT
         try {
             let re = dataCheck(data.toString())
             if (isErr(re)) {
+                log.error(`${re.value}`)
+                pusumer.ws.send(re.value)
                 return // TODO socket.send
             }
             dat = re.value 
@@ -166,7 +168,7 @@ wss.on('connection', async (ws, req: any) => {
             // return send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
         // TODO: response
-        dispatchWs(req.chain, dat.method!, dat.params, pusumer)
+        dispatchWs(req.chain, dat, pusumer)
     })
  
     ws.on('close', async (code, reason) => {
