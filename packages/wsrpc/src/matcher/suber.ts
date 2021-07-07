@@ -219,9 +219,9 @@ const msgCb = (dat: WebSocket.Data) => {
     log.info(`new suber message of [${req.method}] parse time[${time}]:  `, Util.globalStat())
 }
 
-const closeHandler = async (chain: string, suber: Suber): PVoidT => {
+const closeHandler = async (chain: string, subType: SuberTyp, suber: Suber): PVoidT => {
 
-    log.warn(`Try to connect chain[${chain}] failed out of limit, start to clear suber resource.`)
+    log.warn(`Try to connect chain[${chain}] failed out of limit, start to clear suber ${suber.id}: ${subType}`)
     // clear pubers context
     if (!suber.pubers) {
         log.info(`No pubers need to be clear  chain ${chain} suber[${suber.id}]`)
@@ -235,10 +235,14 @@ const closeHandler = async (chain: string, suber: Suber): PVoidT => {
         }
         // close puber conn
         const puber = re.value as Puber   
-
-        // TODO: suber is unavailable now
-        puber.ws.close(1000, 'cannot connect to server')
+        // 
+        let reason = Puber.CloseReason.Node
+        if (subType === SuberTyp.Kv) {
+            reason = Puber.CloseReason.Kv
+        }
+        puber.ws.close(1000, reason)
     }
+    log.error()
 }
 
 const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
@@ -319,13 +323,13 @@ const clearNonSubReqcache = (subId: IDT) => {
     }
 }
 
-const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
+const newSuber = (chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>): Suber => {
     // chain valid check
     // Dao.getChainConfig(chain)
     const ws = new WebSocket(url, { perMessageDeflate: false })
-    let suber: any =  { id: randomId(), ws, url, chain, pubers } as Suber
+    let suber: any =  { id: randomId(), ws, url, chain, type, pubers } as Suber
     log.info('create new suber with puber: ', pubers)
-    Suber.G.updateOrAdd(chain, suber)
+    Suber.G.updateOrAdd(chain, type, suber)
 
     ws.once('open', () => {
         log.info(`Websocket connection opened: chain[${chain}]`)
@@ -348,7 +352,7 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     ws.on('close', async (code: number, reason: string) => {
         log.error(`${chain} suber[${suber.id}] socket closed: `, code, reason)
 
-        const re = Suber.G.get(chain, suber.id)
+        const re = Suber.G.get(chain, type, suber.id)
         if (isNone(re)) {
             log.error(`Handle suber close event error: invalid suber ${suber.id} of chain ${chain}`)
             process.exit(1)
@@ -360,23 +364,24 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
 
         let pubers = new Set(subTmp.pubers) // new heap space
         const serConf = Conf.getServer()
-        if (GG.getTryCnt(chain) >= serConf.maxReConn) {
+        const curTryCnt = GG.getTryCnt(chain)
+        if (curTryCnt >= serConf.maxReConn) {
             // try to clear request cache of suber.pubers before delete,
             // which wont clear on subscribe request cache
             clearReqcache(pubers)
             // clear all the puber resource
-            await closeHandler(chain, subTmp)
+            await closeHandler(chain, type, subTmp)
             pubers = new Set<IDT>()  // clear pubers after handle done
         }
 
         // delete suber before
         delete suber.ws
-        Suber.G.del(chain, suber.id)
+        Suber.G.del(chain, type, suber.id)
 
         // try to reconnect
         delays(3, () => {
-            log.warn(`create new suber try to connect ${GG.getTryCnt(chain) + 1} times, pubers `, pubers)
-            newSuber(chain, url, pubers)
+            log.warn(`create new suber try to connect ${curTryCnt + 1} times, pubers `, pubers)
+            newSuber(chain, url, type, pubers)
             GG.incrTryCnt(chain)
         })
     })
@@ -385,8 +390,20 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     return suber
 }
 
-const geneUrl = (conf: ChainConfig) => {
-    return `ws://${conf.baseUrl}:${conf.wsPort}`
+const geneUrl = (conf: ChainConfig): string[] => {
+    let res = [`ws://${conf.baseUrl}:${conf.wsPort}`]
+    
+    if (conf.kvEnable) {
+        let url = conf.kvBaseUrl!
+        let port = conf.kvPort!
+        res.push(`ws://${url}:${port}`)
+    }
+    return res
+}
+
+export enum SuberTyp {
+    Kv = 'kv',
+    Node = 'node'
 }
 
 interface Suber {
@@ -394,6 +411,7 @@ interface Suber {
     chain: string,
     url: string,
     ws: WebSocket,
+    type: SuberTyp,
     pubers?: Set<IDT>,    // {pubId}
 }
 
@@ -415,42 +433,46 @@ namespace Suber {
          */
         const Subers: ChainSuber = {}
 
-        export const get = (chain: string, subId: IDT): Option<Suber> => {
+        export const get = (chain: string, type: SuberTyp, subId: IDT): Option<Suber> => {
             chain = chain.toLowerCase()
-            if (!Subers[chain] || !Subers[chain][subId]) {
+            const ct = `${chain}-${type}`
+            if (!Subers[ct] || !Subers[ct][subId]) {
                 return None
             }
-            return Some(Subers[chain][subId])
+            return Some(Subers[ct][subId])
         }
     
-        export const getByChain = (chain: string): SuberMap => {
-            return Subers[chain.toLowerCase()] || {}
+        export const getByChain = (chain: string, type: SuberTyp,): SuberMap => {
+            const ct = `${chain.toLowerCase()}-${type}`
+            return Subers[ct] || {}
         }
     
         export const getAll = (): ChainSuber => {
             return Subers
         }
     
-        export const updateOrAdd = (chain: string, suber: Suber): void => {
+        export const updateOrAdd = (chain: string, type: SuberTyp, suber: Suber): void => {
             chain = chain.toLowerCase()
+            const ct = `${chain}-${type}`
             const sub: SuberMap = {}
             sub[suber.id] = suber
-            Subers[chain] = {
-                ...Subers[chain],
+            Subers[ct] = {
+                ...Subers[ct],
                 ...sub
             }
         }
     
-        export const del = (chain: string, subId: IDT): void => {
+        export const del = (chain: string, type: SuberTyp, subId: IDT): void => {
             chain = chain.toLowerCase()
-            Subers[chain][subId].pubers?.clear()
-            delete Subers[chain][subId]
+            const ct = `${chain}-${type}`
+            Subers[ct][subId].pubers?.clear()
+            delete Subers[ct][subId]
         }
     }
 
-    export const selectSuber = async (chain: string): PResultT => {
+    export const selectSuber = async (chain: string, type: SuberTyp,): PResultT => {
     
-        const subers = G.getByChain(chain)
+        const subers = G.getByChain(chain, type)
         const keys = Object.keys(subers)
         if (!keys || keys.length < 1) {
             log.error('Select suber error: no valid subers of chain ', chain)
@@ -461,16 +483,22 @@ namespace Suber {
     }
 
     export const initChainSuber = async (chain: string, poolSize: number) => {
-        const conf = await Dao.getChainConfig(chain)
-        if (isErr(conf)) { 
+        const re = await Dao.getChainConfig(chain)
+        if (isErr(re)) { 
             log.error(`Config of chain[${chain}] invalid`)    
             return 
         }
-  
-        const url = geneUrl(conf.value)
-        log.info(`Url of chain [${chain}] is: `, url, Chain.G.getChains())
-        for (let i = 0; i < poolSize; i++) {                
-            newSuber(chain, url, new Set())
+        const conf = re.value as ChainConfig
+        const urls = geneUrl(conf)
+        log.info(`Url of chain [${chain}] is: ${urls} kv enable [${conf.kvEnable}]`)
+        for (let i = 0; i < poolSize; i++) {     
+                       
+            newSuber(chain, urls[0], SuberTyp.Node, new Set())
+
+            // kv Suber
+            if (conf.kvEnable) {
+                newSuber(chain, urls[1], SuberTyp.Kv, new Set())
+            }
         }
     }
 
@@ -488,8 +516,9 @@ namespace Suber {
         log.info('Init completely.')
     }
 
-    export const unsubscribe = async (chain: string, subId: IDT, topic: string, subsId: string) => {
-        const re = G.get(chain, subId)
+    export const unsubscribe = async (chain: string, type: SuberTyp, subId: IDT, topic: string, subsId: string) => {
+        // TODO: kv unsuber {id, chain, request}
+        const re = G.get(chain, type, subId)
         if (isNone(re)) {
             log.error(`[SBH] get suber to unsubcribe error: invalid suber ${subId} of chain ${chain}`)
             process.exit(1)

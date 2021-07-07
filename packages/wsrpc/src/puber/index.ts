@@ -1,9 +1,10 @@
 import WebSocket, { EventEmitter } from 'ws'
-import { getAppLogger, IDT, ResultT, Err, Ok, PVoidT, isNone } from 'lib'
+import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT, isNone } from 'lib'
 import { Option, None, Some } from 'lib'
 import { randomId } from 'lib/utils'
-import { WsData } from '../interface'
-// import Matcher from './matcher'
+import { ReqDataT, WsData } from '../interface'
+import Matcher from '../matcher'
+import Suber, { SuberTyp } from '../matcher/suber'
 
 const log = getAppLogger('puber', true)
 
@@ -15,6 +16,7 @@ interface Puber {
     subId?: IDT,            // suber id
     topics?: Set<string>,   // {subscribeId}
     event?: EventEmitter
+    kvSubId?: IDT,          // kv suber
 }
 
 namespace Puber {
@@ -60,33 +62,43 @@ namespace Puber {
         return Ok(puber)
     }
 
-    export const transpond = async (puber: Puber, data: WsData): PVoidT => {
+    export const transpond = async (puber: Puber, type: SuberTyp, data: ReqDataT): PVoidT => {
         const { id, chain, pid }  = puber
-        log.info(id, chain, pid, data)
-        // // topic bind to chain and params 
-        // if (Matcher.isSubscribed(chain, pid, data)){
-        //     log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)
-        //     data.error = {code: 1000, message: 'No need to subscribe twice'}
-        //     return puber.ws.send(JSON.stringify(data))
-        // }
+        const res = {id: data.id, jsonrpc: data.jsonrpc } as WsData
+        // topic bind to chain and params 
+        if (Matcher.isSubscribed(chain, pid, data)){
+            log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)
+            res.error = {code: 1000, message: 'No need to subscribe twice'}
+            return puber.ws.send(JSON.stringify(res))
+        }
+        let subId = puber.subId
+        if (type === SuberTyp.Kv) {
+            subId = puber.kvSubId
+        }
+        let re: any = Matcher.newRequest(chain, pid, id, type, subId!, data)
+        if (isErr(re)) {
+            log.error(`create new request error: ${re.value}`)
+            return puber.ws.send(re.value)
+        }
+        const dat = re.value
 
-        // let re = Matcher.newRequest(chain, pid, id, puber.subId!, data)
-        // if (isErr(re)) {
-        //     log.error(`create new request error: ${re.value}`)
-        //     return puber.ws.send(re.value)
-        // }
-        // const dat = re.value
+        // TODO
+        re = Suber.G.get(chain, type, puber.subId!)
+        if (isNone(re)) {
+            log.error(`[SBH] send message error: invalid suber ${puber.subId} chain ${chain}`)
+            process.exit(1) 
+        }
+        const suber = re.value 
 
-        // re = Matcher.getSuber(chain, id)
-        // if (isErr(re)) {
-        //     log.error(`[SBH] send message error: ${re.value}`)
-        //     process.exit(1) 
-        // }
-        // const suber = re.value 
+        // transpond requset
+        log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
+        return suber.ws.send(JSON.stringify(dat))
+    }
 
-        // // transpond requset
-        // log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
-        // return suber.ws.send(JSON.stringify(dat))
+    export enum CloseReason {
+        Node = 'node service unavailable',
+        Kv = 'kv service unavailable',
+        OutOfLimit = 'out of connect limit'
     }
 }
 

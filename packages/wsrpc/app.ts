@@ -117,8 +117,6 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
 
 // WebSocket request 
 Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
-    // TODO request static and limit
-
     const path = res.url!
     const re = await Util.urlParse(path)
     if (isErr(re)) {
@@ -128,7 +126,6 @@ Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
  
     // only handle urlReg pattern request
     wss.handleUpgrade(res, socket as any, head, (ws, req: any) => {
-        // log.info('Handle upgrade event')
         req['chain'] = re.value.chain
         req['pid'] = re.value.pid
         wss.emit('connection', ws, req)
@@ -154,28 +151,22 @@ wss.on('connection', async (ws, req: any) => {
             let re = dataCheck(data.toString())
             if (isErr(re)) {
                 log.error(`${re.value}`)
-                puber.ws.send(re.value)
-                return // TODO socket.send
+                return puber.ws.send(re.value)
             }
             dat = re.value 
         } catch (err) {
             log.error('Parse message to JSON error')  
-            return
-            // return send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
+            return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
-        // TODO: response
         dispatchWs(req.chain, dat, puber)
     })
  
     ws.on('close', async (code, reason) => {
-        log.warn(`Puber[${id}] closed, code[${code}] reason[${reason}], current total connections `, wss.clients.size)
-        if (code === 1000) {
-            log.error(`server failed, close the current puber[${id}]`)
-        }
-        if (code === 1002) {
+        log.error(`puber[${id}] close: ${reason}, code ${code}, current total connections `, wss.clients.size)
+        if (reason === Puber.CloseReason.OutOfLimit) {
             return  // out of limit
         }
-        // Matcher.unRegist(id, code)
+        Matcher.unRegist(id, reason as Puber.CloseReason)
     })
 
     ws.on('error', (err) => {
@@ -213,7 +204,7 @@ const run = async () => {
     let conf = Conf.getServer()
     await Service.init()
     Server.listen(conf.port, () => {
-        log.info('Elara node transpond server listen on port: ', conf.port)
+        log.info('Elara server listen on port: ', conf.port)
     })
 }
 

@@ -1,9 +1,9 @@
-import { Redis } from 'lib'
+import Redis, { DBT } from 'lib/utils/redis'
 import { ChainConfig, ChainType, KEYS, Network } from 'lib'
 
 const KEY = KEYS.Chain
-const Rd = Redis.newClient(Redis.DBT.Chain).client
-const Cd = Redis.newClient(Redis.DBT.Cache).client
+const Rd = Redis.newClient(DBT.Chain).client
+const Cd = Redis.newClient(DBT.Cache).client
 
 const newChain = async (chain: string) => {
     // const chain = 'Polkadot'
@@ -16,6 +16,10 @@ const newChain = async (chain: string) => {
         chainType: ChainType.Relay,     // parallel
         extends: JSON.stringify({}),
         excludes: JSON.stringify(["system_peers", "state_subscribeStorage"]),
+        serverId: 0,
+        kvEnable: true,
+        kvPort: 9002,
+        kvBaseUrl: '127.0.0.1'
     }
     await Rd.hmset(KEY.hChain(chain), polkadot)
     let cnt = await Rd.incr(KEY.chainNum())
@@ -33,7 +37,7 @@ const test = async () => {
 }
 
 const init = async () => {
-    await newChain('Jupiter')
+    await newChain('Polkadot')
     // await newChain('Kusuma')
     process.exit(0)
 }

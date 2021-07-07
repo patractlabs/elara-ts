@@ -58,4 +58,3 @@ export const UnsafeMethods = new Set([
 ])
 
 export default Conf
-

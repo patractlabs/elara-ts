@@ -1,5 +1,5 @@
 import { IDT } from "lib"
-import Suber from './matcher/suber'
+import Suber, { SuberTyp } from './matcher/suber'
 
 export type ReqDataT = {
     id: string,
@@ -33,6 +33,7 @@ export interface ReqT {
     chain: string,
     pid: IDT,
     pubId: IDT,
+    subType: SuberTyp,
     subId: IDT,
     subsId?: string,
     originId: IDT,
