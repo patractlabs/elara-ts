@@ -233,7 +233,7 @@ const puberSend = (pubId: IDT, dat: WebSocket.Data) => {
 //     log.info(`new suber message of [${req.method}] parse time[${time}]:  `, Util.globalStat())
 // }
 
-const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
+const recoverPuberTopics = (puber: Puber, ws: WebSocket, subId: IDT, subsId: string) => {
     const {id, chain} = puber
     puber.topics!.delete(subsId)
     let re = GG.getReqId(subsId)
@@ -248,6 +248,10 @@ const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
     }
 
     const req = re.value as ReqT
+    // update req.subId
+    req.subId = subId
+    GG.updateReqCache(req)
+
     log.info(`recover new subscribe topic request: ${JSON.stringify(req)}`)
     let data: any = {
         id: req.id, 
@@ -292,7 +296,7 @@ const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set
         }
         // re subscribe topic
         for (let subsId of puber.topics!) {
-            recoverPuberTopics(puber, ws, subsId)
+            recoverPuberTopics(puber, ws, subId, subsId)
         }
         Puber.G.updateOrAdd(puber)
         log.info(`Recover puber[${pubId}] of chain ${chain} done`)
@@ -625,14 +629,22 @@ namespace Suber {
             process.exit(1)
         }
         const suber = re.value as Suber
-        const unsub = {
-            id: subsId,   // NOTE: have to be the subscribe ID
+        let unsubMethod = Topic.getUnsub(topic)
+        let unsub: any = {
+            id: subsId,   // NOTE: have to be the subscribe ID, kv need 16 bytes length
             jsonrpc: '2.0',
-            method: Topic.getUnsub(topic),
+            method: unsubMethod,
             params: [subsId]
         }
+        if (type === SuberTyp.Kv) {
+            unsub = {
+                id: subsId,
+                chain: chain,
+                request: JSON.stringify(unsub)
+            }
+        }
         suber.ws.send(Util.reqFastStr(unsub))
-        log.info(`Suber[${subId}] send unsubcribe topic[${topic}] id[${subsId}] of chain ${chain} `, chain, subId, topic, subsId)
+        log.info(`Suber[${subId}] send unsubcribe topic[${unsubMethod}] id[${subsId}] of chain ${chain} `, chain, subId, topic, subsId)
     }
 
     export const isSubscribeID = (id: string): boolean => {

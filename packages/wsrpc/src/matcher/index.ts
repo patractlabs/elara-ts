@@ -169,6 +169,7 @@ namespace Matcher {
             
             // delete puber
             Puber.G.del(puber.id)
+            log.info(`handle puber close done: no subscribe topic`)
             return
         }
         // clear puber when unscribe done
@@ -177,7 +178,7 @@ namespace Matcher {
 
         puber.event.on('done', () => {
             Puber.G.del(puber.id)
-            log.info(`clear subercribe context of puber[${puber.id}] done`)
+            log.info(`clear subercribe context of puber[${puber.id}] close done`)
         })
         const { chain, pid } = puber
         for (let subsId of ptopics) {
@@ -202,6 +203,7 @@ namespace Matcher {
             Suber.unsubscribe(chain, req.subType, req.subId, topic.method, subsId)
             log.info(`unsubscribe topic[${topic.method}] id[${subsId}] of chain ${chain} pid[${pid}] suber[${req.subId}] ${req.subType}`)
         }
+        log.info(`handle puber close done: unsubscribe all topic`)
     }
 
     const handleSuberClose = (puber: Puber, subType: SuberTyp) => {
