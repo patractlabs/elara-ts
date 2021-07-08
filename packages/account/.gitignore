@@ -1,5 +1,5 @@
 logs
 node_modules
-.vscode
 dist
+.vscode
 /**/*.js

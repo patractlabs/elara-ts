@@ -15,7 +15,7 @@ namespace Cacher {
         "chain_getBlockHash",
         "chain_getFinalizedHead",
         "author_pendingExtrinsics",
-    
+
         // sync once
         "rpc_methods",
         "system_name",
@@ -27,7 +27,7 @@ namespace Cacher {
         "state_getRuntimeVersion"
     ]
 
-    export const send = async (chain: string, method: string) => {
+    export const send = async (chain: string, method: string): Promise<Record<string, string>> => {
         log.info(`new cache request, chain ${chain} method[${method}]`)
         return Dao.getChainCache(chain, method)
     }

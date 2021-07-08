@@ -9,19 +9,19 @@ export interface SubscripT {
     method: string,
     params: string
 }
-export type SubscripMap = {[key in string]: SubscripT}
+export type SubscripMap = { [key in string]: SubscripT }
 type TopicSubedT = { [key in string]: SubscripMap }
-const TopicSubed: TopicSubedT = {} 
+const TopicSubed: TopicSubedT = {}
 
-const SubMap: {[key in string]: IDT} = {}
+const SubMap: { [key in string]: IDT } = {}
 
-export type ReqMap = {[key in string]: ReqT}
+export type ReqMap = { [key in string]: ReqT }
 const ReqMap: ReqMap = {}
 
 let ID_CNT: number = 0
 
-const TryCntMap: {[key in string]: number} = {}
-const ConnCntMap: {[key in string]: {[key in string]: number}} = {}
+const TryCntMap: { [key in string]: number } = {}
+const ConnCntMap: { [key in string]: { [key in string]: number } } = {}
 
 namespace G {
     export const getID = (): number => {
@@ -76,7 +76,7 @@ namespace G {
         SubMap[subscriptId] = id
     }
 
-    export const getReqId = (subsId: string): ResultT => {
+    export const getReqId = (subsId: string): ResultT<IDT> => {
         if (!SubMap[subsId]) {
             return Err(`No this request, subscription ${subsId}`)
         }
@@ -108,7 +108,7 @@ namespace G {
         delete ReqMap[reqId]
     }
 
-    export const getReqCache = (reqId: IDT): ResultT => {
+    export const getReqCache = (reqId: IDT): ResultT<ReqT> => {
         if (!ReqMap[reqId]) {
             return Err(`invalid request id ${reqId}`)
         }
@@ -134,14 +134,14 @@ namespace G {
         chain = chain.toLowerCase()
         const key = `${chain}-${pid}`
         if (!TopicSubed[key]) return
-        
-        delete TopicSubed[key][subsId] 
+
+        delete TopicSubed[key][subsId]
         if (Object.keys(TopicSubed[key])) {
             delete TopicSubed[key]
         }
     }
 
-    export const getSubTopic = (chain: string, pid: IDT, subsId: IDT): ResultT => {
+    export const getSubTopic = (chain: string, pid: IDT, subsId: IDT): ResultT<SubscripT> => {
         const key = `${chain.toLowerCase()}-${pid}`
         if (!TopicSubed[key] || !TopicSubed[key][subsId]) {
             return Err(`Invalid subscribed topic: chain ${chain} pid[${pid} id[${subsId}]`)

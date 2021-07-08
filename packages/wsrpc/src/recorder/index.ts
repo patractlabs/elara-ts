@@ -14,7 +14,6 @@ const Sq = new Sequelize({
         idle: 30000
     }
 })
-log.info()
 
 // Sq.define("blocks", {
 //     id: {

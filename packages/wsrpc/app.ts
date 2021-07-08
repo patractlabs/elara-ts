@@ -12,10 +12,10 @@ import Puber from './src/puber'
 import { Response } from './src/util'
 
 const log = getAppLogger('app', true)
-const Server =  Http.createServer()
-const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false})
+const Server = Http.createServer()
+const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
 
-export const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResultT => {
+export async function post(cp: ChainPidT, body: any, resp: Http.ServerResponse): PResultT<Http.ClientRequest> {
     const chain = cp.chain
     // const pid = cp.pid
     let re = await Dao.getChainConfig(chain)
@@ -47,7 +47,7 @@ const isMethodOk = (method: string): boolean => {
     return method === 'POST'
 }
 
-const pathOk = async (url: string, host: string): PResultT => {
+const pathOk = async (url: string, host: string): PResultT<ChainPidT> => {
     let nurl = new URL(url, `http://${host}`)
     let path = nurl.pathname
     // chain pid valid check
@@ -59,7 +59,7 @@ const methodUnsafe = (method: string): boolean => {
     return false
 }
 
-const dataCheck = (data: string): ResultT => {
+const dataCheck = (data: string): ResultT<WsData> => {
     let dat = JSON.parse(data) as WsData
     if (!dat.id || !dat.jsonrpc || !dat.method || !dat.params) {
         return Err('invalid request must be JSON {"id": string, "jsonrpc": "2.0", "method": "your method", "params": []}')
@@ -106,7 +106,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
             if (isErr(re)) {
                 return Response.Fail(res, re.value, 400)
             }
-            dat = re.value 
+            dat = re.value
         } catch (err) {
             return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400)
         }
@@ -121,9 +121,9 @@ Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
     const re = await Util.urlParse(path)
     if (isErr(re)) {
         log.error('Invalid socket request: ', re.value)
-        return socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`,'ascii')
+        return socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
     }
- 
+
     // only handle urlReg pattern request
     wss.handleUpgrade(res, socket as any, head, (ws, req: any) => {
         req['chain'] = re.value.chain
@@ -157,14 +157,14 @@ wss.on('connection', async (ws, req: any) => {
                 log.error(`${re.value}`)
                 return puber.ws.send(re.value)
             }
-            dat = re.value 
+            dat = re.value
         } catch (err) {
-            log.error('Parse message to JSON error')  
+            log.error('Parse message to JSON error')
             return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
         dispatchWs(req.chain, dat, puber)
     })
- 
+
     ws.on('close', async (code, reason) => {
         log.error(`puber[${id}] close: ${reason}, code ${code}, current total connections `, wss.clients.size)
         if (reason === Puber.CloseReason.OutOfLimit || reason === Puber.CloseReason.SuberUnavail) {

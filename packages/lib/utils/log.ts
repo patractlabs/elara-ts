@@ -1,13 +1,15 @@
+import Application from 'koa'
 import * as Logger from 'koa-log4'
+import { Configuration } from 'koa-log4'
 
-const config: any = {
+const config: Configuration = {
     appenders: { out: { type: 'console'} },
     categories: { default: { appenders: ['out'], level: 'debug'} },
     // pm2: process.env.NODE_ENV !== 'dev' ? true : false
 }
 const logSize = 10 * 1024 * 1024
 
-export const accessLogger = (out: boolean = false): any => {
+export const accessLogger = (out: boolean = false): Application.Middleware => {
     config.appenders['access'] = {
         type: 'dateFile',
         pattern: '-yyyy-MM-dd.log',
@@ -20,11 +22,11 @@ export const accessLogger = (out: boolean = false): any => {
         appenders: out ? ['access', 'out'] : ['access'],
         level: out ? 'debug' : 'info' 
     }
-    Logger.configure(config)
-    return Logger.koaLogger(Logger.getLogger('access'))
+    const log4j = Logger.configure(config)
+    return Logger.koaLogger(log4j.getLogger('access'))
 }
 
-export const getAppLogger = (head: string, out: boolean = false): any => {
+export const getAppLogger = (head: string, out: boolean = false): Logger.Logger => {
     let heads = `${head}`;
     config.appenders[heads] = {
         type: 'dateFile',
@@ -42,6 +44,5 @@ export const getAppLogger = (head: string, out: boolean = false): any => {
         appenders: out ? [heads, 'out'] : [heads], 
         level: out ? 'debug' : 'info'
     }
-    Logger.configure(config)
-    return Logger.getLogger(heads)
+    return Logger.configure(config).getLogger(heads)
 }

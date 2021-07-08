@@ -9,7 +9,7 @@ const create = (name: string) => {
         log.info('open', name)
         ws.send('wtf')
     })
-    
+
     ws.on('close', (code, err) => {
         log.error('close: ', code, err)
         // ws.close()
@@ -33,3 +33,5 @@ const create = (name: string) => {
 }
 
 create('Bruce')
+
+log.debug(void (0))

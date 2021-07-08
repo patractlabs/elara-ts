@@ -16,10 +16,10 @@ const chainList = async (ctx: KCtxT, next: NextT) => {
 const detail = async (ctx: KCtxT, next: NextT) => {
     const chain = ctx.request.body.chain
     const re = await Chain.detail(chain)
-    const cha: ChainConfig = re.value
-    log.info('detail: ', cha)
+    const cha = re.value
+    log.debug('detail: ', cha)
     ctx.body = Resp.Ok(re.value)
-    
+
     return next()
 }
 
@@ -31,7 +31,7 @@ const addChain = async (ctx: KCtxT, next: NextT) => {
     }
     req.baseUrl = '127.0.0.1'
     req.excludes = JSON.stringify(['system_call'])
-    req.extends = JSON.stringify({'system_wtf': RpcStrategy.Abandon})
+    req.extends = JSON.stringify({ 'system_wtf': RpcStrategy.Abandon })
     const re = await Chain.newChain(req)
     if (isErr(re)) {
         throw Resp.Unknown()

@@ -16,14 +16,14 @@ import Noder from '../noder'
 import Kver from '../kver'
 
 enum RpcTyp {
-    Cacher   = 'cache',
-    Kver     = 'kv',
+    Cacher = 'cache',
+    Kver = 'kv',
     Recorder = 'record',
-    Noder    = 'node'
+    Noder = 'node'
 }
 
 const getRpcType = (method: string, params: any[]): RpcTyp => {
-    if (params.length === 0 && Cacher.Rpcs.includes(method)) { 
+    if (params.length === 0 && Cacher.Rpcs.includes(method)) {
         return RpcTyp.Cacher
     } else if (Kver.Rpcs.includes(method)) {
         return RpcTyp.Kver
@@ -66,8 +66,8 @@ export const dispatchRpc = async (chain: string, data: ReqDataT, resp: Http.Serv
 
     // filter subscribe
     if (Topic.subscribe.includes(method) || method.includes('subscribe')) {
-        let res = {id, jsonrpc} as WsData
-        res.error = { code: -32090, message: 'Subscriptions are not available on this transport.'}
+        let res = { id, jsonrpc } as WsData
+        res.error = { code: -32090, message: 'Subscriptions are not available on this transport.' }
         return Response.Ok(resp, JSON.stringify(res))
     }
     const typ = getRpcType(method, params)
@@ -81,7 +81,7 @@ export const dispatchRpc = async (chain: string, data: ReqDataT, resp: Http.Serv
                 res['result'] = JSON.parse(re.result)
                 return Response.Ok(resp, JSON.stringify(res))
             }
-            res.error = { code: 3000, msg: 'error cache response' }
+            res.error = { code: 3000, message: 'error cache response' }
             return Response.Fail(resp, JSON.stringify(res), 500)
         case RpcTyp.Recorder:
             res.result = `recoder: ${method}`
@@ -93,19 +93,19 @@ export const dispatchRpc = async (chain: string, data: ReqDataT, resp: Http.Serv
 }
 
 export const dispatchWs = async (chain: string, data: ReqDataT, puber: Puber) => {
-    const {id, jsonrpc, method, params } = data
+    const { id, jsonrpc, method, params } = data
     const typ = getRpcType(method, params)
     log.info(`new ws request ${method} of chain ${chain}: ${typ}`)
-    switch(typ) {
+    switch (typ) {
         case RpcTyp.Cacher:
             // no need to clear puber.subid and suber.pubers
-            const res = {id, jsonrpc} as WsData
+            const res = { id, jsonrpc } as WsData
             const re = await Cacher.send(chain, method)
             if (re.result) {
                 res['result'] = JSON.parse(re.result)
                 return puber.ws.send(JSON.stringify(res))
             }
-            res.error = {code: 500, msg: 'error cache response'}
+            res.error = { code: 500, message: 'error cache response' }
             return puber.ws.send(JSON.stringify(res))
         case RpcTyp.Kver:
             return Kver.send(puber, data)

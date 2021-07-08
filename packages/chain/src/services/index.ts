@@ -6,7 +6,7 @@ const log = getAppLogger('chain', true)
 
 namespace Chain {
     // TODO error handle
-    
+
     export const isExist = async (chain: string): Promise<Boolean> => {
         const re = await Dao.getChainName(chain)
         if (isErr(re)) {
@@ -18,10 +18,10 @@ namespace Chain {
         }
         return false
     }
-    
-    export const detail = async (chain: string): PResultT => {
+
+    export const detail = async (chain: string): PResultT<ChainConfig> => {
         const re: any = await Dao.getChainDetail(chain)
-        let cha: ChainConfig = {            
+        let cha: ChainConfig = {
             ...re,
             name: chain,
             baseUrl: re.baseUrl,
@@ -30,17 +30,17 @@ namespace Chain {
         }
         return Ok(cha)
     }
-    
-    export const newChain = async (chain: ChainConfig): PResultT => {
+
+    export const newChain = async (chain: ChainConfig): PResultT<string | number> => {
         let re = await Dao.updateChain(chain)
         log.info('add chain result: ', re)
 
         // publish newchain event
         Dao.publishTopic(Topic.ChainAdd, chain.name)
-        return Ok(re)
+        return re
     }
-    
-    export const deleteChain = async (chain: string): PResultT => {
+
+    export const deleteChain = async (chain: string): PResultT<void> => {
         const re = await Dao.delChain(chain)
         log.warn('delete result: ', re)
 
@@ -49,12 +49,12 @@ namespace Chain {
         return Ok(re)
     }
 
-    export const updateChain = async (chain: ChainConfig): PResultT => {
+    export const updateChain = async (chain: ChainConfig): PResultT<string | number> => {
         const re = await Dao.updateChain(chain)
-        return Ok(re)
-    }   
+        return re
+    }
 
-    export const chainList = async (): PResultT => {
+    export const chainList = async (): PResultT<string[]> => {
         const re = await Dao.getChainList()
         return Ok(re)
     }

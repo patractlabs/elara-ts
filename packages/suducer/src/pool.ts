@@ -5,7 +5,7 @@
 import WebSocket from 'ws'
 import EventEmitter from 'events'
 import { ChainConfig, getAppLogger, IDT, isErr, isNone, Option } from 'lib'
-import { Ok, Err, PResultT  } from 'lib'
+import { Ok, Err, PResultT } from 'lib'
 import { G } from './global'
 import { ReqT, TopicT } from './interface'
 import Dao from './dao'
@@ -29,13 +29,13 @@ const delays = (sec: number, cb: () => void) => {
 
 const generateUrl = (url: string, port: number, sec: boolean = false) => {
     let procol = 'ws://'
-    if (sec) { procol = 'wss://'}
+    if (sec) { procol = 'wss://' }
     return `${procol}${url}:${port}`
 }
 
 const rdConf = Conf.getRedis()
 log.warn(`current env ${process.env.NODE_ENV} redis conf: `, JSON.stringify(rdConf))
-const pro = new Producer({db: DBT.Pubsub, arg: {host: rdConf.host, port: rdConf.port}})
+const pro = new Producer({ db: DBT.Pubsub, arg: { host: rdConf.host, port: rdConf.port } })
 
 const SubReg = (() => {
     return /[0-9a-zA-Z]{16}/
@@ -45,8 +45,8 @@ const isSubID = (id: string): boolean => {
     return SubReg.test(id) && id.length === 16
 }
 
-type SuducerArgT = {chain: string, url: string, type: SuducerT, topic?: string}
-const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
+type SuducerArgT = { chain: string, url: string, type: SuducerT, topic?: string }
+const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
 
     const ws: WebSocket = new WebSocket(url)
     let top
@@ -59,7 +59,7 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
     let suducer: Suducer = Suducer.create(chain, type, ws, url, top)
     // log.info(`create new suducer: ${JSON.stringify(suducer)}`)
     const sign = `Chain[${chain}]-Url[${url}]-Type[${type}]-ID[${suducer.id}]`
-    
+
     ws.once('open', () => {
         log.info(`Suducer ${sign} opened`)
 
@@ -80,7 +80,7 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
             log.info(`emit pool event done of chain ${chain} type ${type}`)
         }
     })
- 
+
     ws.on('error', (err: Error) => {
         log.error(`Suducer err-evt ${sign}: `, err)
     })
@@ -96,21 +96,21 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
             }
         }
         // keep the topic try to recover
-        
+
 
         let evt = G.getPoolEvt(chain, type)
         if (!evt) {
             log.error(`get event error: chain ${chain} type[${type}]`)
             process.exit(2)
         }
-        
+
         let close = evt.listeners('close')
         log.warn(`close event listener: ${close}`)
 
         Pool.del(chain, type, suducer.id!)
 
         // set pool subscribe status fail        
-        delays(3, () => Pool.add({chain, url, type, topic}))
+        delays(3, () => Pool.add({ chain, url, type, topic }))
     })
 
     ws.on('message', async (data: WebSocket.Data) => {
@@ -125,7 +125,7 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
                 // 
                 log.info(`cache message： chain ${chain} method[${method}]`)
                 Dao.updateChainCache(chain, method, dat.result)
-            } else if(isSubID(dat.result)) {
+            } else if (isSubID(dat.result)) {
                 // first subscribe response
                 log.info(`first subscribe response chain ${chain} topic[${topic}]`)
                 // G.addSubTopic(chain, dat.result, method)
@@ -141,7 +141,7 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
                     process.exit(2)
                 }
                 let suducer = re.value as Suducer
-                suducer.topic = { ...suducer.topic, id: dat.result} as TopicT
+                suducer.topic = { ...suducer.topic, id: dat.result } as TopicT
                 G.updateSuducer(suducer)
             }
         }
@@ -168,15 +168,15 @@ const newSuducer = ({chain, url, type, topic}: SuducerArgT): Suducer => {
 namespace Pool {
 
     export const add = (arg: SuducerArgT) => {
-        let {chain, url, type, topic} = arg
+        let { chain, url, type, topic } = arg
 
-        const suducer = newSuducer({chain, url, type, topic})
+        const suducer = newSuducer({ chain, url, type, topic })
         G.addSuducer(suducer)
         if (type === SuducerT.Sub) {
             G.addTopicSudid(chain, topic!, suducer.id)
         }
-     }
-    
+    }
+
     export const del = (chain: string, type: SuducerT, sudId: IDT) => {
         G.delSuducer(chain, type, sudId)
         if (type === SuducerT.Sub) {
@@ -184,7 +184,7 @@ namespace Pool {
         }
     }
 
-    const selectSuducer = async (chain: string, type: SuducerT, method?: string): PResultT => {
+    const selectSuducer = async (chain: string, type: SuducerT, method?: string): PResultT<Suducer> => {
         let suducer: Suducer
 
         if (type === SuducerT.Cache) {
@@ -201,7 +201,7 @@ namespace Pool {
                 return Err(`no suducer id of chain ${chain} topic[${method}]`)
             }
 
-            re = G.getSuducer(chain, type, re.value) 
+            re = G.getSuducer(chain, type, re.value)
             if (isNone(re)) {
                 return Err(`no suducer of chain ${chain} type ${type}`)
             }
@@ -211,7 +211,7 @@ namespace Pool {
         }
         return Ok(suducer)
     }
-    
+
     export const send = async (chain: string, type: SuducerT, req: ReqT) => {
         // select suducer according to chain & type
         let re = await selectSuducer(chain, type, req.method)
@@ -237,7 +237,7 @@ namespace Pool {
         const size = Conf.getServer().cachePoolSize
         G.setPoolEvt(chain, type, new EventEmitter())
         G.setPoolCnt(chain, type, size)
-        add({chain, url, type})
+        add({ chain, url, type })
     }
 
     const subPoolInit = (chain: string, url: string) => {
@@ -246,7 +246,7 @@ namespace Pool {
         G.setPoolCnt(chain, type, Object.keys(topics).length)
         G.setPoolEvt(chain, type, new EventEmitter())
         for (let topic of topics) {
-            add({chain, url, type, topic})
+            add({ chain, url, type, topic })
         }
     }
 

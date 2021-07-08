@@ -21,7 +21,7 @@ interface Puber {
 
 namespace Puber {
     export namespace G {
-        const Pubers: {[key in string]: Puber } = {}
+        const Pubers: { [key in string]: Puber } = {}
         export const get = (pubId: IDT): Option<Puber> => {
             if (!Pubers[pubId]) {
                 return None
@@ -45,7 +45,7 @@ namespace Puber {
         return puber
     }
 
-    export const updateTopics = (pubId: IDT, subsId: string): ResultT => {
+    export const updateTopics = (pubId: IDT, subsId: string): ResultT<Puber> => {
         let re = G.get(pubId)
         if (isNone(re)) {
             log.error(`update puber[${pubId}] topics error: no this puber ${pubId}`)
@@ -63,12 +63,12 @@ namespace Puber {
     }
 
     export const transpond = async (puber: Puber, type: SuberTyp, data: ReqDataT): PVoidT => {
-        const { id, chain, pid }  = puber
-        const res = {id: data.id, jsonrpc: data.jsonrpc } as WsData
+        const { id, chain, pid } = puber
+        const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
         // topic bind to chain and params 
-        if (Matcher.isSubscribed(chain, pid, data)){
+        if (Matcher.isSubscribed(chain, pid, data)) {
             log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)
-            res.error = {code: 1000, message: 'No need to subscribe twice'}
+            res.error = { code: 1000, message: 'No need to subscribe twice' }
             return puber.ws.send(JSON.stringify(res))
         }
         let subId = puber.subId
@@ -94,9 +94,9 @@ namespace Puber {
         re = Suber.G.get(chain, type, puber.subId!)
         if (isNone(re)) {
             log.error(`[SBH] send message error: invalid suber ${puber.subId} chain ${chain}`)
-            process.exit(1) 
+            process.exit(1)
         }
-        const suber = re.value 
+        const suber = re.value
 
         // transpond requset
         log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)

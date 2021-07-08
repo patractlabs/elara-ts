@@ -1,19 +1,27 @@
 import { IDT } from "lib"
 import Suber, { SuberTyp } from './matcher/suber'
 
-export type ReqDataT = {
-    id: string,
+// type ParamT = {
+//     result: any,
+//     subscription: string
+// }
+export interface ReqDataT {
+    id: IDT,
     jsonrpc: string,
     method: string,
-    params: any[]
+    params: any
 }
-
-export type WsData = {
-    id?: string,
-    jsonrpc: string,
-    method?: string,
-    params?: any,
-    error?: any,
+type wsErrT = {
+    code: number,
+    message: string,
+    data?: any
+}
+export interface WsData extends ReqDataT {
+    // id?: string,
+    // jsonrpc: string,
+    // method?: string,
+    // params?: any,
+    error?: wsErrT,
     result?: any,
     data?: any
 }
@@ -24,10 +32,10 @@ export type ChainPidT = {
 
 // request cache
 export enum ReqTyp {
-    Sub     = 'sub',
-    Unsub   = 'unsub',
-    Rpc     = 'rpc',
-    Close   = 'close'
+    Sub = 'sub',
+    Unsub = 'unsub',
+    Rpc = 'rpc',
+    Close = 'close'
 }
 export interface ReqT {
     id: IDT,
@@ -57,4 +65,4 @@ export interface CacheResultT {
 }
 
 export type SuberMap = { [key in IDT]: Suber }
-export type ChainSuber = { [key in string]: SuberMap } 
+export type ChainSuber = { [key in string]: SuberMap }

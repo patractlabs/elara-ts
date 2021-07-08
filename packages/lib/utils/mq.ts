@@ -101,7 +101,7 @@ type ConsumerListT = ConsumerInfoT[]
 
 namespace Mq {
 
-    export const streamInfo = async (chan: string): Promise<StreamInfoT> => {
+    export async function streamInfo(chan: string): Promise<StreamInfoT> {
         let re = await Mqrd.xinfo('STREAM', chan)
 
         return {

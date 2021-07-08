@@ -1,9 +1,10 @@
-import { Redis, ChainConfig, KEYS } from 'lib'
+import Redis, { DBT } from 'lib/utils/redis'
+import { ChainConfig, KEYS } from 'lib'
 import { Topic } from '../types'
 
 const KEY = KEYS.Chain
 
-const chainClient = Redis.newClient(Redis.DBT.Chain)
+const chainClient = Redis.newClient(DBT.Chain)
 const chainRd = chainClient.client
 
 Redis.onConnect(chainClient)
