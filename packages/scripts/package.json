@@ -9,6 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "lib": "file:../lib"
+    "lib": "1.0"
   }
 }

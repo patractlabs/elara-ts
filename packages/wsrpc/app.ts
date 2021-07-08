@@ -26,7 +26,7 @@ export const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse):
     const conf = re.value as ChainConfig
     let url = `http://${conf.baseUrl}:${conf.rpcPort}`
     const start = Util.traceStart()
-    const req = Http.request(url, {
+    const req = Http.request(url, { 
         method: 'POST',
         headers: {
             'Accept': 'application/json',

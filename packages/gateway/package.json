@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "gateway",
   "version": "1.0.0",
   "description": "elara api gateway",
   "main": "app.ts",
@@ -13,7 +13,7 @@
     "koa": "^2.13.1",
     "koa-ratelimit": "^5.0.0",
     "koa-router": "^10.0.0",
-    "lib": "file:../lib"
+    "lib": "1.0"
   },
   "devDependencies": {
     "@types/http-proxy": "^1.17.6",

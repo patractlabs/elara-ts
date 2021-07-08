@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "wsrpc",
   "version": "1.0.0",
   "description": "",
   "main": "app.ts",
@@ -13,7 +13,7 @@
     "http-proxy": "^1.18.1",
     "kafkajs": "^1.15.0",
     "koa": "^2.13.1",
-    "lib": "file:../lib",
+    "lib": "1.0",
     "pg": "^8.6.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.6.4",
