@@ -1,5 +1,5 @@
 import Koa from "koa";
-import { accessLogger, getAppLogger } from "lib";
+import { accessLogger, getAppLogger } from "elara-lib";
 import routerCompose from "./src/router-compose";
 import Passport from "./src/lib/passport";
 

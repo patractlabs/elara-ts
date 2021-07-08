@@ -6,23 +6,23 @@
 //! 4. 限流参数配置
 //! 5. 降级熔断
 
-import rate from 'koa-ratelimit'
+import rate from "koa-ratelimit";
 
-const db = new Map()
+const db = new Map();
 
-export const ratelimit = ():any => {
+export function ratelimit(): any {
     return rate({
-        driver: 'memory',
+        driver: "memory",
         db,
         duration: 10000,
         errorMessage: "Jack slow fuck!",
         id: (ctx) => ctx.ip,
         headers: {
-            remaining: 'Rate-Limit-Remainning',
-            reset: 'Rate-Limit-Reset',
-            total: 'Rate-Limit-Total'
+            remaining: "Rate-Limit-Remainning",
+            reset: "Rate-Limit-Reset",
+            total: "Rate-Limit-Total",
         },
-        max:10,
+        max: 10,
         disableHeader: false,
         // whitelist: (ctx: Koa.Context):boolean => {
         //     // if true, skip ratelimit check
@@ -34,7 +34,7 @@ export const ratelimit = ():any => {
         //     // same above
         //     return true
         // }
-    })
+    });
 }
 
 // white list filter

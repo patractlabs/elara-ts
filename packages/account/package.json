@@ -1,19 +1,20 @@
 {
-  "name": "account",
+  "name": "elara-account",
   "version": "1.0.0",
   "description": "",
   "main": "app.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo 'no test'" 
   },
   "author": "Yvan",
   "license": "GPL-3.0",
+  "private": true,
   "dependencies": {
     "axios": "^0.21.1",
     "koa": "^2.13.1",
     "koa-passport": "^4.1.4",
     "koa-router": "^10.0.0",
-    "lib": "1.0"
+    "elara-lib": "1.0"
   },
   "devDependencies": {
     "@types/koa-passport": "^4.0.2",

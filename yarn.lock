@@ -1549,6 +1549,18 @@
   dependencies:
     "@octokit/openapi-types" "^8.2.1"
 
+"@pacote/option@2.0", "@pacote/option@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@pacote/option/-/option-2.0.1.tgz#e1b202dc2a428c31006eb278336ddf883e085ff8"
+  integrity sha512-czAk7Gu0jw6Gpg8MC+iYmg7JJRrKMUd67pNYw7hK5dhC6ZceBFtILHW9WTV4JUxuEVjgBT2/67jSWmYYqzLCuw==
+
+"@pacote/result@2.1":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@pacote/result/-/result-2.1.0.tgz#6d40ef455a27ed7ed8537d8772e0279d63551ac2"
+  integrity sha512-CVJyJvk4+IhRPGJAAc6WUDJuXh2/WH4tLl16+nK7flopz9D2fC/o0/0Kk1wgSwLX2rJKMOTpjIXZfZyjHQSaMQ==
+  dependencies:
+    "@pacote/option" "^2.0.1"
+
 "@sinonjs/commons@^1.7.0":
   version "1.8.3"
   resolved "https://registry.yarnpkg.com/@sinonjs/commons/-/commons-1.8.3.tgz#3802ddd21a50a949b6721ddd72da36e67e7f1b2d"
@@ -6110,7 +6122,7 @@ lodash@4.x, lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.20, lodash@^4.7.0:
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
 
-log4js@^3.0.0, log4js@^3.0.6:
+log4js@3.0, log4js@^3.0.0, log4js@^3.0.6:
   version "3.0.6"
   resolved "https://registry.yarnpkg.com/log4js/-/log4js-3.0.6.tgz#e6caced94967eeeb9ce399f9f8682a4b2b28c8ff"
   integrity sha512-ezXZk6oPJCWL483zj64pNkMuY/NcRX5MPiB0zE6tjZM137aeusrOnW1ecxgF9cmwMWkBMhjteQxBPoZBh9FDxQ==

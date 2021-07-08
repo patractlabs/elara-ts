@@ -1,30 +1,36 @@
-import crypto from 'crypto'
+import crypto from "crypto";
+// utils
+export * from "./log";
+export * from "./kafka";
+export * from "./mq";
+export * from "./redis";
+export * from "./redis-key";
 
-type SNU = string | null | undefined
+type SNU = string | null | undefined;
 
-export const isEmpty = (str: SNU): boolean => {
-    if (str === '' || str === null || str === undefined) {
-        return true
+export function isEmpty(str: SNU): boolean {
+    if (str === "" || str === null || str === undefined) {
+        return true;
     }
-    return false
+    return false;
 }
 
-export const randomId = (size: number = 16): string => {
-    return crypto.randomBytes(size).toString('hex')
+export function randomId(size = 16): string {
+    return crypto.randomBytes(size).toString("hex");
 }
 
-export const md5 = (msg: string): string => {
-    const hash = crypto.createHash('md5')
-    return hash.update(msg).digest('hex')
+export function md5(msg: string): string {
+    const hash = crypto.createHash("md5");
+    return hash.update(msg).digest("hex");
 }
 
-export const randomReplaceId = (size: number = 16): number => {
-    return Buffer.from(crypto.randomBytes(size)).readUIntLE(0, 4)
+export function randomReplaceId(size = 16): number {
+    return Buffer.from(crypto.randomBytes(size)).readUIntLE(0, 4);
 }
 
-export const delays = (sec: number, cb: () => void) => {
+export function delays(sec: number, cb: () => void): void {
     const timer = setTimeout(() => {
-        cb()
-        clearTimeout(timer)
+        cb();
+        clearTimeout(timer);
     }, sec * 1000);
 }

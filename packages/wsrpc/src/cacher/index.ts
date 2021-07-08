@@ -1,11 +1,12 @@
-import { getAppLogger } from 'lib'
-import Dao from '../dao'
+import { getAppLogger } from "elara-lib";
+import Dao from "../dao";
 
-const log = getAppLogger('suducer', true)
+const log = getAppLogger("suducer", true);
+
+// TODO: refactor by class
 
 namespace Cacher {
     export const Rpcs = [
-
         // sync when block update
         "system_syncState",
         "system_health",
@@ -15,7 +16,7 @@ namespace Cacher {
         "chain_getBlockHash",
         "chain_getFinalizedHead",
         "author_pendingExtrinsics",
-    
+
         // sync once
         "rpc_methods",
         "system_name",
@@ -24,13 +25,13 @@ namespace Cacher {
         "system_chainType",
         "system_properties",
         "state_getMetadata",
-        "state_getRuntimeVersion"
-    ]
+        "state_getRuntimeVersion",
+    ];
 
     export const send = async (chain: string, method: string) => {
-        log.info(`new cache request, chain ${chain} method[${method}]`)
-        return Dao.getChainCache(chain, method)
-    }
+        log.info(`new cache request, chain ${chain} method[${method}]`);
+        return Dao.getChainCache(chain, method);
+    };
 }
 
-export default Cacher
+export default Cacher;

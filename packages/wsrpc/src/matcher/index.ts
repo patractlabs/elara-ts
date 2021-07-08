@@ -10,12 +10,12 @@
 
 import WebSocket from 'ws'
 import EventEmitter from 'events'
-import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option } from 'lib'
+import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option } from 'elara-lib'
 import GG from '../global'
 import { WsData, SubscripT, ReqT, ReqTyp, ReqDataT } from '../interface'
 import Puber from '../puber'
 import Suber, { SuberTyp } from './suber'
-import { randomId } from 'lib/utils'
+import { randomId } from 'elara-lib/utils'
 import Util from '../util'
 import Conf from '../../config'
 import Topic from './topic'
@@ -41,9 +41,11 @@ const isUnsubReq = (method: string): boolean => {
     return Topic.unsubscribe.indexOf(method) !== -1
 }
 
+// TODO: refactor by class
+
 namespace Matcher {
 
-    export const regist = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
+    export const regist = async (ws: WebSocket, chain: string, pid: IDT): PResultT<any> => {
         let re: ResultT = await connLimit(ws, chain, pid)
         if (isErr(re)) { return re }
         

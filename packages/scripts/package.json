@@ -8,7 +8,8 @@
   },
   "author": "",
   "license": "ISC",
+  "private": true,
   "dependencies": {
-    "lib": "1.0"
+    "elara-lib": "1.0"
   }
 }

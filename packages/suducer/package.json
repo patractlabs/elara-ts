@@ -1,5 +1,5 @@
 {
-  "name": "suducer",
+  "name": "elara-suducer",
   "version": "1.0.0",
   "description": "subscriber-producer",
   "main": "app.ts",
@@ -8,9 +8,10 @@
   },
   "author": "Bruce",
   "license": "GPL-3.0",
+  "private": true,
   "dependencies": {
     "config": "^3.3.6",
-    "lib": "1.0",
+    "elara-lib": "1.0",
     "ws": "^7.5.1"
   },
   "devDependencies": {

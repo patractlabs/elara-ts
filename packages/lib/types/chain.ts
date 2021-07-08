@@ -1,35 +1,36 @@
-import { RpcMapT } from './common-rpc'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { RpcMapT } from "./common-rpc";
 
 export enum Network {
-    Live = 'live',
-    Test = 'test',
+    Live = "live",
+    Test = "test",
 }
 
 export enum ChainType {
-    Relay = 'relay',
-    Parallel = 'parallel'
+    Relay = "relay",
+    Parallel = "parallel",
 }
 
 export interface ChainConfig {
-    name: string,
-    baseUrl: string,
-    network?: Network,
-    chainType?: ChainType,
-    rpcPort: number,       // default 9933
-    wsPort: number,        // default 9944
-    kvPort?: number,
-    kvEnable: boolean,      // default false
-    kvBaseUrl?: string,
-    serverId: number,       // default 0, elara sever id bind
-    excludes?: string[] | string,         // exclude rpc methods in basic rpcs
-    extends?: RpcMapT | string,           // some special rpc method of chain
-    [key: string]: any
+    name: string;
+    baseUrl: string;
+    network?: Network;
+    chainType?: ChainType;
+    rpcPort: number; // default 9933
+    wsPort: number; // default 9944
+    kvPort?: number;
+    kvEnable: boolean; // default false
+    kvBaseUrl?: string;
+    serverId: number; // default 0, elara sever id bind
+    excludes?: string[] | string; // exclude rpc methods in basic rpcs
+    extends?: RpcMapT | string; // some special rpc method of chain
+    [key: string]: any;
 }
 
 export const toJsonstr = (chain: ChainConfig): string => {
-    return JSON.stringify(chain)
-}
+    return JSON.stringify(chain);
+};
 
 export const toChain = (chain: string): ChainConfig => {
-    return JSON.parse(chain)
-}
+    return JSON.parse(chain);
+};

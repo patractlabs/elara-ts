@@ -1,8 +1,7 @@
-import { Redis } from 'lib'
-const DBT = Redis.DBT
+import { Redis, DBT } from "elara-lib";
 
-export const statRd = Redis.newClient(DBT.Stat).client
+export const statRd = Redis.newClient(DBT.Stat).client;
 
-export const projRd = Redis.newClient(DBT.Project).client
+export const projRd = Redis.newClient(DBT.Project).client;
 
-export const actRd = Redis.newClient(DBT.Account).client
+export const actRd = Redis.newClient(DBT.Account).client;

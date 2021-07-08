@@ -1,30 +1,28 @@
-import { Resp, NextT, KCtxT } from 'lib'
+import { Resp, NextT, KCtxT } from "elara-lib";
 
-let login = async (ctx: KCtxT, next: NextT) => {
-    console.log()
-
-    if (ctx.isAuthenticated()) {
-    }
-    ctx.response.body = Resp.Ok().toString()
-    return next()
+async function login(ctx: KCtxT, next: NextT) {
+    // TODO:
+    if (ctx.isAuthenticated()) {}
+    ctx.response.body = Resp.Ok().toString();
+    return next();
 }
 let github = async (ctx: KCtxT, next: NextT) => {
-    ctx.response.body = Resp.Ok().toString()
+    ctx.response.body = Resp.Ok().toString();
 
-    return next()
-}
+    return next();
+};
 let callback = async (ctx: KCtxT, next: NextT) => {
-    ctx.response.body = Resp.Ok().toString()
-    return next()
-}
+    ctx.response.body = Resp.Ok().toString();
+    return next();
+};
 let logout = async (ctx: KCtxT, next: NextT) => {
-    ctx.response.body = Resp.Ok().toString()
-    return next()
-}
+    ctx.response.body = Resp.Ok().toString();
+    return next();
+};
 
 module.exports = {
-    'GET /auth/login': login, //登录信息
-    'GET /auth/github': github, //github验证
-    'GET /auth/github/callback': callback, //github 验证回调
-    'GET /auth/logout': logout, //退出登录
-}
+    "GET /auth/login": login, //登录信息
+    "GET /auth/github": github, //github验证
+    "GET /auth/github/callback": callback, //github 验证回调
+    "GET /auth/logout": logout, //退出登录
+};

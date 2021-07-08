@@ -1,72 +1,76 @@
-import { isEmpty } from '.'
-type IDT = string | number
+import { isEmpty } from ".";
+type IDT = string | number;
 
+// TODO: refactor by class
 namespace Chain {
-    const C = 'Chain'
+    const C = "Chain";
 
     export const chainNum = () => {
-        return `${C}_Num`
-    }
+        return `${C}_Num`;
+    };
 
     export const hChain = (chain: string): string => {
-        return `H_${C}_${chain.toLowerCase()}`
-    }
+        return `H_${C}_${chain.toLowerCase()}`;
+    };
 
     export const zChainList = (): string => {
         // score is createTime
-        return `Z_${C}_list`
-    }
+        return `Z_${C}_list`;
+    };
 }
 
+// TODO: refactor by class
 namespace Project {
-    const P = 'Project'
+    const P = "Project";
 
     export const projectNum = () => {
-        return `${P}_Num`
-    }
+        return `${P}_Num`;
+    };
 
     export const hProject = (chain?: string, pid?: IDT) => {
-        let com = `H_${P}_`
-        let CHAIN = '*_'
-        let PID = `${pid}`
+        let com = `H_${P}_`;
+        let CHAIN = "*_";
+        let PID = `${pid}`;
         if (!isEmpty(chain)) {
-            CHAIN = `${chain?.toLowerCase()}_`
+            CHAIN = `${chain?.toLowerCase()}_`;
         }
         if (isEmpty(pid?.toString())) {
-           PID = '*'
+            PID = "*";
         }
         // if chain is empty and pid not, would be get only one
-        let key = `${com}${CHAIN}${PID}`
+        let key = `${com}${CHAIN}${PID}`;
         // log.info('Project key: ', key)
-        return key
-    }
+        return key;
+    };
 
     export const zProjectList = (uid?: IDT, chain?: string): string => {
-        let com = `Z_${P}_list_`
-        let CHAIN = '*'
-        let UID = `${uid}_`
+        let com = `Z_${P}_list_`;
+        let CHAIN = "*";
+        let UID = `${uid}_`;
         if (!isEmpty(chain)) {
-            CHAIN = `${chain?.toLowerCase()}`
+            CHAIN = `${chain?.toLowerCase()}`;
         }
         if (isEmpty(uid?.toString())) {
-            UID = '*_'
+            UID = "*_";
         }
-        let key = `${com}${UID}${CHAIN}`
+        let key = `${com}${UID}${CHAIN}`;
         // log.info('Project list key: ', key)
-        return key
-    }
+        return key;
+    };
 }
 
+// TODO: refactor by class
+
 namespace Cache {
-    const C = 'Cache'
+    const C = "Cache";
 
     export const hCache = (chain: string, method: string) => {
-        return `H_${C}_${chain.toLowerCase()}_${method}`
-    }
+        return `H_${C}_${chain.toLowerCase()}_${method}`;
+    };
 }
 
 export const KEYS = {
     Chain,
     Project,
     Cache,
-}
+};

@@ -4,7 +4,8 @@
   "description": "[中文](https://github.com/patractlabs/elara/blob/master/README-zh.md)",
   "main": "app.ts",
   "scripts": {
-    "test": "jest"
+    "lint": "eslint .",
+    "test": "yarn workspaces run test"
   },
   "workspaces": [
     "packages/*"
@@ -19,7 +20,7 @@
   "bugs": {
     "url": "https://github.com/patractlabs/elara-ts/issues"
   },
-  "homepage": "https://github.com/patractlabs/elara-ts#readme",
+  "homepage": "https://github.com/patractlabs/elara-ts",
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "@types/koa": "^2.13.1",
