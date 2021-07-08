@@ -1,7 +1,7 @@
 import { randomId } from 'lib/utils'
 import WebSocket from 'ws'
 import { ReqT, ReqTyp, WsData, ChainSuber, SuberMap } from '../interface'
-import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PVoidT, PResultT, isNone, Option, None, Some } from 'lib'
+import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PResultT, isNone, Option, None, Some } from 'lib'
 import GG from '../global'
 import Chain from '../chain'
 import Dao from '../dao'
@@ -152,8 +152,8 @@ const dataParse = (data: WebSocket.Data): ResultT => {
     // request Cache will clear before suber delete
     if (req.type !== ReqTyp.Sub) {
         // subscribe request cache will be clear on unsubscribe event
-        log.info('delete request cache non-subscribe: ', req.id)
         GG.delReqCache(req.id)
+        log.info('delete request cache non-subscribe: ', req.id, JSON.stringify(req))
     }
 
     if (isSecondResp(dat.params)) {
@@ -219,32 +219,6 @@ const msgCb = (dat: WebSocket.Data) => {
     log.info(`new suber message of [${req.method}] parse time[${time}]:  `, Util.globalStat())
 }
 
-const closeHandler = async (chain: string, subType: SuberTyp, suber: Suber): PVoidT => {
-
-    log.warn(`Try to connect chain[${chain}] failed out of limit, start to clear suber ${suber.id}: ${subType}`)
-    // clear pubers context
-    if (!suber.pubers) {
-        log.info(`No pubers need to be clear  chain ${chain} suber[${suber.id}]`)
-        return
-    }
-    for (let pubId of suber.pubers) {
-        let re = Puber.G.get(pubId)
-        if (isNone(re)) {
-            log.error(`[SBH] clear puber error: invalid puber ${pubId}`)
-            process.exit(1)
-        }
-        // close puber conn
-        const puber = re.value as Puber   
-        // 
-        let reason = Puber.CloseReason.Node
-        if (subType === SuberTyp.Kv) {
-            reason = Puber.CloseReason.Kv
-        }
-        puber.ws.close(1000, reason)
-    }
-    log.error()
-}
-
 const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
     const {id, chain} = puber
     puber.topics!.delete(subsId)
@@ -303,17 +277,65 @@ const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set
     }
 }
 
-const clearReqcache = async (pubers: Set<IDT>) => {
-    log.info('clear request cache of pubers: ', pubers)
-    const reqs = GG.getAllReqCache()
-    for (let reqId in reqs) {
-        if (pubers.has(reqs[reqId].pubId)) {
-            GG.delReqCache(reqId)
-        }
-    }
-}
+// suber close relate
+// const isSuberClosed = (reason: Puber.CloseReason): boolean => {
+//     return reason === Puber.CloseReason.Kv || reason === Puber.CloseReason.Node
+// }
+
+// suber close relate
+// const closeHandler = async (chain: string, subType: SuberTyp, suber: Suber, reason: Puber.CloseReason): PVoidT => {
+//     /// clear the other type suber
+//     log.warn(`Try to connect chain[${chain}] failed out of limit, start to clear suber ${suber.id}: ${subType}`)
+//     // clear pubers context
+//     if (!suber.pubers) {
+//         log.info(`No pubers need to be clear  chain ${chain} suber[${suber.id}]`)
+//         return
+//     }
+//     for (let pubId of suber.pubers) {
+//         let re: any = Puber.G.get(pubId)
+//         if (isNone(re)) {
+//             log.error(`[SBH] clear puber error: invalid puber ${pubId}`)
+//             process.exit(1)
+//         }
+//         const puber = re.value as Puber   
+//         // close the other suber
+//         let subId
+//         let typ
+//         let creason
+//         if (subType === SuberTyp.Kv) {
+//             subId = puber.subId
+//             typ = SuberTyp.Node
+//             creason = Puber.CloseReason.Kv
+//         } else {
+//             subId = puber.kvSubId
+//             typ = SuberTyp.Kv
+//             creason = Puber.CloseReason.Node
+//         }
+//         if (!isSuberClosed(reason) && reason !== creason) {
+//             re = Suber.G.get(chain, typ, subId!)
+//             const sub = re.value as Suber
+//             sub.ws.close(1000, creason)
+//         }
+
+//         // close puber conn
+//         puber.ws.close(1000, creason)
+//     }
+//     log.error()
+// }
+
+// suber close relate
+// const clearReqcache = async (pubers: Set<IDT>) => {
+//     log.info('clear request cache of pubers: ', pubers)
+//     const reqs = GG.getAllReqCache()
+//     for (let reqId in reqs) {
+//         if (pubers.has(reqs[reqId].pubId)) {
+//             GG.delReqCache(reqId)
+//         }
+//     }
+// }
 
 const clearNonSubReqcache = (subId: IDT) => {
+    // TODO: by suber & puber
     const reqs = GG.getAllReqCache()
     for (let reqId in reqs) {
         if (reqs[reqId].subId === subId && reqs[reqId].type !== ReqTyp.Sub) {
@@ -327,14 +349,24 @@ const newSuber = (chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
     // chain valid check
     // Dao.getChainConfig(chain)
     const ws = new WebSocket(url, { perMessageDeflate: false })
-    let suber: any =  { id: randomId(), ws, url, chain, type, pubers } as Suber
+    let suber: any =  { id: randomId(), ws, url, chain, type, stat: SuberStat.Create, pubers } as Suber
     log.info('create new suber with puber: ', pubers)
     Suber.G.updateOrAdd(chain, type, suber)
 
     ws.once('open', () => {
         log.info(`Websocket connection opened: chain[${chain}]`)
 
-        GG.resetConnCnt(chain)   // reset chain connection count
+        GG.resetTryCnt(chain)   // reset chain connection count
+
+        // update suber status
+        let re = Suber.G.get(chain, type, suber.id)
+        if (isNone(re)) {
+            log.error(`update suber on open error: invalid suber ${suber.id} chain ${chain} type ${type}`)
+            process.exit(2)
+        }
+        const subTmp = re.value as Suber
+        subTmp.stat = SuberStat.Active
+        Suber.G.updateOrAdd(chain, type, suber)
 
         if (!pubers || pubers.size < 1) {
             return 
@@ -359,27 +391,45 @@ const newSuber = (chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         }
 
         const subTmp = re.value as Suber
-        // clear non-subscribe req cache  bind to suber
+        // clear non-subscribe request cache  bind to suber
         clearNonSubReqcache(subTmp.id)
 
         let pubers = new Set(subTmp.pubers) // new heap space
-        const serConf = Conf.getServer()
         const curTryCnt = GG.getTryCnt(chain)
-        if (curTryCnt >= serConf.maxReConn) {
-            // try to clear request cache of suber.pubers before delete,
-            // which wont clear on subscribe request cache
-            clearReqcache(pubers)
-            // clear all the puber resource
-            await closeHandler(chain, type, subTmp)
-            pubers = new Set<IDT>()  // clear pubers after handle done
-        }
+
+        /// this tryCnt is shared by all the subers of this chain.
+        /// Kv suber and Node suber maybe close at one time all both failed.
+        /// Since Kv suber and Node suber is bind to the same puber, if one of 
+        /// they fail we try to clear the other suber too.
+        /// Specially, Kv suber is a subset of Node suber, while the Kv suber 
+        /// offer the most subscribe business, we may take another strategy to 
+        /// manage the suber resource.
+        
+        // NOTE: wont clear suber now, keeping try connect
+        // const serConf = Conf.getServer()
+        // if (curTryCnt >= serConf.maxReConn) {
+        //     // try to clear subscribe request cache of suber.pubers before delete,
+        //     // which wont clear after suber close
+        //     clearReqcache(pubers)
+        //     // clear all the puber resource
+        //     await closeHandler(chain, type, subTmp, reason as Puber.CloseReason)
+        //     pubers = new Set<IDT>()  // clear pubers after handle 
+        //     GG.resetTryCnt(chain)
+        //     delete suber.ws
+        //     Suber.G.del(chain, type, suber.id)
+        //     // cannog re connet,for one of the suber is available, if the subscribe
+        //     // context wont clear done, the re-connection will race
+        //     // TODO: chain suber realloc
+        //     // update this chain status to fail
+        //     return
+        // }
 
         // delete suber before
         delete suber.ws
         Suber.G.del(chain, type, suber.id)
 
-        // try to reconnect
-        delays(3, () => {
+        // try to reconnect after 5 second
+        delays(5, () => {
             log.warn(`create new suber try to connect ${curTryCnt + 1} times, pubers `, pubers)
             newSuber(chain, url, type, pubers)
             GG.incrTryCnt(chain)
@@ -406,12 +456,19 @@ export enum SuberTyp {
     Node = 'node'
 }
 
+export enum SuberStat {
+    Active,
+    Create,
+    Failed
+}
+
 interface Suber {
     id: IDT,
     chain: string,
     url: string,
     ws: WebSocket,
     type: SuberTyp,
+    stat: SuberStat,
     pubers?: Set<IDT>,    // {pubId}
 }
 
@@ -479,7 +536,12 @@ namespace Suber {
             return Err(`No valid suber of chain[${chain}]`)
         }
         const ind = GG.getID() % keys.length
-        return Ok(subers[keys[ind]])
+        const suber = subers[keys[ind]]
+        if (suber.stat !== SuberStat.Active) {
+            log.error(`suber is inactive`)
+            return Err(`suber inactive`)
+        }
+        return Ok(suber)
     }
 
     export const initChainSuber = async (chain: string, poolSize: number) => {

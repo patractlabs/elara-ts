@@ -19,74 +19,8 @@ import { randomId } from 'lib/utils'
 import Util from '../util'
 import Conf from '../../config'
 import Topic from './topic'
-import G from '../global'
 
 const log = getAppLogger('matcher', true)
-
-const clearSubContext = async (puber: Puber, subType: SuberTyp) => {
-    // sub context: 1. subed topics 2. subreqMap 3. reqCache for subscribe
-    // topic context which subscribed should be clear after unsubscribe response true
-    // then clear the puber when all topic context clear
-    const {chain, pid, subId} = puber
-    const topics = GG.getSubTopics(chain, pid)
-    log.info(`clear subscribe context chain[${chain}] pid[${pid}] topics: `, Object.keys(topics))
-    // const ptopics = puber.topics || new Set()
-    // const hasTopic = ptopics.size > 0
-    // if (!hasTopic) {
-    //     // clear request cache
-    //     const reqs = GG.getAllReqCache()
-    //     for (let reqId in reqs) {
-    //         let req = reqs[reqId]
-    //         if (req.pubId === puber.id) {
-    //             GG.delReqCache(reqId)
-    //             log.warn(`clear request cache [${reqId}] of puber[${puber.id}]`)
-    //         }
-    //     }
-
-    //     Puber.G.del(puber.id)
-    //     log.info(`puber[${puber.id}] has no topics, clear done`)
-    //     return
-    // }
-    // if (code === 1000) {
-    //     log.error(`suber has been closed, no need to unsubscribe`)
-    //     // clear subscribe context
-    //     for (let subsId of puber.topics!) {
-    //         let re = GG.getReqId(subsId)
-    //         if (isErr(re)) {
-    //             log.error(`clear subscribe context error: ${re.value}`)
-    //             process.exit(2)
-    //         }
-    //         re = GG.getReqCache(re.value)
-    //         if (isErr(re)) {
-    //             log.error(`clear subscribe context error: ${re.value}`)
-    //             process.exit(2)
-    //         }
-    //         const req = re.value as ReqT
-    //         if (req.subType !== subType) { continue }
-    //         log.info(`clear suber ${subId} context chain ${chain}, suber type: ${subType}`)
-    //         GG.delReqCache(re.value)
-    //         GG.delSubReqMap(subsId)
-    //         GG.remSubTopic(chain, pid, subsId)
-    //     }
-    //     // Puber.G.del(puber.id)
-    //     return
-    // }
-    // regist event
-    puber.event = new EventEmitter()
-    Puber.G.updateOrAdd(puber)
-
-    // clear event
-    puber.event.on('done', () => {
-        Puber.G.del(puber.id)
-        log.info(`clear subercribe context of puber[${puber.id}] done`)
-    })
-    for (let subsId of puber.topics || new Set()) {
-        const subscript = topics[subsId] as SubscripT
-        Suber.unsubscribe(chain, subType, subId!, subscript.method, subsId)
-        // clearSubCache(chain, pid, subsId)
-        log.info(`unsubscribe topic[${subscript.method}] id[${subsId}] of chain ${chain} pid[${pid}] suber[${subId}]`)
-    }
-}
 
 const connLimit = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
     const wsConf = Conf.getWsPool()
@@ -105,112 +39,6 @@ const isSubReq = (method: string): boolean => {
 
 const isUnsubReq = (method: string): boolean => {
     return Topic.unsubscribe.indexOf(method) !== -1
-}
-
-const clearSuberByType = (puber: Puber, subType: SuberTyp, subId: IDT) => {
-
-    let re = Suber.G.get(puber.chain, subType, subId!)
-    if (isNone(re)) {
-        log.error(`Unregist puber error: invalid suber ${subId} of chain ${puber.chain}`)
-        return
-    }
-    const suber = re.value as Suber
-
-    if (!suber.pubers || suber.pubers.size < 1) {
-        log.error('Unregist puber error: empty puber member')
-        process.exit(1)
-    }
-    suber.pubers.delete(puber.id)
-    Suber.G.updateOrAdd(suber.chain, subType, suber)
-}
-
-const handleSuberNoTopics = (pubId: IDT) => {
-    const reqs = GG.getAllReqCache()
-    for (let reqId in reqs) {
-        let req = reqs[reqId]
-        if (req.pubId === pubId) {
-            GG.delReqCache(reqId)
-            log.warn(`clear request cache [${reqId}] of puber[${pubId}]`)
-        }
-    }
-}
-
-const handleSuberClosed = (puber: Puber, subType: SuberTyp, subId: IDT) => {
-    const {chain, pid} = puber
-    for (let subsId of puber.topics!) {
-        let re = GG.getReqId(subsId)
-        if (isErr(re)) {
-            log.error(`clear subscribe context error: ${re.value}`)
-            process.exit(2)
-        }
-        re = GG.getReqCache(re.value)
-        if (isErr(re)) {
-            log.error(`clear subscribe context error: ${re.value}`)
-            process.exit(2)
-        }
-        const req = re.value as ReqT
-        if (req.subType !== subType) { continue }
-        log.info(`clear suber ${subId} context chain ${chain}, suber type: ${subType}`)
-        GG.delReqCache(re.value)
-        GG.delSubReqMap(subsId)
-        GG.remSubTopic(chain, pid, subsId)
-    }
-}
-
-const subcontextClear = (puber: Puber, code: number): void => {
-
-    // suber close
-    if (code === 1000) {
-        let subId = puber.subId
-        if (subType === SuberTyp.Kv) {
-            subId = puber.kvSubId
-        }
-        handleSuberClosed(puber, subType, subId!)
-        return
-    }
-
-    // puber close
-    const ptopics = puber.topics || new Set()
-    const hasTopic = ptopics.size > 0
-    if (!hasTopic) {
-        // clear request cache
-        handleSuberNoTopics(puber.id)
-        Puber.G.del(puber.id)
-        log.info(`puber[${puber.id}] has no topics, clear done`)
-        return
-    }
-    const topics = GG.getSubTopics(puber.chain, puber.pid)
-    puber.event = new EventEmitter()
-    Puber.G.updateOrAdd(puber)
-
-    // clear event
-    puber.event.on('done', () => {
-        Puber.G.del(puber.id)
-        log.info(`clear subercribe context of puber[${puber.id}] done`)
-    })
-    let subId = puber.subId
-    if (subType == SuberTyp.Kv) {
-        subId = puber.kvSubId
-    }
-    const {chain, pid} = puber
-    for (let subsId of puber.topics || new Set()) {
-        const subscript = topics[subsId] as SubscripT
-        Suber.unsubscribe(chain, subType, subId!, subscript.method, subsId)
-        // clearSubCache(chain, pid, subsId)
-        log.info(`unsubscribe topic[${subscript.method}] id[${subsId}] of chain ${chain} pid[${pid}] suber[${subId}]`)
-    }
-}
-
-const suberClear = (puber: Puber, subType: SuberTyp) => {
-    if (subType === SuberTyp.Node) {
-        clearSuberByType(puber, SuberTyp.Node, puber.subId!)
-    } else {
-        clearSuberByType(puber, SuberTyp.Kv, puber.kvSubId!)
-    }
-}
-
-const puberClear = (puber: Puber) => {
-
 }
 
 namespace Matcher {
@@ -397,6 +225,7 @@ namespace Matcher {
         // no topic: clear reqcache, clear puber
         // TODO: if kv unavailable, transpond request to node
         //       if node unavailable, keep the kv service
+        // current version we dont close suber!!! And keep the try connection.
         log.info(`${subType} suber of chain ${puber.chain} closed, puber ${puber.id}`)
         const { chain, pid } = puber
         const ptopics = puber.topics || new Set()
@@ -470,7 +299,8 @@ namespace Matcher {
             }
         }
         // clear suber
-        Suber.G.del(chain, subType, puber.)
+        Suber.G.del(chain, SuberTyp.Node, puber.subId!)
+        Suber.G.del(chain, SuberTyp.Kv, puber.kvSubId!)
     }
 
     export const unRegist = async (pubId: IDT, reason: Puber.CloseReason): PVoidT => {
@@ -490,39 +320,12 @@ namespace Matcher {
         // puber close: 1. has topics 2. no topics
         // suber close: 1. has topics 2. no topics
         if (isSuberClosed(reason)) {
+            log.error(`[SBH] something wrong!`)
             let subType = (reason === Puber.CloseReason.Node) ? SuberTyp.Node : SuberTyp.Kv
             handleSuberClose(puber, subType)
         } else {
             handlePuberClose(puber)
         }
-
-
-        subcontextClear(puber, code)
-
-        suberClear(puber, subType, code)
-
-        // puber clear
-        puberClear(puber)
-        clearSubContext(puber, subType, code) 
-        let subId = puber.subId
-        if (subType === SuberTyp.Kv) {
-            subId = puber.kvSubId
-        }
-        re = Suber.G.get(puber.chain, subType, subId!)
-        if (isNone(re)) {
-            log.error(`Unregist puber error: invalid suber ${puber.subId} of chain ${puber.chain}`)
-            return
-        }
-        const suber = re.value as Suber
-
-        if (!suber.pubers || suber.pubers.size < 1) {
-            log.error('Unregist puber error: empty puber member')
-            process.exit(1)
-        }
-        suber.pubers.delete(pubId)
-        Suber.G.updateOrAdd(suber.chain, subType, suber)
-        log.info(`Unregist successfully: ${pubId} - ${suber.id}, global stat: `, Util.globalStat())
-        // global.gc()
     }
     
     export const isSubscribed = (chain: string, pid: IDT, data: WsData): boolean => {

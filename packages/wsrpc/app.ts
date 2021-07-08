@@ -138,7 +138,11 @@ wss.on('connection', async (ws, req: any) => {
     const re = await Matcher.regist(ws, req.chain, req.pid)
     if (isErr(re)) {
         log.error(`socket connect error: ${re.value}`)
-        return
+        if (re.value.includes('suber inactive')) {
+            log.error(`suber is unavailable`)
+            ws.send(`service unavailable now`)
+        }
+        return ws.terminate()
     }
     const puber = re.value as Puber
     log.info(`New socket connection chain ${req.chain} pid[${req.pid}], current total connections `, wss.clients.size)
@@ -163,7 +167,7 @@ wss.on('connection', async (ws, req: any) => {
  
     ws.on('close', async (code, reason) => {
         log.error(`puber[${id}] close: ${reason}, code ${code}, current total connections `, wss.clients.size)
-        if (reason === Puber.CloseReason.OutOfLimit) {
+        if (reason === Puber.CloseReason.OutOfLimit || reason === Puber.CloseReason.SuberUnavail) {
             return  // out of limit
         }
         Matcher.unRegist(id, reason as Puber.CloseReason)

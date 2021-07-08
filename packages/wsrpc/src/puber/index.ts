@@ -98,7 +98,8 @@ namespace Puber {
     export enum CloseReason {
         Node = 'node service unavailable',
         Kv = 'kv service unavailable',
-        OutOfLimit = 'out of connect limit'
+        OutOfLimit = 'out of connect limit',
+        SuberUnavail = 'suber unavailable'
     }
 }
 
