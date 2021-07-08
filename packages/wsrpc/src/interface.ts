@@ -14,7 +14,8 @@ export type WsData = {
     method?: string,
     params?: any,
     error?: any,
-    result?: any
+    result?: any,
+    data?: any
 }
 export type ChainPidT = {
     chain: string,
@@ -23,10 +24,10 @@ export type ChainPidT = {
 
 // request cache
 export enum ReqTyp {
-    Sub,
-    Unsub,
-    Rpc,
-    Close
+    Sub     = 'sub',
+    Unsub   = 'unsub',
+    Rpc     = 'rpc',
+    Close   = 'close'
 }
 export interface ReqT {
     id: IDT,

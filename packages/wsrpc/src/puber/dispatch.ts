@@ -7,26 +7,27 @@ const log = getAppLogger('dispatch', out)
 
 
 import Cacher from "../cacher"
-import Matcher from "../matcher"
 // import Recorder from '../recorder'
 import Puber from '.'
 import { Response } from '../util'
 import { ReqDataT, WsData } from '../interface'
 import Topic from '../matcher/topic'
 import Noder from '../noder'
+import Kver from '../kver'
 
 enum RpcTyp {
-    Cacher = 'cache',
-    Matcher = 'match',  
+    Cacher   = 'cache',
+    Kver     = 'kv',
     Recorder = 'record',
-    Noder  = 'node'
+    Noder    = 'node'
 }
 
 const getRpcType = (method: string, params: any[]): RpcTyp => {
     if (params.length === 0 && Cacher.Rpcs.includes(method)) { 
         return RpcTyp.Cacher
+    } else if (Kver.Rpcs.includes(method)) {
+        return RpcTyp.Kver
     }
-    if (Matcher.Rpcs.includes(method)) { return RpcTyp.Matcher }
     // if (Recorder.Rpcs.includes(method)) { return RpcTyp.Recorder }
     return RpcTyp.Noder
 }
@@ -82,8 +83,6 @@ export const dispatchRpc = async (chain: string, data: ReqDataT, resp: Http.Serv
             }
             res.error = { code: 3000, msg: 'error cache response' }
             return Response.Fail(resp, JSON.stringify(res), 500)
-        case RpcTyp.Matcher:
-            return Response.Ok(resp, 'ok')
         case RpcTyp.Recorder:
             res.result = `recoder: ${method}`
             return Response.Ok(resp, JSON.stringify(res))
@@ -108,11 +107,14 @@ export const dispatchWs = async (chain: string, data: ReqDataT, puber: Puber) =>
             }
             res.error = {code: 500, msg: 'error cache response'}
             return puber.ws.send(JSON.stringify(res))
-        case RpcTyp.Matcher:
-            return puber.ws.send(JSON.stringify('ok'))
+        case RpcTyp.Kver:
+            return Kver.send(puber, data)
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))
         case RpcTyp.Noder:
             return Noder.sendWs(puber, data)
+        default:
+            log.error(`[SBH] no this request type: ${typ}`)
+            break
     }
 }

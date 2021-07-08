@@ -42,22 +42,6 @@ const isUnsubReq = (method: string): boolean => {
 }
 
 namespace Matcher {
-    export const Rpcs = [
-        "chain_subscribeAllHeads",          // chain_allHead
-        "chain_subscribeFinalisedHeads",    // chain_finalizedHead
-        "chain_subscribeFinalizedHeads",    // chain_finalizedHead
-        "chain_subscribeNewHead",           // chain_newHead
-        "chain_subscribeNewHeads",          // chain_newHead
-        "chain_subscribeRuntimeVersion",    // chain_runtimeVersion
-
-        "grandpa_subscribeJustifications",  // grandpa_justifications
-
-        "state_subscribeRuntimeVersion",    // state_runtimeVersion
-        "state_subscribeStorage",           // state_storage
-        "author_submitAndWatchExtrinsic",   // author_extrinsicUpdate
-    
-        "subscribe_newHead"                 // chain_newHead
-    ]
 
     export const regist = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
         let re: ResultT = await connLimit(ws, chain, pid)

@@ -81,6 +81,14 @@ namespace Puber {
             return puber.ws.send(re.value)
         }
         const dat = re.value
+        let sendData = dat
+        if (type === SuberTyp.Kv) {
+            sendData = {
+                id: dat.id,
+                chain: puber.chain,
+                request: JSON.stringify(dat)
+            }
+        }
 
         // TODO
         re = Suber.G.get(chain, type, puber.subId!)
@@ -92,7 +100,7 @@ namespace Puber {
 
         // transpond requset
         log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
-        return suber.ws.send(JSON.stringify(dat))
+        return suber.ws.send(JSON.stringify(sendData))
     }
 
     export enum CloseReason {
