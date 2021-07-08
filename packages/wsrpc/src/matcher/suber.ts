@@ -515,22 +515,23 @@ interface Suber {
     pubers?: Set<IDT>,    // {pubId}
 }
 
+/**
+ * Subers {
+ *  'polkadot': {
+ *      'f90dc072e006d5f6f8fbe33e565d274f': {
+ *          id: 'f90dc072e006d5f6f8fbe33e565d274f',
+ *          url: '127.0.0.1:9944',
+ *          chain: 'polkadot',
+ *          ws: WebSocketObject,
+ *          pubers: ['852c5949c10b2797dedad388fa745110']
+ *       }
+ *   }
+ * }
+ */
+
 namespace Suber {
 
     export namespace G {
-        /**
-         * Subers {
-         *  'polkadot': {
-         *      'f90dc072e006d5f6f8fbe33e565d274f': {
-         *          id: 'f90dc072e006d5f6f8fbe33e565d274f',
-         *          url: '127.0.0.1:9944',
-         *          chain: 'polkadot',
-         *          ws: WebSocketObject,
-         *          pubers: ['852c5949c10b2797dedad388fa745110']
-         *       }
-         *   }
-         * }
-         */
         const Subers: ChainSuber = {}
 
         export const get = (chain: string, type: SuberTyp, subId: IDT): Option<Suber> => {
@@ -623,9 +624,9 @@ namespace Suber {
 
     export const unsubscribe = async (chain: string, type: SuberTyp, subId: IDT, topic: string, subsId: string) => {
         // TODO: kv unsuber {id, chain, request}
-        const re = G.get(chain, type, subId)
+        const re = Suber.G.get(chain, type, subId)
         if (isNone(re)) {
-            log.error(`[SBH] get suber to unsubcribe error: invalid suber ${subId} of chain ${chain}`)
+            log.error(`[SBH] get suber to unsubcribe error: invalid suber ${subId} of chain ${chain} type ${type}: `)//, JSON.stringify(Suber.G.getAll()))
             process.exit(1)
         }
         const suber = re.value as Suber

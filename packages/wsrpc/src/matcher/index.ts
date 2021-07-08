@@ -10,7 +10,7 @@
 
 import WebSocket from 'ws'
 import EventEmitter from 'events'
-import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option } from 'lib'
+import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, PResult, isErr, PVoidT, isNone, Option } from 'lib'
 import GG from '../global'
 import { WsData, SubscripT, ReqT, ReqTyp, ReqDataT } from '../interface'
 import Puber from '../puber'
@@ -43,7 +43,7 @@ const isUnsubReq = (method: string): boolean => {
 
 namespace Matcher {
 
-    export const regist = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
+    export const regist = async (ws: WebSocket, chain: string, pid: IDT): PResult<Puber> => {
         let re: ResultT = await connLimit(ws, chain, pid)
         if (isErr(re)) { return re }
         

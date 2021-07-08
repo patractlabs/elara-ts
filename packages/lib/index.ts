@@ -11,6 +11,7 @@ export type NextT = () => Promise<any>  // koa middleware next type
 export type PResultT = Promise<Result<any, string>>
 export type ResultT = Result<any, string>
 export type PVoidT = Promise<void>
+export type PResult<T> = Promise<Result<T, string>>
 
 // to use .env and config, init before import config
 export const dotenvInit = () => {

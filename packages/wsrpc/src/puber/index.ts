@@ -22,11 +22,11 @@ interface Puber {
 namespace Puber {
     export namespace G {
         const Pubers: {[key in string]: Puber } = {}
-        export const get = (dispId: IDT): Option<Puber> => {
-            if (!Pubers[dispId]) {
+        export const get = (pubId: IDT): Option<Puber> => {
+            if (!Pubers[pubId]) {
                 return None
             }
-            return Some(Pubers[dispId])
+            return Some(Pubers[pubId])
         }
 
         export const updateOrAdd = (puber: Puber): void => {
@@ -45,12 +45,12 @@ namespace Puber {
         return puber
     }
 
-    export const updateTopics = (dispId: IDT, subsId: string): ResultT => {
-        let re = G.get(dispId)
+    export const updateTopics = (pubId: IDT, subsId: string): ResultT => {
+        let re = G.get(pubId)
         if (isNone(re)) {
-            log.error(`update puber[${dispId}] topics error: no this puber ${dispId}`)
+            log.error(`update puber[${pubId}] topics error: no this puber ${pubId}`)
             // puber may be closed
-            return Err(`puber[${dispId}] may be closed`)
+            return Err(`puber[${pubId}] may be closed`)
         }
         let puber = re.value as Puber
         puber.topics = puber.topics || new Set()
@@ -58,7 +58,7 @@ namespace Puber {
 
         G.updateOrAdd(puber)
 
-        log.info(`update puber[${dispId}] topic [${subsId}] done: ${puber.topics.values()}`)
+        log.info(`update puber[${pubId}] topic [${subsId}] done: ${puber.topics}`)
         return Ok(puber)
     }
 
