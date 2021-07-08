@@ -249,12 +249,20 @@ const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
 
     const req = re.value as ReqT
     log.info(`recover new subscribe topic request: ${JSON.stringify(req)}`)
-    ws.send(Util.reqFastStr({
+    let data: any = {
         id: req.id, 
         jsonrpc: "2.0", 
         method: req.method, 
         params: req.params || [],
-    }))
+    }
+    if (req.subType === SuberTyp.Kv) {
+        data = {
+            id: req.id,
+            chain: chain,
+            request: JSON.stringify(data)
+        }
+    }
+    ws.send(Util.reqFastStr(data))
 
     // delete topic subed
     GG.remSubTopic(chain, puber.pid, subsId)
@@ -267,7 +275,7 @@ const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
 }
 
 const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
-    log.info(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers.values()}]`)
+    log.info(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers}]`)
     for (let pubId of pubers) {
         let re = Puber.G.get(pubId)
         if (isNone(re)) {
