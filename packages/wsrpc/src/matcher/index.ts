@@ -15,7 +15,7 @@ import GG from '../global'
 import { WsData, ReqT, ReqTyp, ReqDataT } from '../interface'
 import Puber from '../puber'
 import Suber, { SuberTyp } from './suber'
-import { randomId } from 'lib/utils'
+import { md5, randomId } from 'lib/utils'
 import Util from '../util'
 import Conf from '../../config'
 import Topic from './topic'
@@ -318,9 +318,12 @@ namespace Matcher {
         const topics = GG.getSubTopics(chain, pid)
         log.info(`subscribed topics of chain[${chain}] pid[${pid}]: `, Object.keys(topics))
         for (let id in topics) {
+            log.debug(`id: ${id}\n data: ${JSON.stringify(data)}, topic: ${JSON.stringify(topics[id])}`)
             const sub = topics[id]
-            const params = data.params
-            if (sub.method === data.method && sub.params === params) {
+            const sMthod = sub.method === data.method
+            const sParams = md5(JSON.stringify(sub.params)) === md5(JSON.stringify(data.params))
+            log.debug(`params pair: ${data.params}--${sub.params}, ${sMthod} ${sParams}`)
+            if (sMthod && sParams) {
                 return true
             }
         }

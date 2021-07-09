@@ -80,8 +80,6 @@ export const dispatchWs = async (chain: string, data: ReqDataT, puber: Puber) =>
             res.error = { code: 500, message: 'error cache response' }
             return puber.ws.send(JSON.stringify(res))
         case RpcTyp.Kver:
-            // dup subscirbe check
-
             return Kver.send(puber, data)
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))
