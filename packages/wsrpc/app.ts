@@ -60,6 +60,7 @@ const methodUnsafe = (method: string): boolean => {
 }
 
 const dataCheck = (data: string): ResultT<WsData> => {
+    log.debug(`data before check: ${data}`)
     let dat = JSON.parse(data) as WsData
     if (!dat.id || !dat.jsonrpc || !dat.method || !dat.params) {
         return Err('invalid request must be JSON {"id": string, "jsonrpc": "2.0", "method": "your method", "params": []}')
@@ -67,6 +68,7 @@ const dataCheck = (data: string): ResultT<WsData> => {
     if (methodUnsafe(dat.method)) {
         return Err(`Forbiden Access!`)
     }
+    log.debug(`data afrer check: ${JSON.stringify(dat)}`)
     return Ok(dat)
 }
 // Http rpc request 
@@ -157,11 +159,14 @@ wss.on('connection', async (ws, req: any) => {
                 log.error(`${re.value}`)
                 return puber.ws.send(re.value)
             }
+            log.debug(`after data check: ${JSON.stringify(re.value)}`)
             dat = re.value
+            log.debug(`data: ${JSON.stringify(dat)}`)
         } catch (err) {
             log.error('Parse message to JSON error')
             return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
+
         dispatchWs(req.chain, dat, puber)
     })
 

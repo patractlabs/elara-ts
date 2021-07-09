@@ -7,7 +7,7 @@ export interface SubscripT {
     id: string,
     pubId: IDT,
     method: string,
-    params: string
+    params: any[]
 }
 export type SubscripMap = { [key in string]: SubscripT }
 type TopicSubedT = { [key in string]: SubscripMap }

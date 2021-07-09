@@ -9,7 +9,7 @@ export interface ReqDataT {
     id: IDT,
     jsonrpc: string,
     method: string,
-    params: any
+    params?: any[]
 }
 type wsErrT = {
     code: number,
@@ -20,7 +20,7 @@ export interface WsData extends ReqDataT {
     // id?: string,
     // jsonrpc: string,
     // method?: string,
-    // params?: any,
+    params?: any,
     error?: wsErrT,
     result?: any,
     data?: any
@@ -49,7 +49,7 @@ export interface ReqT {
     type: ReqTyp,
     jsonrpc: string,
     method: string,
-    params: string
+    params: any
 }
 
 export interface SubscripT {

@@ -62,6 +62,12 @@ namespace Puber {
         return Ok(puber)
     }
 
+    type KvReqT = {
+        id: string,
+        chain: string,
+        request: string,
+    }
+
     export const transpond = async (puber: Puber, type: SuberTyp, data: ReqDataT): PVoidT => {
         const { id, chain, pid } = puber
         const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
@@ -75,29 +81,30 @@ namespace Puber {
         if (type === SuberTyp.Kv) {
             subId = puber.kvSubId
         }
-        let re: any = Matcher.newRequest(chain, pid, id, type, subId!, data)
+        log.debug(`new request params: ${JSON.stringify(data.params)}`)
+        let re = Matcher.newRequest(chain, pid, id, type, subId!, data)
         if (isErr(re)) {
             log.error(`create new request error: ${re.value}`)
             return puber.ws.send(re.value)
         }
         const dat = re.value
-        let sendData = dat
+        let sendData: KvReqT | ReqDataT = dat
         if (type === SuberTyp.Kv) {
             sendData = {
                 id: dat.id,
                 chain: puber.chain,
                 request: JSON.stringify(dat)
-            }
+            } as KvReqT
         }
 
         // TODO
-        re = Suber.G.get(chain, type, puber.subId!)
-        if (isNone(re)) {
-            log.error(`[SBH] send message error: invalid suber ${puber.subId} chain ${chain}`)
+        let sre = Suber.G.get(chain, type, subId!)
+        if (isNone(sre)) {
+            log.error(`[SBH] send message error: invalid suber ${puber.subId} chain ${chain} type ${type}`)
             process.exit(1)
         }
-        const suber = re.value
-
+        const suber: Suber = sre.value
+        log.debug(`ready to send ${type} subscribe request: ${JSON.stringify(sendData)}`)
         // transpond requset
         log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
         return suber.ws.send(JSON.stringify(sendData))

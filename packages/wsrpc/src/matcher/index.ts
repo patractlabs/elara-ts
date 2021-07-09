@@ -65,7 +65,7 @@ namespace Matcher {
 
         kvSuber.pubers = suber.pubers || new Set<IDT>()
         kvSuber.pubers.add(puber.id)
-        Suber.G.updateOrAdd(chain, SuberTyp.Kv, suber)
+        Suber.G.updateOrAdd(chain, SuberTyp.Kv, kvSuber)
 
         // update puber.subId
         puber.subId = suber.id
@@ -83,10 +83,10 @@ namespace Matcher {
         let type = ReqTyp.Rpc
 
         if (isUnsubReq(method)) {
-            log.info(`pre handle unsubscribe request: ${method}: `, data.params, Suber.isSubscribeID(data.params[0]))
+            log.info(`pre handle unsubscribe request: ${method}: `, data.params, Suber.isSubscribeID(data.params![0]))
             type = ReqTyp.Unsub
-            if (data.params.length < 1 || !Suber.isSubscribeID(data.params[0])) {
-                return Err(`invalid unsubscribe params: ${data.params[0]}`)
+            if (data.params!.length < 1 || !Suber.isSubscribeID(data.params![0])) {
+                return Err(`invalid unsubscribe params: ${data.params![0]}`)
             }
         } else if (isSubReq(method)) {
             type = ReqTyp.Sub
@@ -96,15 +96,15 @@ namespace Matcher {
             pubId,
             chain,
             pid,
-            subType: subType,
+            subType,
             subId,
             originId: data.id,
             jsonrpc: data.jsonrpc,
             type,
             method,
-            params: `${data.params}`
+            params: data.params
         } as ReqT
-
+        log.debug(`new ${chain} ${pid} ${subType} request cache: ${JSON.stringify(req)}`)
         GG.addReqCache(req)
 
         data.id = req.id as string
@@ -319,7 +319,7 @@ namespace Matcher {
         log.info(`subscribed topics of chain[${chain}] pid[${pid}]: `, Object.keys(topics))
         for (let id in topics) {
             const sub = topics[id]
-            const params = `${data.params}` || 'none'
+            const params = data.params
             if (sub.method === data.method && sub.params === params) {
                 return true
             }

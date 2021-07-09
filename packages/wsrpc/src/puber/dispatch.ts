@@ -22,7 +22,7 @@ enum RpcTyp {
     Noder = 'node'
 }
 
-const getRpcType = (method: string, params: any[]): RpcTyp => {
+const getRpcType = (method: string, params: string[]): RpcTyp => {
     if (params.length === 0 && Cacher.Rpcs.includes(method)) {
         return RpcTyp.Cacher
     } else if (Kver.Rpcs.includes(method)) {
@@ -31,34 +31,6 @@ const getRpcType = (method: string, params: any[]): RpcTyp => {
     // if (Recorder.Rpcs.includes(method)) { return RpcTyp.Recorder }
     return RpcTyp.Noder
 }
-
-// const dispatchHandler = async (chain: string, data: ReqDataT) => {
-//     const { id, jsonrpc, method, params } = data
-//     const typ = getRpcType(method, params)
-//     switch (typ) {
-//         case RpcTyp.Cacher:
-//             const res = { id, jsonrpc } as WsData
-//             const re: any = await Cacher.send(chain, method)
-//             log.info(`receive suducer result: ${JSON.stringify(re)}`)
-//             // TODO: updateTime check
-//             if (re.result) {
-//                 res['result'] = JSON.parse(re.result)
-//                 return Response.Ok(resp, JSON.stringify(res))
-//             }
-//             res.error = { code: 500, msg: 'error cache response' }
-//             return Response.Fail(resp, JSON.stringify(res), 500)
-//         case RpcTyp.Matcher:
-//             return Response.Ok(resp, 'ok')
-//             break
-//         case RpcTyp.Recorder:
-//             return Response.Ok(resp, 'ok')
-
-//             break
-//         case RpcTyp.Direct:
-//             return Response.Ok(resp, 'ok')
-//             break
-//     }
-// }
 
 export const dispatchRpc = async (chain: string, data: ReqDataT, resp: Http.ServerResponse) => {
     const { id, jsonrpc, method, params } = data
@@ -70,7 +42,7 @@ export const dispatchRpc = async (chain: string, data: ReqDataT, resp: Http.Serv
         res.error = { code: -32090, message: 'Subscriptions are not available on this transport.' }
         return Response.Ok(resp, JSON.stringify(res))
     }
-    const typ = getRpcType(method, params)
+    const typ = getRpcType(method, params!)
     const res = { id, jsonrpc } as WsData
     switch (typ) {
         case RpcTyp.Cacher:
@@ -94,8 +66,8 @@ export const dispatchRpc = async (chain: string, data: ReqDataT, resp: Http.Serv
 
 export const dispatchWs = async (chain: string, data: ReqDataT, puber: Puber) => {
     const { id, jsonrpc, method, params } = data
-    const typ = getRpcType(method, params)
-    log.info(`new ws request ${method} of chain ${chain}: ${typ}`)
+    const typ = getRpcType(method, params!)
+    log.debug(`new ${typ} ws request ${method} of chain ${chain} params ${params}, ${data.params}`)
     switch (typ) {
         case RpcTyp.Cacher:
             // no need to clear puber.subid and suber.pubers
@@ -108,6 +80,8 @@ export const dispatchWs = async (chain: string, data: ReqDataT, puber: Puber) =>
             res.error = { code: 500, message: 'error cache response' }
             return puber.ws.send(JSON.stringify(res))
         case RpcTyp.Kver:
+            // dup subscirbe check
+
             return Kver.send(puber, data)
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))

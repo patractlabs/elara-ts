@@ -177,7 +177,7 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
 
     if (isSecondResp(dat.params)) {
         log.warn(`subscribe second response: ${JSON.stringify(dat)}`)
-        return Ok({ req, data })
+        return Ok({ req, data: JSON.stringify(dat) })
     }
 
     const isClose = isUnsubOnClose(dat)
@@ -261,7 +261,7 @@ const recoverPuberTopics = (puber: Puber, ws: WebSocket, subId: IDT, subsId: str
         id: req.id,
         jsonrpc: "2.0",
         method: req.method,
-        params: req.params || [],
+        params: req.params,
     }
     if (req.subType === SuberTyp.Kv) {
         data = {
@@ -282,7 +282,7 @@ const recoverPuberTopics = (puber: Puber, ws: WebSocket, subId: IDT, subsId: str
     log.info(`Recover subscribed topic[${req.method}] params[${req.params}] of puber [${id}] done`)
 }
 
-const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
+const openHandler = async (chain: string, subType: SuberTyp, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
     log.info(`Into re-open handle chain[${chain}] suber[${subId}] pubers[${pubers}]`)
     for (let pubId of pubers) {
         let re = Puber.G.get(pubId)
@@ -292,17 +292,23 @@ const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set
         }
         const puber = re.value as Puber
         // update suber id
-        puber.subId = subId
+        if (subType === SuberTyp.Node) {
+            puber.subId = subId
+        } else {
+            puber.kvSubId = subId
+        }
+
         if (!puber.topics) {
             log.info(`No topics need to recover of puber [${pubId}]`)
             Puber.G.updateOrAdd(puber)
             continue
         }
+        Puber.G.updateOrAdd(puber)
         // re subscribe topic
         for (let subsId of puber.topics!) {
             recoverPuberTopics(puber, ws, subId, subsId)
         }
-        Puber.G.updateOrAdd(puber)
+        
         log.info(`Recover puber[${pubId}] of chain ${chain} done`)
     }
 }
@@ -396,14 +402,14 @@ const newSuber = (chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         }
         const subTmp = re.value as Suber
         subTmp.stat = SuberStat.Active
-        Suber.G.updateOrAdd(chain, type, suber)
+        Suber.G.updateOrAdd(chain, type, subTmp)
 
         if (!pubers || pubers.size < 1) {
             return
         }
 
         // reconnect to recover matcher or subscription
-        openHandler(chain, suber.id, ws, pubers)
+        openHandler(chain, type, suber.id, ws, pubers)
     })
 
     ws.on('error', (err) => {
@@ -468,6 +474,7 @@ const newSuber = (chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
 
     ws.on('message', (dat: WebSocket.Data) => {
         const start = Util.traceStart()
+        log.debug(`new ${type} suber response: ${JSON.stringify(dat)}`)
         let re = dataParse(dat, type)
         const time = Util.traceEnd(start)
 
@@ -541,6 +548,7 @@ namespace Suber {
         export const get = (chain: string, type: SuberTyp, subId: IDT): Option<Suber> => {
             chain = chain.toLowerCase()
             const ct = `${chain}-${type}`
+            log.debug(`get suber: ${Subers[ct]}, ${!Subers[ct]}, ${Subers[ct][subId]}, ${!Subers[ct][subId]}`)
             if (!Subers[ct] || !Subers[ct][subId]) {
                 return None
             }
