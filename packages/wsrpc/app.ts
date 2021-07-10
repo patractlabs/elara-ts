@@ -171,7 +171,7 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('close', async (code, reason) => {
-        log.error(`puber[${id}] close: ${reason}, code ${code}, current total connections `, wss.clients.size)
+        log.error(`puber[${id}] close: ${reason}, code ${code}, reason[${reason}]\n \tcurrent total puber connections `, wss.clients.size)
         if (reason === Puber.CloseReason.OutOfLimit || reason === Puber.CloseReason.SuberUnavail) {
             return  // out of limit
         }

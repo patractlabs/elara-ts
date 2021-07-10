@@ -4,5 +4,8 @@
     },
     "wspool": {
         "poolSize": 1
+    },
+    "server": {
+        "maxReConn": 4
     }
 }

@@ -5,6 +5,7 @@ import { randomId } from 'lib/utils'
 import { ReqDataT, WsData } from '../interface'
 import Matcher from '../matcher'
 import Suber, { SuberTyp } from '../matcher/suber'
+import GG from '../global'
 
 const log = getAppLogger('puber', true)
 
@@ -13,8 +14,8 @@ interface Puber {
     pid: IDT,
     chain: string,
     ws: WebSocket,
+    topics: Set<string>,   // {subscribeId}
     subId?: IDT,            // suber id
-    topics?: Set<string>,   // {subscribeId}
     event?: EventEmitter
     kvSubId?: IDT,          // kv suber
 }
@@ -34,13 +35,13 @@ namespace Puber {
         }
 
         export const del = (pubId: IDT) => {
-            Pubers[pubId].topics?.clear()
+            // Pubers[pubId].topics?.clear()
             delete Pubers[pubId]
         }
     }
 
     export const create = (ws: WebSocket, chain: string, pid: IDT): Puber => {
-        const puber = { id: randomId(), pid, chain, ws } as Puber
+        const puber = { id: randomId(), pid, chain, ws, topics: new Set() } as Puber
         G.updateOrAdd(puber)
         return puber
     }
@@ -81,7 +82,7 @@ namespace Puber {
         if (type === SuberTyp.Kv) {
             subId = puber.kvSubId
         }
-        log.debug(`new request params: ${JSON.stringify(data.params)}`)
+        log.debug(`new request suber[${subId}] type ${type}`)
         let re = Matcher.newRequest(chain, pid, id, type, subId!, data)
         if (isErr(re)) {
             log.error(`create new request error: ${re.value}`)
@@ -98,7 +99,7 @@ namespace Puber {
         }
 
         // TODO
-        let sre = Suber.G.get(chain, type, subId!)
+        let sre = GG.getSuber(chain, type, subId!)
         if (isNone(sre)) {
             log.error(`[SBH] send message error: invalid suber ${puber.subId} chain ${chain} type ${type}`)
             process.exit(1)

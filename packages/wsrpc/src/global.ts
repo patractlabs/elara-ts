@@ -1,6 +1,8 @@
 import { getAppLogger, IDT } from "lib"
-import { ResultT, Err, Ok } from "lib"
+import { ResultT, Err, Ok, Option, None, Some} from "lib"
 import { ReqT } from "./interface"
+import { ChainSuber, SuberMap } from "./interface"
+import Suber, { SuberTyp,  } from "./matcher/suber"
 const log = getAppLogger('global', true)
 // subscribe type
 export interface SubscripT {
@@ -23,7 +25,51 @@ let ID_CNT: number = 0
 const TryCntMap: { [key in string]: number } = {}
 const ConnCntMap: { [key in string]: { [key in string]: number } } = {}
 
+const Subers: ChainSuber = {}
+
+
 namespace G {
+
+    export const getSuber = (chain: string, type: SuberTyp, subId: IDT): Option<Suber> => {
+        chain = chain.toLowerCase()
+        const ct = `${chain}-${type}`
+        // log.debug(`get suber: ${Subers[ct]}, ${!Subers[ct]}, ${Subers[ct][subId]}, ${!Subers[ct][subId]}`)
+        if (!Subers[ct] || !Subers[ct][subId]) {
+            return None
+        }
+        return Some(Subers[ct][subId])
+    }
+
+    export const getSubersByChain = (chain: string, type: SuberTyp,): SuberMap => {
+        const ct = `${chain.toLowerCase()}-${type}`
+        return Subers[ct] || {}
+    }
+
+    export const getAllSuber = (): ChainSuber => {
+        return Subers
+    }
+
+    export const updateOrAddSuber = (chain: string, type: SuberTyp, suber: Suber): void => {
+        chain = chain.toLowerCase()
+        const ct = `${chain}-${type}`
+        // const sub: SuberMap = {}
+        // sub[suber.id] = suber
+        // Subers[ct] = {
+        //     ...Subers[ct],
+        //     ...sub
+        // }
+        Subers[ct] = Subers[ct] || {}
+        Subers[ct][suber.id] = suber
+        log.debug(`add suber: `, Subers[ct][suber.id].pubers)
+    }
+
+    export const delSuber = (chain: string, type: SuberTyp, subId: IDT): void => {
+        chain = chain.toLowerCase()
+        const ct = `${chain}-${type}`
+        // Subers[ct][subId].pubers?.clear()
+        delete Subers[ct][subId]
+    }
+
     export const getID = (): number => {
         return ID_CNT++
     }
@@ -83,8 +129,8 @@ namespace G {
         return Ok(SubMap[subsId])
     }
 
-    export const delSubReqMap = (subscriptId: string): void => {
-        delete SubMap[subscriptId]
+    export const delSubReqMap = (subsId: string): void => {
+        delete SubMap[subsId]
     }
 
     export const getSubReqMap = () => {

@@ -3,6 +3,8 @@ import Http from 'http'
 import { Ok, Err, getAppLogger, PResultT, PVoidT } from 'lib'
 import Chain from './chain'
 import { ChainPidT } from './interface'
+import GG from './global'
+import { SuberTyp} from './matcher/suber'
 
 const log = getAppLogger('util', true)
 const G = Chain.G
@@ -77,6 +79,13 @@ namespace Util {
         return ''
         // return `suber: ${G.suberCnt()}, puber: ${G.puberCnt()}, topic: ${G.topicCnt()}, subMap: ${G.subMapCnt()}, reqMap: ${G.reqMapCnt()}`
     }
+
+    export function debugSuber() {
+        let ksub = GG.getSubersByChain('polkadot', SuberTyp.Kv)
+        let nsub = GG.getSubersByChain('polkadot', SuberTyp.Node)
+        log.debug(`kv suber pubers: `, ksub[Object.keys(ksub)[0]]?.pubers)
+        log.debug(`node suber pubers: `, nsub[Object.keys(nsub)[0]]?.pubers)
+    }
 }
 
 export namespace Response {
@@ -95,5 +104,7 @@ export namespace Response {
         end(res, data, code)
     }
 }
+
+
 
 export default Util
