@@ -13,7 +13,8 @@ describe('chain test suit', () => {
         excludes: ['system_peers'],
         extends: {
             'system_nodeRoles': RpcStrategy.Abandon,
-        } as RpcMapT
+        } as RpcMapT,
+        kvEnable: true
     }
     it('none', () => {
         let re: any = G.getChain('polkadot')
@@ -40,13 +41,13 @@ describe('chain test suit', () => {
         expect(isSome(re)).toEqual(true)
         const c = re.value
         c.excludes = ['system_health']
-        c.extends = { 'sytem_owner': RpcStrategy.History}
+        c.extends = { 'sytem_owner': RpcStrategy.History }
         G.updateChain(c)
         let res: any = G.getChain('polkadot')
         expect(re).toEqual(res)
         const cc = res.value
         expect(cc.excludes).toEqual(['system_health'])
-        expect(cc.extends).toEqual({ 'sytem_owner': RpcStrategy.History})
+        expect(cc.extends).toEqual({ 'sytem_owner': RpcStrategy.History })
     })
 
     it('delete', () => {
@@ -83,10 +84,10 @@ describe('suducer test suit', () => {
     })
 
     it('update', () => {
-        suducer.topic = {id:'1', topic: 'chain_subscribeNewHeads', params: []}
+        suducer.topic = { id: '1', topic: 'chain_subscribeNewHeads', params: [] }
         G.updateSuducer(suducer)
         let re: any = G.getSuducer(chain, type, id)
-        expect(re.value.topic).toEqual({id:'1', topic: 'chain_subscribeNewHeads', params: []})
+        expect(re.value.topic).toEqual({ id: '1', topic: 'chain_subscribeNewHeads', params: [] })
     })
 
     it('delete', () => {

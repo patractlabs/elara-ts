@@ -21,3 +21,10 @@ export const md5 = (msg: string): string => {
 export const randomReplaceId = (size: number = 16): number => {
     return Buffer.from(crypto.randomBytes(size)).readUIntLE(0, 4)
 }
+
+export const delays = (sec: number, cb: () => void) => {
+    const timer = setTimeout(() => {
+        cb()
+        clearTimeout(timer)
+    }, sec * 1000);
+}

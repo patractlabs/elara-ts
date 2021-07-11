@@ -12,18 +12,22 @@ const Caches: CacheT = {
     SyncAsBlock: [
         "system_syncState",
         "system_health",
+        "system_peers",
         "chain_getHeader",
         "chain_getBlock",
         "chain_getBlockHash",
-        "chain_getFinalizedHead"
+        "chain_getFinalizedHead",
+        "author_pendingExtrinsics"
     ],
     SyncOnce: [
         "rpc_methods",
+        "system_name",
         "system_version",
         "system_chain",
         "system_chainType",
         "system_properties",
-        "state_getMetadata" 
+        "state_getMetadata",
+        "state_getRuntimeVersion"
     ],
     SyncLow: []
 }

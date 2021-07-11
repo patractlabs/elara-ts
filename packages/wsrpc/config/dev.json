@@ -1,0 +1,11 @@
+{
+    "redis": {
+        "host": "127.0.0.1"
+    },
+    "wspool": {
+        "poolSize": 1
+    },
+    "server": {
+        "maxReConn": 4
+    }
+}

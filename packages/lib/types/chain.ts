@@ -17,6 +17,9 @@ export interface ChainConfig {
     chainType?: ChainType,
     rpcPort: number,       // default 9933
     wsPort: number,        // default 9944
+    kvPort?: number,
+    kvEnable: boolean,      // default false
+    kvBaseUrl?: string,
     serverId: number,       // default 0, elara sever id bind
     excludes?: string[] | string,         // exclude rpc methods in basic rpcs
     extends?: RpcMapT | string,           // some special rpc method of chain
