@@ -1,9 +1,8 @@
 import Http from 'http'
 import WebSocket from 'ws'
-import { getAppLogger, Ok, isErr, ChainConfig, PResultT, Err, ResultT } from 'lib'
+import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT } from 'lib'
 import Util from './src/util'
 import { ChainPidT, ReqDataT, WsData } from './src/interface'
-import Dao from './src/dao'
 import Conf, { UnsafeMethods } from './config'
 import { dispatchWs, dispatchRpc } from './src/puber'
 import Service from './src/service'
@@ -11,56 +10,27 @@ import Matcher from './src/matcher'
 import Puber from './src/puber'
 import { Response } from './src/util'
 
-const log = getAppLogger('app', true)
+const log = getAppLogger('app')
 const Server = Http.createServer()
 const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
 
-export async function post(cp: ChainPidT, body: any, resp: Http.ServerResponse): PResultT<Http.ClientRequest> {
-    const chain = cp.chain
-    // const pid = cp.pid
-    let re = await Dao.getChainConfig(chain)
-    if (isErr(re)) {
-        log.error('Request error:', re.value)
-        return Err('invalid chain')
-    }
-    const conf = re.value as ChainConfig
-    let url = `http://${conf.baseUrl}:${conf.rpcPort}`
-    const start = Util.traceStart()
-    const req = Http.request(url, {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json; charset=UTF-8'
-        }
-    }, (res) => {
-        res.pipe(resp)
-        const time = Util.traceEnd(start)
-        log.info(`new rpc response: chain[${chain}] pid[${cp.pid}] body[${body}] time[${time}]`)
-    })
-    req.write(body)
-    req.end()
-    log.info(`Transpond rpc request: `, body)
-    return Ok(req)
-}
-
-const isMethodOk = (method: string): boolean => {
-    return method === 'POST'
-}
-
-const pathOk = async (url: string, host: string): PResultT<ChainPidT> => {
+async function pathOk(url: string, host: string): PResultT<ChainPidT> {
     let nurl = new URL(url, `http://${host}`)
     let path = nurl.pathname
     // chain pid valid check
     return Util.urlParse(path)
 }
 
-const methodUnsafe = (method: string): boolean => {
+function isPostMethod(method: string): boolean {
+    return method === 'POST'
+}
+
+function methodUnsafe(method: string): boolean {
     if (UnsafeMethods.has(method)) return true
     return false
 }
 
-const dataCheck = (data: string): ResultT<WsData> => {
-    log.debug(`data before check: ${data}`)
+function dataCheck(data: string): ResultT<WsData> {
     let dat = JSON.parse(data) as WsData
     if (!dat.id || !dat.jsonrpc || !dat.method || !dat.params) {
         return Err('invalid request must be JSON {"id": string, "jsonrpc": "2.0", "method": "your method", "params": []}')
@@ -68,20 +38,14 @@ const dataCheck = (data: string): ResultT<WsData> => {
     if (methodUnsafe(dat.method)) {
         return Err(`Forbiden Access!`)
     }
-    log.debug(`data afrer check: ${JSON.stringify(dat)}`)
     return Ok(dat)
 }
 // Http rpc request 
 Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse) => {
-    // TODO request static and limit
     // method check
-    log.info(`new rpc request method[${req.method}]`)
-    if (!isMethodOk(req.method!)) {
+    if (!isPostMethod(req.method!)) {
+        log.warn(`Invalid method ${req.method}, only POST support: `, req.url)
         return Response.Fail(res, 'Invalid method, only POST support', 400)
-    }
-
-    if (methodUnsafe(req.method!)) {
-        return Response.Fail(res, `Forbiden Access!`, 400)
     }
 
     // path check
@@ -101,15 +65,17 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
     })
     req.on('end', async () => {
         const dtime = Util.traceEnd(dstart)
-        log.info(`handle rpc request body time[${dtime}]`)
+        log.info(`new rpc request: ${data}, parse time[${dtime}]`)
         let dat: ReqDataT
         try {
             let re = dataCheck(data)
             if (isErr(re)) {
+                log.error(`rpc request error: ${re.value}`)
                 return Response.Fail(res, re.value, 400)
             }
             dat = re.value
         } catch (err) {
+            log.error(`rpc request catch error: `, err)
             return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400)
         }
         // dispatch request 
@@ -159,14 +125,11 @@ wss.on('connection', async (ws, req: any) => {
                 log.error(`${re.value}`)
                 return puber.ws.send(re.value)
             }
-            log.debug(`after data check: ${JSON.stringify(re.value)}`)
             dat = re.value
-            log.debug(`data: ${JSON.stringify(dat)}`)
         } catch (err) {
             log.error('Parse message to JSON error')
             return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
-
         dispatchWs(req.chain, dat, puber)
     })
 
@@ -209,8 +172,8 @@ signalTraps.map((type: any) => {
     })
 })
 
-const run = async () => {
-    let conf = Conf.getServer()
+async function run(): PVoidT {
+    const conf = Conf.getServer()
     await Service.init()
     Server.listen(conf.port, () => {
         log.info('Elara server listen on port: ', conf.port)

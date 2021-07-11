@@ -13,7 +13,7 @@ import http from 'http'
 import { getAppLogger } from 'lib'
 
 
-const log = getAppLogger('puber', true)
+const log = getAppLogger('puber')
 
 const server = () => {
 

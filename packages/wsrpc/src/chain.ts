@@ -5,7 +5,7 @@ import { isErr } from 'lib'
 import Dao, { chainPSub } from './dao'
 import Conf from '../config'
 
-const log = getAppLogger('chain', true)
+const log = getAppLogger('chain')
 
 enum ChainEvt {
     Add    = 'chain-add',

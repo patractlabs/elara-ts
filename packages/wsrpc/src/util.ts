@@ -6,7 +6,7 @@ import { ChainPidT } from './interface'
 import GG from './global'
 import { SuberTyp} from './matcher/suber'
 
-const log = getAppLogger('util', true)
+const log = getAppLogger('util')
 const G = Chain.G
 
 const UrlReg = (() => {

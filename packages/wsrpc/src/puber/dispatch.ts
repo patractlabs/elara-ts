@@ -1,9 +1,7 @@
 import Http from 'http'
-import { getAppLogger, dotenvInit } from 'lib'
-dotenvInit()
+import { getAppLogger, PVoidT } from 'lib'
 
-const out = process.env.NODE_ENV == 'dev'
-const log = getAppLogger('dispatch', out)
+const log = getAppLogger('dispatch')
 
 
 import Cacher from "../cacher"
@@ -15,6 +13,7 @@ import Topic from '../matcher/topic'
 import Noder from '../noder'
 import Kver from '../kver'
 
+
 enum RpcTyp {
     Cacher = 'cache',
     Kver = 'kv',
@@ -22,7 +21,7 @@ enum RpcTyp {
     Noder = 'node'
 }
 
-const getRpcType = (method: string, params: string[]): RpcTyp => {
+function getRpcType(method: string, params: string[]): RpcTyp {
     if (params.length === 0 && Cacher.Rpcs.includes(method)) {
         return RpcTyp.Cacher
     } else if (Kver.Rpcs.includes(method)) {
@@ -32,7 +31,7 @@ const getRpcType = (method: string, params: string[]): RpcTyp => {
     return RpcTyp.Noder
 }
 
-export const dispatchRpc = async (chain: string, data: ReqDataT, resp: Http.ServerResponse) => {
+export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.ServerResponse): PVoidT {
     const { id, jsonrpc, method, params } = data
     log.info(`new rpc request ${method} of chain ${chain}`)
 
@@ -61,13 +60,16 @@ export const dispatchRpc = async (chain: string, data: ReqDataT, resp: Http.Serv
         case RpcTyp.Noder:
             res.result = `direct: ${method}`
             return Noder.sendRpc(chain, data, resp)
+        default:
+            log.error(`[SBH] no this rpc request type: ${typ}`)
+            break
     }
 }
 
-export const dispatchWs = async (chain: string, data: ReqDataT, puber: Puber) => {
+export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber): PVoidT {
     const { id, jsonrpc, method, params } = data
     const typ = getRpcType(method, params!)
-    log.debug(`new ${typ} ws request ${method} of chain ${chain} params ${params}, ${data.params}`)
+    log.debug(`new ${typ} ws request ${method} of chain ${chain} params: `, params)
     switch (typ) {
         case RpcTyp.Cacher:
             // no need to clear puber.subid and suber.pubers
@@ -86,7 +88,7 @@ export const dispatchWs = async (chain: string, data: ReqDataT, puber: Puber) =>
         case RpcTyp.Noder:
             return Noder.sendWs(puber, data)
         default:
-            log.error(`[SBH] no this request type: ${typ}`)
+            log.error(`[SBH] no this ws request type: ${typ}`)
             break
     }
 }

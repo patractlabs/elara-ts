@@ -4,7 +4,7 @@ import { getAppLogger, KEYS } from 'lib'
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
 
-const log = getAppLogger('redis', true)
+const log = getAppLogger('redis')
 
 // TODO redis pool
 const chainClient = Redis.newClient(DBT.Chain)

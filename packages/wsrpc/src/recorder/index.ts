@@ -2,7 +2,7 @@
 import { Sequelize, DataTypes } from 'sequelize'
 import { getAppLogger } from 'lib'
 
-const log = getAppLogger('recorder', true)
+const log = getAppLogger('recorder')
 
 const Sq = new Sequelize({
     host: '127.0.0.1',

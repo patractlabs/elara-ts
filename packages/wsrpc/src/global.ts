@@ -3,7 +3,7 @@ import { ResultT, Err, Ok, Option, None, Some} from "lib"
 import { ReqT } from "./interface"
 import { ChainSuber, SuberMap } from "./interface"
 import Suber, { SuberTyp,  } from "./matcher/suber"
-const log = getAppLogger('global', true)
+const log = getAppLogger('global')
 // subscribe type
 export interface SubscripT {
     id: string,

@@ -3,7 +3,7 @@ import Redis, { RClientT, DBT } from 'lib/utils/redis'
 import { getAppLogger } from 'lib'
 import { randomId } from 'lib/utils'
 
-const log = getAppLogger('mq', true)
+const log = getAppLogger('mq')
 
 type SubCbT = (data: any) => void
 

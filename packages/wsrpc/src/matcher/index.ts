@@ -20,7 +20,7 @@ import Util from '../util'
 import Conf from '../../config'
 import Topic from './topic'
 
-const log = getAppLogger('matcher', true)
+const log = getAppLogger('matcher')
 
 const isConnOutOfLimit = async (ws: WebSocket, chain: string, pid: IDT): PBoolT => {
     const wsConf = Conf.getWsPool()
@@ -78,7 +78,6 @@ namespace Matcher {
         // side context set
         GG.incrConnCnt(chain, puber.pid)
         log.info(`regist puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvSuber.id}]: `, Util.globalStat())
-        Util.debugSuber()
         return Ok(puber)
     }
 

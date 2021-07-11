@@ -6,7 +6,7 @@ import Util from '../util'
 import Puber from '../puber'
 import { SuberTyp } from '../matcher/suber'
 
-const log = getAppLogger('noder', true)
+const log = getAppLogger('noder')
 
 const post = (chain: string, url: string, data: ReqDataT, resp: Http.ServerResponse) => {
     const start = Util.traceStart()
@@ -19,7 +19,7 @@ const post = (chain: string, url: string, data: ReqDataT, resp: Http.ServerRespo
     }, (res) => {
         res.pipe(resp)
         const time = Util.traceEnd(start)
-        log.info(`new rpc response: chain[${chain}] method ${data.method} time[${time}]`)
+        log.info(`new node rpc response: chain[${chain}] method ${data.method} time[${time}]`)
     })
     req.write(JSON.stringify(data))
     req.end()

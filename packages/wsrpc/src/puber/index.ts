@@ -7,7 +7,7 @@ import Matcher from '../matcher'
 import Suber, { SuberTyp } from '../matcher/suber'
 import GG from '../global'
 
-const log = getAppLogger('puber', true)
+const log = getAppLogger('puber')
 
 interface Puber {
     id: IDT,
@@ -59,7 +59,7 @@ namespace Puber {
 
         G.updateOrAdd(puber)
 
-        log.info(`update puber[${pubId}] topic [${subsId}] done: ${puber.topics}`)
+        log.info(`update puber[${pubId}] topic [${subsId}] done: `, puber.topics)
         return Ok(puber)
     }
 

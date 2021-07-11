@@ -1,7 +1,7 @@
 import { getAppLogger } from 'lib'
 import Dao from '../dao'
 
-const log = getAppLogger('suducer', true)
+const log = getAppLogger('suducer')
 
 namespace Cacher {
     export const Rpcs = [
