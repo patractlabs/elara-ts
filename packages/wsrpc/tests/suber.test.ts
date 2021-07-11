@@ -1,7 +1,8 @@
 import WebSocket from "ws"
 import { randomId } from "lib/utils"
 import Suber, { SuberTyp, SuberStat } from "../src/matcher/suber"
-import { isNone } from "../../lib"
+import { isNone } from "lib"
+import G from '../src/global'
 
 describe('suber G test suit', () => {
     const ws = {} as WebSocket
@@ -13,20 +14,20 @@ describe('suber G test suit', () => {
     const pubers = new Set([pubId])
     const suber = { id: subId, ws, url, chain, type, stat: SuberStat.Create, pubers } as Suber
     it('none', () => {
-        let re = Suber.G.getAll()
+        let re = G.getAllSuber()
         expect(re).toEqual({})
     })
 
     it('add', () => {
-        Suber.G.updateOrAdd(chain, type, suber)
-        let re: any = Suber.G.get(chain, type, subId)
+        G.updateOrAddSuber(chain, type, suber)
+        let re: any = G.getSuber(chain, type, subId)
         expect(isNone(re)).toBeFalsy()
         const sub = re.value as Suber
         expect(sub.pubers).toEqual(new Set([pubId]))
         let pid = randomId()
         sub.pubers?.add(pid)
-        Suber.G.updateOrAdd(chain, type, sub)
-        let res: any = Suber.G.get(chain, type, sub.id)
+        G.updateOrAddSuber(chain, type, sub)
+        let res: any = G.getSuber(chain, type, sub.id)
         expect(res.value.pubers).toEqual(new Set([pubId, pid]))
     })
 })

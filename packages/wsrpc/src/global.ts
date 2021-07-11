@@ -31,7 +31,6 @@ const Subers: ChainSuber = {}
 namespace G {
 
     export const getSuber = (chain: string, type: SuberTyp, subId: IDT): Option<Suber> => {
-        chain = chain.toLowerCase()
         const ct = `${chain}-${type}`
         // log.debug(`get suber: ${Subers[ct]}, ${!Subers[ct]}, ${Subers[ct][subId]}, ${!Subers[ct][subId]}`)
         if (!Subers[ct] || !Subers[ct][subId]) {
@@ -41,7 +40,7 @@ namespace G {
     }
 
     export const getSubersByChain = (chain: string, type: SuberTyp,): SuberMap => {
-        const ct = `${chain.toLowerCase()}-${type}`
+        const ct = `${chain}-${type}`
         return Subers[ct] || {}
     }
 
@@ -50,24 +49,17 @@ namespace G {
     }
 
     export const updateOrAddSuber = (chain: string, type: SuberTyp, suber: Suber): void => {
-        chain = chain.toLowerCase()
         const ct = `${chain}-${type}`
-        // const sub: SuberMap = {}
-        // sub[suber.id] = suber
-        // Subers[ct] = {
-        //     ...Subers[ct],
-        //     ...sub
-        // }
         Subers[ct] = Subers[ct] || {}
         Subers[ct][suber.id] = suber
-        log.debug(`add suber: `, Subers[ct][suber.id].pubers)
+        log.debug(`updateOradd ${chain} ${type} suber[${suber.id}] pubers: `, Subers[ct][suber.id].pubers)
     }
 
     export const delSuber = (chain: string, type: SuberTyp, subId: IDT): void => {
-        chain = chain.toLowerCase()
         const ct = `${chain}-${type}`
-        // Subers[ct][subId].pubers?.clear()
+        // Subers[ct][subId].pubers?.clear()    // BUG: will clear other  suber's pubers
         delete Subers[ct][subId]
+        log.debug(`delete ${chain} ${type} suber[${subId}] result: `, Subers[ct][subId] === undefined)
     }
 
     export const getID = (): number => {
@@ -75,21 +67,20 @@ namespace G {
     }
 
     export const resetTryCnt = (chain: string) => {
-        chain = chain.toLowerCase()
         TryCntMap[chain] = 0
     }
 
     export const incrTryCnt = (chain: string) => {
-        chain = chain.toLowerCase()
+        chain = chain
         TryCntMap[chain] = 1 + TryCntMap[chain] || 0
     }
 
     export const getTryCnt = (chain: string) => {
-        chain = chain.toLowerCase()
         return TryCntMap[chain] || 0
     }
 
     export const incrConnCnt = (chain: string, pid: IDT) => {
+        chain = chain
         ConnCntMap[chain] = ConnCntMap[chain] || {}
         ConnCntMap[chain][pid] = ConnCntMap[chain][pid] || 0
         ConnCntMap[chain][pid] += 1
@@ -166,29 +157,24 @@ namespace G {
     }
 
     export const addSubTopic = (chain: string, pid: IDT, topic: SubscripT): void => {
-        const key = `${chain.toLowerCase()}-${pid}`
-        const newSub: SubscripMap = {}
-        newSub[topic.id!] = topic
+        const key = `${chain}-${pid}`
 
-        TopicSubed[key] = {
-            ...TopicSubed[key],
-            ...newSub
-        }
+        TopicSubed[key] = TopicSubed[key] || {}
+        TopicSubed[key][topic.id] = topic
     }
 
     export const remSubTopic = (chain: string, pid: IDT, subsId: string): void => {
-        chain = chain.toLowerCase()
         const key = `${chain}-${pid}`
         if (!TopicSubed[key]) return
 
         delete TopicSubed[key][subsId]
-        if (Object.keys(TopicSubed[key])) {
+        if (Object.keys(TopicSubed[key]).length == 0) {
             delete TopicSubed[key]
         }
     }
 
     export const getSubTopic = (chain: string, pid: IDT, subsId: IDT): ResultT<SubscripT> => {
-        const key = `${chain.toLowerCase()}-${pid}`
+        const key = `${chain}-${pid}`
         if (!TopicSubed[key] || !TopicSubed[key][subsId]) {
             return Err(`Invalid subscribed topic: chain ${chain} pid[${pid} id[${subsId}]`)
         }
@@ -196,7 +182,6 @@ namespace G {
     }
 
     export const getSubTopics = (chain: string, pid: IDT): SubscripMap => {
-        chain = chain.toLowerCase()
         const key = `${chain}-${pid}`
         if (!TopicSubed[key]) {
             return {}

@@ -200,6 +200,7 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
             return Err(`Set subscribe context of puber[${req.pubId}] topic[${req.method}] error: ${re.value}`)
         }
         log.info(`Puber[${req.pubId}] subscribe topic[${req.method}] params[${req.params}] successfully: ${subsId}`)
+        log.debug(`subscribe topics: ${JSON.stringify(GG.getAllSubTopics())}`)
     } else {
         // rpc request, maybe big data package
         log.info(`New web socket response puber[${req.pubId}] method[${req.method}] params[${req.params}]`)
@@ -296,6 +297,7 @@ const openHandler = async (chain: string, subType: SuberTyp, subId: IDT, ws: Web
         
         log.info(`Recover puber[${pubId}] of chain ${chain} done`)
         Util.debugSuber()
+        log.debug(`subscribe topics: ${JSON.stringify(GG.getAllSubTopics())}`)
     }
 }
 
@@ -438,6 +440,7 @@ const newSuber = (chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
                 log.info(`suber ${subTmp.id} closed: clear context of chain ${chain} done`)
             }
         }
+        log.debug(`subscribe topics: ${JSON.stringify(GG.getAllSubTopics())}`)
 
         // delete suber before
         GG.delSuber(chain, type, suber.id)
@@ -521,49 +524,6 @@ interface Suber {
  */
 
 namespace Suber {
-
-    // export namespace G {
-    //     let Subers: ChainSuber = {}
-
-    //     export const get = (chain: string, type: SuberTyp, subId: IDT): Option<Suber> => {
-    //         chain = chain.toLowerCase()
-    //         const ct = `${chain}-${type}`
-    //         // log.debug(`get suber: ${Subers[ct]}, ${!Subers[ct]}, ${Subers[ct][subId]}, ${!Subers[ct][subId]}`)
-    //         if (!Subers[ct] || !Subers[ct][subId]) {
-    //             return None
-    //         }
-    //         return Some(Subers[ct][subId])
-    //     }
-
-    //     export const getByChain = (chain: string, type: SuberTyp,): SuberMap => {
-    //         const ct = `${chain.toLowerCase()}-${type}`
-    //         return Subers[ct] || {}
-    //     }
-
-    //     export const getAll = (): ChainSuber => {
-    //         return Subers
-    //     }
-
-    //     export const updateOrAdd = (chain: string, type: SuberTyp, suber: Suber): void => {
-    //         chain = chain.toLowerCase()
-    //         const ct = `${chain}-${type}`
-    //         // const sub: SuberMap = {}
-    //         // sub[suber.id] = suber
-    //         // Subers[ct] = {
-    //         //     ...Subers[ct],
-    //         //     ...sub
-    //         // }
-    //         Subers[ct] = Subers[ct] || {}
-    //         Subers[ct][suber.id] = suber
-    //     }
-
-    //     export const del = (chain: string, type: SuberTyp, subId: IDT): void => {
-    //         chain = chain.toLowerCase()
-    //         const ct = `${chain}-${type}`
-    //         Subers[ct][subId].pubers?.clear()
-    //         delete Subers[ct][subId]
-    //     }
-    // }
 
     export const selectSuber = async (chain: string, type: SuberTyp,): PResultT<Suber> => {
 
