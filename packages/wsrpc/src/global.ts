@@ -52,7 +52,7 @@ namespace G {
         const ct = `${chain}-${type}`
         Subers[ct] = Subers[ct] || {}
         Subers[ct][suber.id] = suber
-        log.debug(`updateOradd ${chain} ${type} suber[${suber.id}] pubers: `, Subers[ct][suber.id].pubers)
+        // log.debug(`updateOradd ${chain} ${type} suber[${suber.id}] pubers: `, Subers[ct][suber.id].pubers)
     }
 
     export const delSuber = (chain: string, type: SuberTyp, subId: IDT): void => {
@@ -105,12 +105,13 @@ namespace G {
     }
 
     // 
-    export const addSubReqMap = (subscriptId: string, id: IDT) => {
-        if (SubMap[subscriptId]) {
+    export const addSubReqMap = (subsId: string, id: IDT) => {
+        if (SubMap[subsId]) {
             log.error(`add new subscribe map error: subscribe ID exist`)
             process.exit(2)
         }
-        SubMap[subscriptId] = id
+        SubMap[subsId] = id
+        log.debug(`add new subscribe Id map: ${subsId}`)
     }
 
     export const getReqId = (subsId: string): ResultT<IDT> => {
@@ -122,6 +123,7 @@ namespace G {
 
     export const delSubReqMap = (subsId: string): void => {
         delete SubMap[subsId]
+        log.debug(`delete subscribe Id map: ${subsId}`)
     }
 
     export const getSubReqMap = () => {

@@ -26,7 +26,7 @@ const SubReg = (() => {
 
 const isSubID = (id: string): boolean => {
     // log.debug(`test subscribe ID [${id}]`)
-    const okLen = id.length === 16 // make sure length equals 16
+    const okLen = id?.length === 16 ?? false // make sure length equals 16
     if (!okLen) return false
     return SubReg.test(id) 
 }
@@ -67,8 +67,8 @@ const parseReq = (dat: WsData): ResultT<ReqT | boolean> => {
         // unsubscribe data when puber close
         const re = GG.getReqId((dat.id)!.toString())
         if (isErr(re)) {
-            log.error(`parse unsubscribe data error: ${JSON.stringify(dat)}`)
-            process.exit(1)
+            log.error(`parse request id error when puber closed: ${re.value}`)
+            process.exit(2)
         }
         reqId = re.value    // the subscribe request id
         log.info(`unsubscribe result when puber closed,fetch subscribe request ${reqId}`)
@@ -94,15 +94,18 @@ const parseReq = (dat: WsData): ResultT<ReqT | boolean> => {
 const handleUnsubscribe = (req: ReqT, dres: boolean): void => {
     // rem subed topic, update puber.topics del submap
     // emit done event when puber.topics.size == 0
+    const pubId = req.pubId
     const re = Puber.G.get(req.pubId)
+    let puber
     if (isNone(re)) {
-        log.error(`handle unsubscribe error: invalid puber ${req.pubId}`)
-        process.exit(1)
+        log.error(`handle unsubscribe error: invalid puber ${req.pubId}, may closed`)
+        // process.exit(1)
+    } else {
+        puber = re.value as Puber
     }
-    const puber = re.value as Puber
 
     if (dres === false) {
-        log.error(`Puber[${puber.id}] unsubscribe fail: chain[${req.chain}] pid[${req.pid}] topic[${req.method}] params[${req.params}] id[${req.subsId}]`)
+        log.error(`Puber[${pubId}] unsubscribe fail: chain[${req.chain}] pid[${req.pid}] topic[${req.method}] params[${req.params}] id[${req.subsId}]`)
     } else {
         const subsId = req.params
         let re = GG.getReqId(subsId)
@@ -116,15 +119,19 @@ const handleUnsubscribe = (req: ReqT, dres: boolean): void => {
         GG.remSubTopic(req.chain, req.pid, subsId)
 
         GG.delSubReqMap(subsId)
+        log.debug(`clear subscribe context cache: subsId[${subsId}] reqId[${reqId}]`)
 
-        puber.topics?.delete(subsId)
-        Puber.G.updateOrAdd(puber)
-        log.info(`current topic size ${puber.topics?.size}, has event: ${puber.event !== undefined} of puber[${puber.id}]`)
-        if (puber.topics?.size === 0 && puber.event) {
-            puber.event?.emit('done')
-            log.info(`all topic unsubescribe of puber[${puber.id}], emit puber clear done.`)
+        if (puber !== undefined) {
+            puber.topics?.delete(subsId)
+            Puber.G.updateOrAdd(puber)
+            log.info(`current topic size ${puber.topics?.size}, has event: ${puber.event !== undefined} of puber[${puber.id}]`)
+            if (puber.topics?.size === 0 && puber.event) {
+                puber.event?.emit('done')
+                log.info(`all topic unsubescribe of puber[${puber.id}], emit puber clear done.`)
+            }
         }
-        log.info(`Puber[${puber.id}] unsubscribe success: chain[${req.chain}] pid[${req.pid}] topic[${req.method}] params[${req.params}] id[${req.subsId}]`)
+        
+        log.info(`Puber[${pubId}] unsubscribe success: chain[${req.chain}] pid[${req.pid}] topic[${req.method}] params[${req.params}] id[${req.subsId}]`)
     }
 }
 
@@ -140,6 +147,7 @@ type DParT = {
 const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
     let dat = JSON.parse(data as string)
     if (subType === SuberTyp.Kv) {
+        log.info(`new kv ws response: id ${dat.id} chain ${dat.chain}`)
         if (dat.data) {
             // subscribe response
             dat = JSON.parse(dat.data)
@@ -147,8 +155,6 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
             dat = JSON.parse(dat.result)
         }
         // dat.error: no need handle
-
-        log.info(`new kv ws response: ${JSON.stringify(dat)}`)
     } else {
         log.info(`new node ws response: ${JSON.stringify(dat)}`)
     }
@@ -160,7 +166,7 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
         return Err(`${re.value}`)
     }
     if (re.value === true) {
-        return re
+        return Ok({req: {} as ReqT, data: true})
     }
 
     const req = re.value as ReqT
@@ -178,9 +184,8 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
         return Ok({ req, data: JSON.stringify(dat) })
     }
     const dres = dat.result
-    const isSubId = isSubID(dres)
+    const isClose = isUnsubOnClose(dat, isSubID(dat.id))
     dat.id = req.originId
-    const isClose = isUnsubOnClose(dat, isSubId)
 
     let dataToSend = Util.respFastStr(dat)
     if (dat.error) {
@@ -189,9 +194,24 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
         log.debug(`unsubscribe response: ${JSON.stringify(dat)}`)
         handleUnsubscribe(req, dres)
         if (req.originId === 0) { return Ok({ req, data: true }) }
-    } else if (isSubRequest(req.type, isSubId)) {
+    } else if (isSubRequest(req.type, isSubID(dres))) {
         // first response of subscribe
+        // NOTE: may receive after puber closed
         log.debug(`first response of subscribe method[${req.method}] params[${req.params}] puber[${req.pubId}]: `, dat)
+        // check puber is closed or not
+        const pubre = Puber.G.get(req.pubId)
+        if (isNone(pubre)) {
+            log.warn(`puber ${req.pubId} has been closed, clear subscribe context`)
+            req.subsId = dres
+            GG.updateReqCache(req)
+            // update submap
+            GG.addSubReqMap(dres, req.id)
+
+            // unsubscribe topic; clear cache
+            Suber.unsubscribe(req.chain, req.subType, req.subId, req.method, dres)
+            return Err(`puber ${req.pubId} has been closed`)
+        }
+
         const subsId = dat.result
 
         // WTF: set suscribe context, cannot be async, will race
@@ -211,12 +231,12 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
 const puberSend = (pubId: IDT, dat: WebSocket.Data) => {
     let re = Puber.G.get(pubId)
     if (isNone(re)) {
-        log.error(`[SBH] invalid puber ${pubId}, may be closed`)
-        process.exit(1)
+        log.error(`invalid puber ${pubId}, has been closed`)
+        return
     }
     const puber = re.value as Puber
     puber.ws.send(dat)
-    log.debug(`${puber.chain} puber ${pubId} send response: `, dat)
+    log.debug(`${puber.chain} puber ${pubId} send response `)
 }
 
 const recoverPuberTopics = (puber: Puber, ws: WebSocket, subType: SuberTyp, subId: IDT, subsId: string) => {

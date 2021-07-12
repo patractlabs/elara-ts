@@ -1,6 +1,7 @@
 import { getAppLogger, Ok, PResultT, Err } from 'lib'
 import { performance } from 'perf_hooks'
 import G from './global'
+import { ChainPidT } from './interface'
 // import FastStr from 'fast-json-stringify'
 
 const log = getAppLogger('util', true)
@@ -46,7 +47,7 @@ namespace Util {
     //     }
     // })
 
-    export const urlParse = async (url: string): PResultT => {
+    export const urlParse = async (url: string): PResultT<ChainPidT> => {
         const start = traceStart()
         if (UrlReg.test(url)) {
             const parse = UrlReg.exec(url)

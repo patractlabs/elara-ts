@@ -57,17 +57,14 @@ namespace Matcher {
 
         // create new puber 
         const puber = Puber.create(ws, chain, pid)
-        log.debug(`before node suber ${suber.id} pubers: `, suber.pubers)
 
         // update suber.pubers
         suber.pubers = suber.pubers || new Set<IDT>()
         suber.pubers.add(puber.id)
-        log.debug(`node suber ${suber.id} pubers: `, suber.pubers)
         GG.updateOrAddSuber(chain, SuberTyp.Node, suber)
 
         kvSuber.pubers = suber.pubers || new Set<IDT>()
         kvSuber.pubers.add(puber.id)
-        log.debug(`kv suber ${kvSuber.id} pubers: `, suber.pubers)
         GG.updateOrAddSuber(chain, SuberTyp.Kv, kvSuber)
 
         // update puber.subId
@@ -138,10 +135,10 @@ namespace Matcher {
         return Ok(void (0))
     }
 
-    const remPuber = (chain: string, subType: SuberTyp, subId: IDT, pubId: IDT): void => {
+    const remSuberPubers = (chain: string, subType: SuberTyp, subId: IDT, pubId: IDT): void => {
         let re = GG.getSuber(chain, subType, subId)
         if (isNone(re)) {
-            log.error(`handle puber close error: invalid ${chain} suber ${subId} type ${subType}`)
+            log.error(`[SBH] handle puber close error: invalid ${chain} suber ${subId} type ${subType}`)
             process.exit(2)
         }
         const suber = re.value
@@ -149,21 +146,22 @@ namespace Matcher {
         GG.updateOrAddSuber(chain, subType, suber)
     }
 
-    const clearSuberContext = (puber: Puber, reason: Puber.CloseReason) => {
+    const clearSubscribeContext = (puber: Puber, reason: Puber.CloseReason) => {
         const ptopics = puber.topics || new Set()
         if (reason === Puber.CloseReason.Node) {
-            remPuber(puber.chain,SuberTyp.Kv, puber.kvSubId!, puber.id)
+            remSuberPubers(puber.chain,SuberTyp.Kv, puber.kvSubId!, puber.id)
         } else if (reason === Puber.CloseReason.Kv) {
-            remPuber(puber.chain, SuberTyp.Node, puber.subId!, puber.id)
+            remSuberPubers(puber.chain, SuberTyp.Node, puber.subId!, puber.id)
         } else {
-            remPuber(puber.chain,SuberTyp.Kv, puber.kvSubId!, puber.id)
-            remPuber(puber.chain, SuberTyp.Node, puber.subId!, puber.id)
+            remSuberPubers(puber.chain,SuberTyp.Kv, puber.kvSubId!, puber.id)
+            remSuberPubers(puber.chain, SuberTyp.Node, puber.subId!, puber.id)
         }
 
         if (ptopics.size < 1) {
             // delete puber
+            // NOTE: subscribe may not response yet
             Puber.G.del(puber.id)
-            log.info(`handle puber close done: no subscribe topic`)
+            log.info(`handle puber ${puber.id} close done: no subscribe topic`)
             return
         }
         // clear puber when unscribe done
@@ -214,7 +212,7 @@ namespace Matcher {
 
         GG.decrConnCnt(puber.chain, puber.pid)
 
-        clearSuberContext(puber, reason)
+        clearSubscribeContext(puber, reason)
     }
 
     export const isSubscribed = (chain: string, pid: IDT, data: WsData): boolean => {

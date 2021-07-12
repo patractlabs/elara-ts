@@ -51,7 +51,7 @@ const isUnsubOnClose = (dat: WsData): boolean => {
     return isSubID(dat.id!.toString()) && isBool
 }
 
-const parseReq =  (dat: WsData): ResultT => {
+const parseReq =  (dat: WsData): ResultT<ReqT|boolean> => {
     log.info('parse new request: ', JSON.stringify(dat))
     let reqId = dat.id // maybe null
 
@@ -134,13 +134,17 @@ const handleUnsubscribe = (req: ReqT, dres: boolean): void => {
         log.info(`Puber[${puber.id}] unsubscribe success: chain[${req.chain}] pid[${req.pid}] topic[${req.method}] params[${req.params}] id[${req.subsId}]`)
     }
 }
+type DParT = {
+    req: ReqT,
+    data: string | WebSocket.Data | boolean
+}
 
 /// 1. rpc response: clear reqcache, replace originid 
 /// 2. subscribe first response
 /// 3. subscribe response non-first
 /// 4. error response
 /// 5. unsubscribe response
-const dataParse = (data: WebSocket.Data): ResultT => {
+const dataParse = (data: WebSocket.Data): ResultT<DParT> => {
     const dat = JSON.parse(data as string)
 
     // NOTE: if asynclize parseReqId, 

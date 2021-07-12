@@ -1,4 +1,5 @@
 import Http from 'http'
+import Net from 'net'
 import WebSocket from 'ws'
 import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT } from 'lib'
 import Util from './src/util'
@@ -84,12 +85,15 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
 })
 
 // WebSocket request 
-Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
+Server.on('upgrade', async (res: Http.IncomingMessage, socket: Net.Socket, head): PVoidT => {
     const path = res.url!
     const re = await Util.urlParse(path)
     if (isErr(re)) {
         log.error('Invalid socket request: ', re.value)
-        return socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
+        await socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
+        socket.emit('close', true)
+        return
+        // return 
     }
 
     // only handle urlReg pattern request

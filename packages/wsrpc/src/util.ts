@@ -4,7 +4,7 @@ import { Ok, Err, getAppLogger, PResultT, PVoidT } from 'lib'
 import Chain from './chain'
 import { ChainPidT } from './interface'
 import GG from './global'
-import { SuberTyp} from './matcher/suber'
+import { SuberTyp } from './matcher/suber'
 
 const log = getAppLogger('util')
 const G = Chain.G
@@ -85,6 +85,10 @@ namespace Util {
         let nsub = GG.getSubersByChain('polkadot', SuberTyp.Node)
         log.debug(`kv suber pubers: `, ksub[Object.keys(ksub)[0]]?.pubers)
         log.debug(`node suber pubers: `, nsub[Object.keys(nsub)[0]]?.pubers)
+    }
+
+    export async function sleeps(s: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, s * 1000))
     }
 }
 
