@@ -1,6 +1,0 @@
-{
-    "ws": {
-        "maxConn": 10,
-        "poolSize": 5
-    }
-}
