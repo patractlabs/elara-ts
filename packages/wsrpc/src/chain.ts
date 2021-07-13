@@ -2,10 +2,23 @@
 
 import { ChainConfig, getAppLogger, PVoidT } from 'lib'
 import { isErr } from 'lib'
-import Dao, { chainPSub } from './dao'
+import Dao from './dao'
 import Conf from '../config'
+import Redis, {DBT} from 'lib/utils/redis'
 
 const log = getAppLogger('chain')
+
+const pubsubRd = new Redis(DBT.Pubsub)
+const chainPSub = pubsubRd.getClient()
+
+pubsubRd.onConnect(() => {
+    log.info(`redis db pubsub connection open`)
+})
+
+pubsubRd.onError((err: string) => {
+    log.error(`redis db pubsub connectino error: ${err}`)
+    process.exit(2)
+})
 
 enum ChainEvt {
     Add    = 'chain-add',

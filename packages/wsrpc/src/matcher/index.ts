@@ -22,7 +22,7 @@ import Topic from './topic'
 
 const log = getAppLogger('matcher')
 
-const isConnOutOfLimit = async (ws: WebSocket, chain: string, pid: IDT): PBoolT => {
+async function isConnOutOfLimit(ws: WebSocket, chain: string, pid: IDT): PBoolT {
     const wsConf = Conf.getWsPool()
     const curConn = GG.getConnCnt(chain, pid)
     log.info(`current ws connection of chain ${chain} pid[${pid}]: ${curConn}/${wsConf.maxConn}`)
@@ -33,11 +33,11 @@ const isConnOutOfLimit = async (ws: WebSocket, chain: string, pid: IDT): PBoolT 
     return false
 }
 
-const isSubReq = (method: string): boolean => {
+function isSubReq(method: string): boolean {
     return Topic.subscribe.indexOf(method) !== -1
 }
 
-const isUnsubReq = (method: string): boolean => {
+function isUnsubReq(method: string): boolean {
     return Topic.unsubscribe.indexOf(method) !== -1
 }
 
@@ -91,7 +91,7 @@ namespace Matcher {
         } else if (isSubReq(method)) {
             type = ReqTyp.Sub
         }
-        
+
         const req = {
             id: randomId(),
             pubId,
@@ -150,11 +150,11 @@ namespace Matcher {
     const clearSubscribeContext = (puber: Puber, reason: Puber.CloseReason) => {
         const ptopics = puber.topics || new Set()
         if (reason === Puber.CloseReason.Node) {
-            remSuberPubers(puber.chain,SuberTyp.Kv, puber.kvSubId!, puber.id)
+            remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
         } else if (reason === Puber.CloseReason.Kv) {
             remSuberPubers(puber.chain, SuberTyp.Node, puber.subId!, puber.id)
         } else {
-            remSuberPubers(puber.chain,SuberTyp.Kv, puber.kvSubId!, puber.id)
+            remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
             remSuberPubers(puber.chain, SuberTyp.Node, puber.subId!, puber.id)
         }
 

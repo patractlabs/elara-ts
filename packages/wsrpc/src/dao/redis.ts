@@ -7,30 +7,31 @@ const KChain = KEYS.Chain
 const log = getAppLogger('redis')
 
 // TODO redis pool
-const chainClient = Redis.newClient(DBT.Chain)
-const chainRedis = chainClient.client
+const chainRd = new Redis(DBT.Chain)
+const chainRedis = chainRd.getClient()
 
-Redis.onError(chainClient)
-Redis.onConnect(chainClient)
+chainRd.onError((err: string) => {
+    log.error(`redis db chain connectino error: ${err}`)
+    process.exit(2)
+})
 
-// pubsub connection only support pub/sub relate command
-const chainPSClient = Redis.newClient(DBT.Chain)
+chainRd.onConnect(() => {
+    log.info(`redis db chain connection open`)
+})
 
-Redis.onConnect(chainPSClient)
-Redis.onError(chainPSClient)
+const cacheRd = new Redis(DBT.Cache)
+const cacheRedis = cacheRd.getClient()
 
-const cacheClient = Redis.newClient(DBT.Cache)
-const cacheRedis = cacheClient.client
+cacheRd.onConnect(() => {
+    log.info(`redis db cache connection open`)
+})
 
-Redis.onConnect(cacheClient)
-Redis.onError(cacheClient)
+cacheRd.onError((err: string) => {
+    log.error(`chain redis cache connectino error: ${err}`)
+    process.exit(2)
+})
 
 namespace Rd {
-
-    // TODO Result typelize
-
-    export const chainPSub = chainPSClient.client
-
 
     /// chain operation
     export const getChainList = async () => {

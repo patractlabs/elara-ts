@@ -6,9 +6,9 @@ import Puber from "../puber"
 const log = getAppLogger('kv')
 
 class Kver {
-    static Rpcs: string[] = []
-    
-    static Rpc: string[] = [
+    // static Rpcs: string[] = []
+
+    static Rpcs: string[] = [
         "chain_subscribeAllHeads",          // chain_allHead
         "chain_subscribeFinalisedHeads",    // chain_finalizedHead
         "chain_subscribeFinalizedHeads",    // chain_finalizedHead

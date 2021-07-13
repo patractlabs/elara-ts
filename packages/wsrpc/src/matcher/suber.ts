@@ -1,6 +1,6 @@
 import { randomId } from 'lib/utils'
 import WebSocket from 'ws'
-import { ReqT, ReqTyp, WsData,  } from '../interface'
+import { ReqT, ReqTyp, WsData, } from '../interface'
 import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PResultT, isNone } from 'lib'
 import GG from '../global'
 import Chain from '../chain'
@@ -13,7 +13,7 @@ import Topic from './topic'
 
 const log = getAppLogger('suber', process.env.NODE_ENV === 'dev')
 
-const delays = (sec: number, cb: () => void) => {
+function delays(sec: number, cb: () => void) {
     const timer = setTimeout(() => {
         cb()
         clearTimeout(timer)
@@ -24,29 +24,29 @@ const SubReg = (() => {
     return /[0-9a-zA-Z]{16}/
 })()
 
-const isSubID = (id: string): boolean => {
+function isSubscribeID(id: string): boolean {
     // log.debug(`test subscribe ID [${id}]`)
     const okLen = id?.length === 16 ?? false // make sure length equals 16
     if (!okLen) return false
-    return SubReg.test(id) 
+    return SubReg.test(id)
 }
 
-const isSubRequest = (reqType: ReqTyp, isSubId: boolean): boolean => {
+function isSubRequest(reqType: ReqTyp, isSubId: boolean): boolean {
     return reqType === ReqTyp.Sub && isSubId
 }
 
-const isSecondResp = (params: any) => {
+function isSecondResp(params: any) {
     // no need to replace origin id
     return params !== undefined
 }
 
-const isUnsubOnClose = (dat: WsData, isSubId: boolean): boolean => {
+function isUnsubOnClose(dat: WsData, isSubId: boolean): boolean {
     if (!dat.id) { return false }
     const isBool: boolean = dat.result === true || dat.result === false
     return isSubId && isBool
 }
 
-const parseReq = (dat: WsData): ResultT<ReqT | boolean> => {
+function parseReq(dat: WsData): ResultT<ReqT | boolean> {
     let reqId = dat.id // maybe null
 
     if (dat.id === null) {
@@ -63,7 +63,7 @@ const parseReq = (dat: WsData): ResultT<ReqT | boolean> => {
             return Ok(true)
         }
         reqId = re.value
-    } else if (isUnsubOnClose(dat, isSubID(dat.id.toString()))) {
+    } else if (isUnsubOnClose(dat, isSubscribeID(dat.id.toString()))) {
         // unsubscribe data when puber close
         const re = GG.getReqId((dat.id)!.toString())
         if (isErr(re)) {
@@ -82,7 +82,7 @@ const parseReq = (dat: WsData): ResultT<ReqT | boolean> => {
         process.exit(1)
     }
     const req = re.value as ReqT
-    if (dat.id && isUnsubOnClose(dat, isSubID(dat.id.toString()))) {
+    if (dat.id && isUnsubOnClose(dat, isSubscribeID(dat.id.toString()))) {
         log.info(`set unsubscribe request context when puber close`)
         // req.type = ReqTyp.Close   // to clear request cache
         req.params = req.subsId!
@@ -91,7 +91,7 @@ const parseReq = (dat: WsData): ResultT<ReqT | boolean> => {
     return Ok(req)
 }
 
-const handleUnsubscribe = (req: ReqT, dres: boolean): void => {
+function handleUnsubscribe(req: ReqT, dres: boolean): void {
     // rem subed topic, update puber.topics del submap
     // emit done event when puber.topics.size == 0
     const pubId = req.pubId
@@ -130,7 +130,7 @@ const handleUnsubscribe = (req: ReqT, dres: boolean): void => {
                 log.info(`all topic unsubescribe of puber[${puber.id}], emit puber clear done.`)
             }
         }
-        
+
         log.info(`Puber[${pubId}] unsubscribe success: chain[${req.chain}] pid[${req.pid}] topic[${req.method}] params[${req.params}] id[${req.subsId}]`)
     }
 }
@@ -144,7 +144,7 @@ type DParT = {
 /// 3. subscribe response non-first
 /// 4. error response
 /// 5. unsubscribe response
-const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
+function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
     let dat = JSON.parse(data as string)
     if (subType === SuberTyp.Kv) {
         log.info(`new kv ws response: id ${dat.id} chain ${dat.chain}`)
@@ -166,7 +166,7 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
         return Err(`${re.value}`)
     }
     if (re.value === true) {
-        return Ok({req: {} as ReqT, data: true})
+        return Ok({ req: {} as ReqT, data: true })
     }
 
     const req = re.value as ReqT
@@ -184,7 +184,7 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
         return Ok({ req, data: JSON.stringify(dat) })
     }
     const dres = dat.result
-    const isClose = isUnsubOnClose(dat, isSubID(dat.id))
+    const isClose = isUnsubOnClose(dat, isSubscribeID(dat.id))
     dat.id = req.originId
 
     let dataToSend = Util.respFastStr(dat)
@@ -194,7 +194,7 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
         log.debug(`unsubscribe response: ${JSON.stringify(dat)}`)
         handleUnsubscribe(req, dres)
         if (req.originId === 0) { return Ok({ req, data: true }) }
-    } else if (isSubRequest(req.type, isSubID(dres))) {
+    } else if (isSubRequest(req.type, isSubscribeID(dres))) {
         // first response of subscribe
         // NOTE: may receive after puber closed
         log.debug(`first response of subscribe method[${req.method}] params[${req.params}] puber[${req.pubId}]: `, dat)
@@ -228,7 +228,7 @@ const dataParse = (data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> => {
     return Ok({ req, data: dataToSend })
 }
 
-const puberSend = (pubId: IDT, dat: WebSocket.Data) => {
+function puberSend(pubId: IDT, dat: WebSocket.Data) {
     let re = Puber.G.get(pubId)
     if (isNone(re)) {
         log.error(`invalid puber ${pubId}, has been closed`)
@@ -239,7 +239,7 @@ const puberSend = (pubId: IDT, dat: WebSocket.Data) => {
     log.debug(`${puber.chain} puber ${pubId} send response `)
 }
 
-const recoverPuberTopics = (puber: Puber, ws: WebSocket, subType: SuberTyp, subId: IDT, subsId: string) => {
+function recoverPuberTopics(puber: Puber, ws: WebSocket, subType: SuberTyp, subId: IDT, subsId: string) {
     const { id, chain } = puber
     let re = GG.getReqId(subsId)
     if (isErr(re)) {
@@ -288,7 +288,7 @@ const recoverPuberTopics = (puber: Puber, ws: WebSocket, subType: SuberTyp, subI
     log.info(`Recover subscribed topic[${req.method}] params[${req.params}] of puber [${id}] done`)
 }
 
-const openHandler = async (chain: string, subType: SuberTyp, subId: IDT, ws: WebSocket, pubers: Set<IDT>) => {
+async function openHandler(chain: string, subType: SuberTyp, subId: IDT, ws: WebSocket, pubers: Set<IDT>) {
     log.info(`Into re-open handle chain[${chain}] ${subType} suber[${subId}] pubers: `, pubers)
     for (let pubId of pubers) {
         let re = Puber.G.get(pubId)
@@ -314,16 +314,16 @@ const openHandler = async (chain: string, subType: SuberTyp, subId: IDT, ws: Web
         for (let subsId of puber.topics!) {
             recoverPuberTopics(puber, ws, subType, subId, subsId)
         }
-        
+
         log.info(`Recover puber[${pubId}] of chain ${chain} done`)
     }
 }
 
-const isSuberClosed = (reason: Puber.CloseReason): boolean => {
+function isSuberClosed(reason: Puber.CloseReason): boolean {
     return reason === Puber.CloseReason.Kv || reason === Puber.CloseReason.Node
 }
 
-const clearNonSubReqcache = (subId: IDT) => {
+function clearNonSubReqcache(subId: IDT) {
     // TODO: by suber & puber
     const reqs = GG.getAllReqCache()
     log.debug(`clear non subscribe request cache: ${Object.keys(reqs).length}`)
@@ -335,7 +335,7 @@ const clearNonSubReqcache = (subId: IDT) => {
     }
 }
 
-const newSuber = (chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>): Suber => {
+function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>): Suber {
     const ws = new WebSocket(url, { perMessageDeflate: false })
     let suber = { id: randomId(), ws, url, chain, type, stat: SuberStat.Create, pubers } as Suber
     log.info('create new suber with puber: ', pubers)
@@ -487,7 +487,7 @@ const newSuber = (chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
     return suber
 }
 
-const geneUrl = (conf: ChainConfig): string[] => {
+function geneUrl(conf: ChainConfig): string[] {
     let res = [`ws://${conf.baseUrl}:${conf.wsPort}`]
 
     if (conf.kvEnable) {
@@ -600,7 +600,7 @@ namespace Suber {
     }
 
     export const isSubscribeID = (id: string): boolean => {
-        return isSubID(id)
+        return isSubscribeID(id)
     }
 }
 

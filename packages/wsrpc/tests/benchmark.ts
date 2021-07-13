@@ -155,7 +155,7 @@ const connTest = async (loop: number) => {
 
 (async () => {
     if (true) {
-        wsTestRunner(1, true, 5000, WsTyp.Sub)
+        wsTestRunner(1, true, 500, WsTyp.Sub)
     } else {
         // wsTestRunner(0, false, 100)
         connTest(0)

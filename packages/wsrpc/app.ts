@@ -10,6 +10,7 @@ import Service from './src/service'
 import Matcher from './src/matcher'
 import Puber from './src/puber'
 import { Response } from './src/util'
+import unexpectListener from 'lib/utils/unexpect'
 
 const log = getAppLogger('app')
 const Server = Http.createServer()
@@ -64,6 +65,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         }
         data += chunk
     })
+    
     req.on('end', async () => {
         const dtime = Util.traceEnd(dstart)
         log.info(`new rpc request: ${data}, parse time[${dtime}]`)
@@ -151,32 +153,9 @@ wss.on('connection', async (ws, req: any) => {
     return
 })
 
-const errorTypes = ['unhandledRejection', 'uncaughtException']
-const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2']
-
-errorTypes.map(type => {
-    process.on(type, async (err) => {
-        try {
-            log.error(`process on ${type}: `, err)
-            process.exit(1)
-        } catch (_) {
-            log.error(`process catch ${type}: `, err)
-            process.exit(2)
-        }
-    })
-})
-
-signalTraps.map((type: any) => {
-    process.once(type, async (err) => {
-        try {
-            log.error(`process on signal event: ${type}: `, err)
-        } finally {
-            process.kill(process.pid, type)
-        }
-    })
-})
-
 async function run(): PVoidT {
+    unexpectListener()
+
     const conf = Conf.getServer()
     await Service.init()
     Server.listen(conf.port, () => {
