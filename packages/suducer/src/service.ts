@@ -148,7 +148,7 @@ namespace Service {
         // cache service
         Cacheable.run(chains)
 
-        // subscribe service
+        // subscribe runtimeVersion update
         Subscribe.run(chains)
     }
 }

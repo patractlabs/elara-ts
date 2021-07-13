@@ -32,21 +32,11 @@ const Caches: CacheT = {
     SyncLow: []
 }
 const Pubsubs: PubsubT = {
-    Sub: [
-        "chain_subscribeAllHeads",
-        "chain_subscribeNewHeads", 
-        "chain_subscribeFinalizedHeads", 
+    Sub: [      
         "state_subscribeRuntimeVersion",   
-        "state_subscribeStorage", 
-        "grandpa_subscribeJustifications"
     ],
     Unsub: [
-        "chain_unsubscribeAllHeads",
-        "chain_unsubscribeNewHeads",
-        "chain_unsubscribeFinalizedHeads", 
         "state_unsubscribeRuntimeVersion", 
-        "state_unsubscribeStorage",
-        "grandpa_unsubscribeJustifications"
     ]
 }
 

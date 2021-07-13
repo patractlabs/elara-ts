@@ -12,31 +12,29 @@ const rdConf = Conf.getRedis()
 log.warn(`current env ${process.env.NODE_ENV}, redis configure: ${JSON.stringify(rdConf)}`)
 // TODO redis pool
 
-const chainClient = Redis.newClient(DBT.Chain, {host: rdConf.host, port: rdConf.port})
-const chainRedis = chainClient.client
+const chainRd = new Redis(DBT.Chain, {host: rdConf.host, port: rdConf.port})
+const chainRedis = chainRd.getClient()
 
-Redis.onError(chainClient)
-Redis.onConnect(chainClient)
+chainRd.onError((err: string) => {
+    log.error(`redis db chain connection error: ${err}`)
+    process.exit(1)
+})
+chainRd.onConnect(() => {
+    log.info('redis db chain connection open')
+})
 
-// pubsub connection only support pub/sub relate command
-const chainPSClient = Redis.newClient(DBT.Chain, {host: rdConf.host, port: rdConf.port})
+const cacheRd = new Redis(DBT.Cache, {host: rdConf.host, port: rdConf.port})
+const cacheRedis = cacheRd.getClient()
 
-Redis.onConnect(chainPSClient)
-Redis.onError(chainPSClient)
-
-const cacheClient = Redis.newClient(DBT.Cache, {host: rdConf.host, port: rdConf.port})
-const cacheRedis = cacheClient.client
-
-Redis.onConnect(cacheClient)
-Redis.onError(cacheClient)
+cacheRd.onConnect(() => {
+    log.info('redis db cache connection open')
+})
+cacheRd.onError((err: string) => {
+    log.error(`redis db cache connection error: ${err}`)
+    process.exit(1)
+})
 
 namespace Rd {
-
-    // TODO Result typelize
-
-    export const chainPSub = chainPSClient.client
-
-
     /// chain operation
     export const getChainList = async () => {
         return chainRedis.zrange(KChain.zChainList(), 0, -1)

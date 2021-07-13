@@ -2,10 +2,24 @@
 
 import { ChainConfig, getAppLogger, PVoidT } from 'lib'
 import { isErr } from 'lib'
-import Dao, { chainPSub } from './dao'
+import Dao from './dao'
 import { G } from './global'
 import Conf from '../config'
 const log = getAppLogger('chain', true)
+import Redis, { DBT } from 'lib/utils/redis'
+
+const redisConf = Conf.getRedis()
+const pubsubRd = new Redis(DBT.Pubsub, {host: redisConf.host, port: redisConf.port})
+const PSuber = pubsubRd.getClient()
+
+pubsubRd.onConnect(() => {
+    log.info('redis db pubsub connectino open')
+})
+
+pubsubRd.onError((err: string) => {
+    log.error(`redis db pubsub conection error: ${err}`)
+    process.exit(1)
+})
 
 enum Topic {
     ChainAdd    = 'chain-add',
@@ -33,11 +47,11 @@ const chainUpdateHandler = async (chain: string): PVoidT => {
 }
 
 // pattern subscription
-chainPSub.psubscribe('*', (err, topicNum) => {
+PSuber.psubscribe('*', (err, topicNum) => {
     log.info('psubscribe all chain event topic!', err, topicNum)
 })
 
-chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
+PSuber.on('pmessage', (_pattern, chan, chain: string) => {
     log.info('received new topic message: ', chan)
     switch(chan) {
         case Topic.ChainAdd:
@@ -56,10 +70,6 @@ chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
             log.info(`Unknown topic [${chan}] message: `, chain)
             break
     }
-})
-
-chainPSub.on('error', (err) => {
-    log.error('Redis chain-server listener error: ', err)
 })
 
 namespace Chain {

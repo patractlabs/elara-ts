@@ -18,7 +18,7 @@ dotenvInit()
 
 import Conf from '../config'
 
-const log = getAppLogger('pool', true)
+const log = getAppLogger('pool')
 
 const delays = (sec: number, cb: () => void) => {
     const timer = setTimeout(() => {
@@ -156,7 +156,7 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
             if (method === 'state_subscribeRuntimeVersion') {
                 // update syncOnce 
                 log.warn(`runtime version update`)
-                Dao.updateChainCache(chain, method, dat.params.result)
+                // Dao.updateChainCache(chain, method, dat.params.result)
                 Service.Cacheable.syncOnceService(chain)
             }
         }

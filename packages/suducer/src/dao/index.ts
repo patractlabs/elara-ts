@@ -20,6 +20,4 @@ namespace Dao {
     }
 }
 
-export const chainPSub = Rd.chainPSub
-
 export default Dao
