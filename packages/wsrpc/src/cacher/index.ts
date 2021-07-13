@@ -3,9 +3,11 @@ import Dao from '../dao'
 
 const log = getAppLogger('suducer')
 
-namespace Cacher {
-    export const Rpcs = [
+class Cacher {
 
+    private static status: boolean = true
+
+    static Rpcs: string[] = [
         // sync when block update
         "system_syncState",
         "system_health",
@@ -27,7 +29,15 @@ namespace Cacher {
         "state_getRuntimeVersion"
     ]
 
-    export const send = async (chain: string, method: string): Promise<Record<string, string>> => {
+    static statusOk(): boolean {
+        return Cacher.status
+    }
+
+    static updateStatus(status: boolean): void {
+        Cacher.status = status
+    }
+
+    static async send(chain: string, method: string): Promise<Record<string, string>> {
         log.info(`new cache request, chain ${chain} method[${method}]`)
         return Dao.getChainCache(chain, method)
     }

@@ -1,5 +1,5 @@
 import Http from 'http'
-import { ChainConfig, getAppLogger, isErr } from "lib"
+import { ChainConfig, getAppLogger, isErr, PVoidT } from "lib"
 import Dao from '../dao'
 import { ReqDataT } from "../interface"
 import Util from '../util'
@@ -8,7 +8,7 @@ import { SuberTyp } from '../matcher/suber'
 
 const log = getAppLogger('noder')
 
-const post = (chain: string, url: string, data: ReqDataT, resp: Http.ServerResponse) => {
+function post(chain: string, url: string, data: ReqDataT, resp: Http.ServerResponse): void {
     const start = Util.traceStart()
     const req = Http.request(url, {
         method: 'POST',
@@ -25,8 +25,8 @@ const post = (chain: string, url: string, data: ReqDataT, resp: Http.ServerRespo
     req.end()
 }
 
-namespace Noder {
-    export const sendRpc = async (chain: string, data: ReqDataT, resp:Http.ServerResponse) => {
+class Noder {
+    static async sendRpc(chain: string, data: ReqDataT, resp: Http.ServerResponse): PVoidT {
         log.info(`new node rpc requst, chain ${chain} method ${data.method} params ${data.params}`)
         const re = await Dao.getChainConfig(chain)
         if (isErr(re)) {
@@ -38,7 +38,7 @@ namespace Noder {
         return post(chain, url, data, resp)
     }
 
-    export const sendWs = async (puber: Puber, data: ReqDataT) => {
+    static async sendWs(puber: Puber, data: ReqDataT): PVoidT {
         log.info(`new node ws requst, chain ${puber.chain} method ${data.method} params ${data.params}`)
         Puber.transpond(puber, SuberTyp.Node, data)
     }

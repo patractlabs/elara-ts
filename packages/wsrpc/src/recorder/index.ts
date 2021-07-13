@@ -1,6 +1,6 @@
 // import crypto from 'crypto'
 import { Sequelize, DataTypes } from 'sequelize'
-import { getAppLogger } from 'lib'
+import { getAppLogger, PVoidT } from 'lib'
 
 const log = getAppLogger('recorder')
 
@@ -36,8 +36,8 @@ Sq.define('storage', {
     }
 })
 
-namespace Recorder {
-    export const Rpcs = [
+class Recorder {
+    static Rpcs = [
         "chain_getHeader",      // block hash   0x*********** 64 length
         "chain_getBlockHash",   // block number 0x*
         "chain_getBlock",       // block hash   0x*********** 64 length
@@ -45,8 +45,9 @@ namespace Recorder {
         "state_queryStorageAt"
     ]
 
-    export const send = (chain: string, method: string, params: any[]) => {
+    static async send(chain: string, method: string, params: any[]): PVoidT {
         log.info(`new history request chain ${chain} method ${method} params ${params}`)
     }
 }
+
 export default Recorder

@@ -1,25 +1,20 @@
 import { IDT } from "lib"
 import Suber, { SuberTyp } from './matcher/suber'
 
-// type ParamT = {
-//     result: any,
-//     subscription: string
-// }
 export interface ReqDataT {
     id: IDT,
     jsonrpc: string,
     method: string,
     params?: any[]
 }
+
 type wsErrT = {
     code: number,
     message: string,
     data?: any
 }
+
 export interface WsData extends ReqDataT {
-    // id?: string,
-    // jsonrpc: string,
-    // method?: string,
     params?: any,
     error?: wsErrT,
     result?: any,
@@ -37,6 +32,7 @@ export enum ReqTyp {
     Rpc = 'rpc',
     Close = 'close'
 }
+
 export interface ReqT {
     id: IDT,
     chain: string,

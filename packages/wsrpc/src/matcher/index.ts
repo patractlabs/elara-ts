@@ -91,6 +91,7 @@ namespace Matcher {
         } else if (isSubReq(method)) {
             type = ReqTyp.Sub
         }
+        
         const req = {
             id: randomId(),
             pubId,

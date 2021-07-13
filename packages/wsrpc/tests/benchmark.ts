@@ -65,7 +65,6 @@ const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = fal
         } else {
             if (loop <= 0) { loop = Number.MAX_VALUE }
             for (let i = 0; i < loop; i++) {
-                await sleeps(3)
                 sendReq(w, lis)
             }
         }
@@ -156,7 +155,7 @@ const connTest = async (loop: number) => {
 
 (async () => {
     if (true) {
-        wsTestRunner(0, false, 100, WsTyp.Sub)
+        wsTestRunner(1, true, 5000, WsTyp.Sub)
     } else {
         // wsTestRunner(0, false, 100)
         connTest(0)

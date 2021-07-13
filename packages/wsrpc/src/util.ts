@@ -86,26 +86,22 @@ namespace Util {
         log.debug(`kv suber pubers: `, ksub[Object.keys(ksub)[0]]?.pubers)
         log.debug(`node suber pubers: `, nsub[Object.keys(nsub)[0]]?.pubers)
     }
-
-    export async function sleeps(s: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, s * 1000))
-    }
 }
 
-export namespace Response {
-    const end = async (res: Http.ServerResponse, chunk: any, code: number, md5?: string): PVoidT => {
+export class Response {
+    private static async end(res: Http.ServerResponse, chunk: any, code: number, md5?: string): PVoidT {
         res.writeHead(code, { 'Content-Type': 'text/plain', 'Trailer': 'Content-MD5' })
         res.addTrailers({ 'Content-MD5': md5 || '7878' })
         res.write(chunk)
         res.end()
     }
 
-    export async function Ok(res: Http.ServerResponse, data: any): PVoidT {
-        end(res, data, 200)
+    static async Ok(res: Http.ServerResponse, data: any): PVoidT {
+        Response.end(res, data, 200)
     }
 
-    export async function Fail(res: Http.ServerResponse, data: any, code: number): PVoidT {
-        end(res, data, code)
+    static async Fail(res: Http.ServerResponse, data: any, code: number): PVoidT {
+        Response.end(res, data, code)
     }
 }
 
