@@ -1,15 +1,12 @@
-import Redis, { RedisOptions } from 'ioredis'
-import { getAppLogger } from './log'
-
-const log = getAppLogger('Redis', true)
+import IORedis, { RedisOptions } from 'ioredis'
 
 export enum DBT {
     Account = 0,
     Project = 1,
-    Stat    = 2,
-    Chain   = 3,
-    Cache   = 4,
-    Pubsub  = 8,
+    Stat = 2,
+    Chain = 3,
+    Cache = 4,
+    Pubsub = 8,
 }
 
 export interface RArgT {
@@ -18,53 +15,52 @@ export interface RArgT {
     options?: RedisOptions
 }
 
-export type RdT = Redis.Redis
+export type RdT = IORedis.Redis
 
 export interface RClientT {
     client: RdT,
     db: DBT
 }
 
-namespace Rd {
+class Redis {
+    protected client: RdT
+    private db: DBT
 
-    export const newClient = (db: DBT, arg?: RArgT): RClientT => {
-        const options = {
-            ...arg?.options,
-            db
-        }
-        return {
-            client: new Redis(arg?.port, arg?.host, options),
-            db
-        }
+    constructor(db: DBT, arg?: RArgT) {
+        const options = { ...arg?.options, db }
+        this.client = new IORedis(arg?.port, arg?.host, options)
+        this.db = db
     }
 
-    export const onConnect = (Rd: RClientT, cb?: () => void) => {
-        Rd.client.once('connect', () => {
-            log.info(`Redis-${Rd.db} connect successfully.`)
-            cb && cb()
-        })
+    getDB(): DBT {
+        return this.db
     }
 
-    export const onError = (Rd: RClientT, cb?: (err: any) => void) => {
-        Rd.client.on('error', (err) => {
-            log.error(`Redis-${Rd.db} error: `, err)
+    getClient(): RdT {
+        return this.client
+    }
+
+    onConnect(cb?: () => void) {
+        this.client.once('connect', () => { cb && cb() })
+    }
+
+    onError(cb?: (err: any) => void) {
+        this.client.on('error', (err) => {
             cb && cb(err)
         })
     }
 
-    export const onMsg = (Rd: RClientT, cb?: (topic: string, data: any) => void) => {
-        Rd.client.on('message', (topic, data) => {
-            log.info(`Redis-${Rd.db} message event Topic[${topic}]: `, data)
+    onMsg(cb?: (topic: string, data: any) => void) {
+        this.client.on('message', (topic, data) => {
             cb && cb(topic, data)
         })
     }
 
-    export const onPMsg = (Rd: RClientT, cb?: (topic: string, data: any, pat?: string) => void) => {
-        Rd.client.on('pmessage', (pat, topic, data) => {
-            log.info(`Redis-${Rd.db} pattern message event Pat[${pat}] Topic[${topic}]: `, data)
+    onPMsg(cb?: (topic: string, data: any, pat?: string) => void) {
+        this.client.on('pmessage', (pat, topic, data) => {
             cb && cb(topic, data, pat)
         })
     }
 }
 
-export default Rd
+export default Redis

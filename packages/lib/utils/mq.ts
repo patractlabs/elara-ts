@@ -1,17 +1,13 @@
-import Redis, { RClientT, DBT, RArgT } from './redis'
+import Redis, { DBT, RArgT } from './redis'
 import { getAppLogger } from './log'
 
-const log = getAppLogger('mq-redis', true)
+const log = getAppLogger('mq-redis')
 
 type SubCbT = (data: any) => void
 
-export interface Subscriber {
-    rd: RClientT
-}
-
-export class Subscriber {
+export class Subscriber extends Redis {
     constructor(db: DBT = DBT.Pubsub, arg?: RArgT) {
-        this.rd = Redis.newClient(db, arg)
+        super(db, arg)
     }
 
     async subscribe(chan: string, cb: SubCbT, grp?: string, user?: string, ms: number = 5000): Promise<void> {
@@ -27,50 +23,46 @@ export class Subscriber {
             try {
                 let re
                 if (grp && user) {
-                    re = await this.rd.client.xreadgroup('GROUP', grp, user, 'BLOCK', ms, 'STREAMS', chan, lastID)
+                    re = await this.client.xreadgroup('GROUP', grp, user, 'BLOCK', ms, 'STREAMS', chan, lastID)
                 } else {
-                    re = await this.rd.client.xread('BLOCK', ms, 'STREAMS', chan, lastID)
+                    re = await this.client.xread('BLOCK', ms, 'STREAMS', chan, lastID)
                 }
-                if (!re) { 
+                if (!re) {
                     log.info(`${consumer} no new ${typ} stream`)
-                    continue 
+                    continue
                 }
                 let res = re[0][1]
                 const { length } = re
                 log.info(`${typ} stream ${consumer} read result: `, res, length)
                 if (!length) { continue }
                 cb(res)
-            } catch(err) {
+            } catch (err) {
                 log.error(`${typ} stram subscribe error: `, err)
             }
         }
     }
 }
 
-export interface Producer {
-    rd: RClientT,
-    grp: string,
-    // publish: (chan: string, kvs: string[], id?: string) => Promise<string>
-}
+export class Producer extends Redis {
+    private grp: string
+    constructor({ db, grp, arg }: { db: DBT, grp?: string, arg?: RArgT }) {
+        super(db, arg)
+        this.grp = grp ?? ''
+    }
 
-export class Producer {
-    constructor({db, grp, arg}: {db: DBT, grp?: string, arg?: RArgT}) {
-        this.rd = Redis.newClient(db, arg)
-        if (grp) {
-            this.grp = grp
-        }
+    getGroup(): string {
+        return this.grp
     }
 
     async publish(chan: string, kvs: string[], maxlen: number = 1, id: string = '*'): Promise<string> {
-        return this.rd.client.xadd(chan, 'MAXLEN', maxlen, id, kvs)
+        return this.client.xadd(chan, 'MAXLEN', maxlen, id, kvs)
     }
 
     createGroup(grp: string, chan: string) {
         this.grp = grp
-        this.rd.client.xgroup('create', chan, grp)
+        this.client.xgroup('create', chan, grp)
     }
 }
-const Mqrd = Redis.newClient(DBT.Pubsub).client
 
 interface StreamInfoT {
     length: number,
@@ -99,10 +91,14 @@ interface ConsumerInfoT {
 
 type ConsumerListT = ConsumerInfoT[]
 
-namespace Mq {
+class Mq extends Redis {
 
-    export async function streamInfo(chan: string): Promise<StreamInfoT> {
-        let re = await Mqrd.xinfo('STREAM', chan)
+    constructor(db: DBT = DBT.Pubsub, arg?: RArgT) {
+        super(db, arg)
+    }
+
+    async streamInfo(chan: string): Promise<StreamInfoT> {
+        let re = await this.client.xinfo('STREAM', chan)
 
         return {
             length: re[1],
@@ -115,8 +111,8 @@ namespace Mq {
         } as StreamInfoT
     }
 
-    export const groupInfo = async (chan: string): Promise<GroupListT> => {
-        let re = await Mqrd.xinfo('GROUPS', chan)
+    async groupInfo(chan: string): Promise<GroupListT> {
+        let re = await this.client.xinfo('GROUPS', chan)
         let res: GroupListT = []
         for (let g of re) {
             let ginfo = {
@@ -130,8 +126,8 @@ namespace Mq {
         return res
     }
 
-    export const consumerInfo = async (grp: string, chan: string): Promise<ConsumerListT> => {
-        let re = await Mqrd.xinfo('CONSUMERS', chan, grp)
+    async consumerInfo(grp: string, chan: string): Promise<ConsumerListT> {
+        let re = await this.client.xinfo('CONSUMERS', chan, grp)
         log.info('result of consumer: ', JSON.stringify(re))
         let res: ConsumerListT = []
         for (let c of re) {
@@ -145,4 +141,5 @@ namespace Mq {
         return res
     }
 }
+
 export default Mq

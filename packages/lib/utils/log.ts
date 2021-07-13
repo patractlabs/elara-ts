@@ -4,8 +4,9 @@ import { Configuration } from 'koa-log4'
 import Dotenv from 'dotenv'
 Dotenv.config()
 
-const outFlag = process.env.NODE_ENV === 'dev'
-console.log('outFlag: ', outFlag, process.env.NODE_ENV)
+const env = process.env.NODE_ENV || 'dev'
+const outFlag = env === 'dev'
+
 const config: Configuration = {
     appenders: { out: { type: 'console' } },
     categories: { default: { appenders: ['out'], level: 'info' } },
