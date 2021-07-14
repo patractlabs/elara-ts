@@ -2,8 +2,8 @@ import Redis, { DBT } from 'lib/utils/redis'
 import { ChainConfig, ChainType, KEYS, Network } from 'lib'
 
 const KEY = KEYS.Chain
-const Rd = Redis.newClient(DBT.Chain).client
-const Cd = Redis.newClient(DBT.Cache).client
+const Rd = new Redis(DBT.Chain).getClient()
+const Cd = new Redis(DBT.Cache).getClient()
 
 const newChain = async (chain: string) => {
     // const chain = 'Polkadot'
