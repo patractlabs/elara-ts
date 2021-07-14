@@ -10,8 +10,6 @@ import { G } from './global'
 import { ReqT, TopicT } from './interface'
 import Dao from './dao'
 import Suducer, { SuducerStat, SuducerT } from './suducer'
-import { Producer } from 'lib/utils/mq'
-import { DBT } from 'lib/utils/redis'
 import Service from './service'
 import { dotenvInit } from 'lib'
 dotenvInit()
@@ -35,7 +33,6 @@ const generateUrl = (url: string, port: number, sec: boolean = false) => {
 
 const rdConf = Conf.getRedis()
 log.warn(`current env ${process.env.NODE_ENV} redis conf: `, JSON.stringify(rdConf))
-const pro = new Producer({ db: DBT.Pubsub, arg: { host: rdConf.host, port: rdConf.port } })
 
 const SubReg = (() => {
     return /[0-9a-zA-Z]{16}/
@@ -97,7 +94,6 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
         }
         // keep the topic try to recover
 
-
         let evt = G.getPoolEvt(chain, type)
         if (!evt) {
             log.error(`get event error: chain ${chain} type[${type}]`)
@@ -123,7 +119,7 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
                 const chain = pat[1]
                 const method = pat[2]
                 // 
-                log.info(`cache message： chain ${chain} method[${method}]`)
+                log.debug(`new ${chain} cache message: ${method}`)
                 Dao.updateChainCache(chain, method, dat.result)
             } else if (isSubID(dat.result)) {
                 // first subscribe response
@@ -148,20 +144,16 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
         // subscribe data
         else if (dat.params) {
             // second response
-            // log.info(`new subscribe data: ${JSON.stringify(dat.params)}`)
-
             const method = topic!
-            pro.publish(`${chain}-${method}`, [method, JSON.stringify(dat.params.result)])
 
             if (method === 'state_subscribeRuntimeVersion') {
                 // update syncOnce 
-                log.warn(`runtime version update`)
+                log.info(`chain ${chain} runtime version update`)
                 // Dao.updateChainCache(chain, method, dat.params.result)
                 Service.Cacheable.syncOnceService(chain)
             }
         }
     })
-
     return suducer
 }
 
@@ -225,7 +217,7 @@ namespace Pool {
             return
         }
         suducer.ws.send(JSON.stringify(req))
-        log.info(`chain ${chain} type ${type} send new request: ${JSON.stringify(req)} `)
+        log.debug(`chain ${chain} type ${type} send new request: ${JSON.stringify(req)} `)
     }
 
     export const isSuducerOk = (suducer: Suducer): boolean => {
