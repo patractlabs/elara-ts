@@ -3,7 +3,7 @@ import Net from 'net'
 import WebSocket from 'ws'
 import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT } from 'lib'
 import Util from './src/util'
-import { ChainPidT, ReqDataT, WsData } from './src/interface'
+import { ChainPidT, ReqDataT, WsData, CloseReason } from './src/interface'
 import Conf, { UnsafeMethods } from './config'
 import { dispatchWs, dispatchRpc } from './src/puber'
 import Service from './src/service'
@@ -65,7 +65,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         }
         data += chunk
     })
-    
+
     req.on('end', async () => {
         const dtime = Util.traceEnd(dstart)
         log.info(`new rpc request: ${data}, parse time[${dtime}]`)
@@ -141,10 +141,10 @@ wss.on('connection', async (ws, req: any) => {
 
     ws.on('close', async (code, reason) => {
         log.error(`puber[${id}] close: ${reason}, code ${code}, reason[${reason}]\n \tcurrent total puber connections `, wss.clients.size)
-        if (reason === Puber.CloseReason.OutOfLimit || reason === Puber.CloseReason.SuberUnavail) {
+        if (reason === CloseReason.OutOfLimit || reason === CloseReason.SuberUnavail) {
             return  // out of limit
         }
-        Matcher.unRegist(id, reason as Puber.CloseReason)
+        Matcher.unRegist(id, reason as CloseReason)
     })
 
     ws.on('error', (err) => {

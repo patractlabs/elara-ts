@@ -5,7 +5,7 @@ import { randomId } from 'lib/utils'
 import { ReqDataT, WsData } from '../interface'
 import Matcher from '../matcher'
 import Suber, { SuberTyp } from '../matcher/suber'
-import GG from '../global'
+import G from '../global'
 
 const log = getAppLogger('puber')
 
@@ -20,34 +20,39 @@ interface Puber {
     kvSubId?: IDT,          // kv suber
 }
 
-namespace Puber {
-    export namespace G {
-        const Pubers: { [key in string]: Puber } = {}
-        export const get = (pubId: IDT): Option<Puber> => {
-            if (!Pubers[pubId]) {
-                return None
-            }
-            return Some(Pubers[pubId])
-        }
+type KvReqT = {
+    id: string,
+    chain: string,
+    request: string,
+}
 
-        export const updateOrAdd = (puber: Puber): void => {
-            Pubers[puber.id] = puber
-        }
+class Puber {
+    private static g: Record<string, Puber> = {}
 
-        export const del = (pubId: IDT) => {
-            // Pubers[pubId].topics?.clear()
-            delete Pubers[pubId]
+    static get(pubId: IDT): Option<Puber> {
+        if (!Puber.g[pubId]) {
+            return None
         }
+        return Some(Puber.g[pubId])
     }
 
-    export const create = (ws: WebSocket, chain: string, pid: IDT): Puber => {
+    static updateOrAdd(puber: Puber): void {
+        Puber.g[puber.id] = puber
+    }
+
+    static del(pubId: IDT): void {
+        // Pubers[pubId].topics?.clear()
+        delete Puber.g[pubId]
+    }
+
+    static create(ws: WebSocket, chain: string, pid: IDT): Puber {
         const puber = { id: randomId(), pid, chain, ws, topics: new Set() } as Puber
-        G.updateOrAdd(puber)
+        Puber.updateOrAdd(puber)
         return puber
     }
 
-    export const updateTopics = (pubId: IDT, subsId: string): ResultT<Puber> => {
-        let re = G.get(pubId)
+    static updateTopics(pubId: IDT, subsId: string): ResultT<Puber> {
+        let re = Puber.get(pubId)
         if (isNone(re)) {
             log.error(`update puber[${pubId}] topics error: no this puber ${pubId}`)
             // puber may be closed
@@ -57,19 +62,13 @@ namespace Puber {
         puber.topics = puber.topics || new Set()
         puber.topics.add(subsId)
 
-        G.updateOrAdd(puber)
+        Puber.updateOrAdd(puber)
 
         log.info(`update puber[${pubId}] topic [${subsId}] done: `, puber.topics)
         return Ok(puber)
     }
 
-    type KvReqT = {
-        id: string,
-        chain: string,
-        request: string,
-    }
-
-    export const transpond = async (puber: Puber, type: SuberTyp, data: ReqDataT): PVoidT => {
+    static async transpond(puber: Puber, type: SuberTyp, data: ReqDataT): PVoidT {
         const { id, chain, pid } = puber
         const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
         // topic bind to chain and params 
@@ -99,23 +98,18 @@ namespace Puber {
         }
 
         // TODO
-        let sre = GG.getSuber(chain, type, subId!)
+        let sre = G.getSuber(chain, type, subId!)
         if (isNone(sre)) {
-            log.error(`[SBH] send message error: invalid suber ${puber.subId} chain ${chain} type ${type}`)
-            process.exit(1)
+            log.error(`send message error: invalid suber ${puber.subId} chain ${chain} type ${type}, may closed`)
+            // clear request cache
+            G.delReqCache(dat.id)
+            return
         }
         const suber: Suber = sre.value
         log.debug(`ready to send ${type} subscribe request: ${JSON.stringify(sendData)}`)
         // transpond requset
         log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
         return suber.ws.send(JSON.stringify(sendData))
-    }
-
-    export enum CloseReason {
-        Node = 'node service unavailable',
-        Kv = 'kv service unavailable',
-        OutOfLimit = 'out of connect limit',
-        SuberUnavail = 'suber unavailable'
     }
 }
 

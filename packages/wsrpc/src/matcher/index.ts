@@ -12,7 +12,7 @@ import WebSocket from 'ws'
 import EventEmitter from 'events'
 import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option, PBoolT } from 'lib'
 import GG from '../global'
-import { WsData, ReqT, ReqTyp, ReqDataT } from '../interface'
+import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason } from '../interface'
 import Puber from '../puber'
 import Suber, { SuberTyp } from './suber'
 import { md5, randomId } from 'lib/utils'
@@ -70,7 +70,7 @@ namespace Matcher {
         // update puber.subId
         puber.subId = suber.id
         puber.kvSubId = kvSuber.id
-        Puber.G.updateOrAdd(puber)
+        Puber.updateOrAdd(puber)
 
         // side context set
         GG.incrConnCnt(chain, puber.pid)
@@ -137,21 +137,23 @@ namespace Matcher {
     }
 
     const remSuberPubers = (chain: string, subType: SuberTyp, subId: IDT, pubId: IDT): void => {
+        /// suber may be closed 
         let re = GG.getSuber(chain, subType, subId)
         if (isNone(re)) {
-            log.error(`[SBH] handle puber close error: invalid ${chain} suber ${subId} type ${subType}`)
-            process.exit(2)
+            log.error(`handle puber close error: invalid ${chain} suber ${subId} type ${subType}, may closed`)
+            // process.exit(2)
+            return
         }
         const suber = re.value
         suber.pubers?.delete(pubId)
         GG.updateOrAddSuber(chain, subType, suber)
     }
 
-    const clearSubscribeContext = (puber: Puber, reason: Puber.CloseReason) => {
+    const clearSubscribeContext = async (puber: Puber, reason: CloseReason) => {
         const ptopics = puber.topics || new Set()
-        if (reason === Puber.CloseReason.Node) {
+        if (reason === CloseReason.Node) {
             remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
-        } else if (reason === Puber.CloseReason.Kv) {
+        } else if (reason === CloseReason.Kv) {
             remSuberPubers(puber.chain, SuberTyp.Node, puber.subId!, puber.id)
         } else {
             remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
@@ -161,18 +163,20 @@ namespace Matcher {
         if (ptopics.size < 1) {
             // delete puber
             // NOTE: subscribe may not response yet
-            Puber.G.del(puber.id)
+            Puber.del(puber.id)
             log.info(`handle puber ${puber.id} close done: no subscribe topic`)
             return
         }
         // clear puber when unscribe done
         puber.event = new EventEmitter()
-        Puber.G.updateOrAdd(puber)
+        Puber.updateOrAdd(puber)
 
-        puber.event.on('done', () => {
-            Puber.G.del(puber.id)
+        puber.event.once('done', () => {
+            // if suber closed, event need to emit on suber closed
+            Puber.del(puber.id)
             log.info(`clear subercribe context of puber[${puber.id}] close done`)
         })
+
         const { chain, pid } = puber
         for (let subsId of ptopics) {
             const subRe = GG.getSubTopic(chain, pid, subsId)
@@ -193,17 +197,22 @@ namespace Matcher {
                 process.exit(2)
             }
             const req = reqRe.value
-            Suber.unsubscribe(chain, req.subType, req.subId, topic.method, subsId)
+            const unre = await Suber.unsubscribe(chain, req.subType, req.subId, topic.method, subsId)
+            if (isErr(unre)) {
+                puber.event.emit('done')
+                log.warn(`chain ${chain} ${req.subType} suber ${req.subId} has been closed, emit unsubscribe done`)
+                break
+            }
             log.info(`unsubscribe topic[${topic.method}] id[${subsId}] of chain ${chain} pid[${pid}] suber[${req.subId}] ${req.subType}`)
         }
         log.info(`handle puber close done: unsubscribe all topic`)
     }
 
-    export const unRegist = async (pubId: IDT, reason: Puber.CloseReason): PVoidT => {
+    export const unRegist = async (pubId: IDT, reason: CloseReason): PVoidT => {
         /// when puber error or close,
         /// if suber close or error, will emit puber close
 
-        let re: Option<any> = Puber.G.get(pubId)
+        let re: Option<any> = Puber.get(pubId)
         if (isNone(re) || !re.value.subId) {
             // SBH
             log.error(`[SBH] Unregist puber error: invalid puber ${pubId}`)

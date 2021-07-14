@@ -62,3 +62,10 @@ export interface CacheResultT {
 
 export type SuberMap = { [key in IDT]: Suber }
 export type ChainSuber = { [key in string]: SuberMap }
+
+export enum CloseReason {
+    Node = 'node service unavailable',
+    Kv = 'kv service unavailable',
+    OutOfLimit = 'out of connect limit',
+    SuberUnavail = 'suber unavailable'
+}
