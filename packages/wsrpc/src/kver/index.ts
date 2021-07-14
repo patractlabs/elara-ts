@@ -3,7 +3,7 @@ import { ReqDataT } from "../interface"
 import { SuberTyp } from "../matcher/suber"
 import Puber from "../puber"
 
-const log = getAppLogger('kv')
+const log = getAppLogger('kver')
 
 class Kver {
     // static Rpcs: string[] = []

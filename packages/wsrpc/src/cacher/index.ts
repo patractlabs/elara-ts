@@ -1,11 +1,18 @@
 import { getAppLogger } from 'lib'
 import Dao from '../dao'
 
-const log = getAppLogger('suducer')
+const log = getAppLogger('cacher')
+
+export type CacherStat = {
+    block: number,
+    acc: number         
+}
 
 class Cacher {
 
-    private static status: boolean = true
+    private static status: Record<string, boolean> = {}
+
+    private static preStat: Record<string, CacherStat> = {}
 
     static Rpcs: string[] = [
         // sync when block update
@@ -29,12 +36,23 @@ class Cacher {
         "state_getRuntimeVersion"
     ]
 
-    static statusOk(): boolean {
-        return Cacher.status
+    static statusOk(chain: string): boolean {
+        return Cacher.status[chain]
     }
 
-    static updateStatus(status: boolean): void {
-        Cacher.status = status
+    static getPrestat(chain: string): CacherStat {
+        return Cacher.preStat[chain]
+    }
+
+    static updateStatus(chain: string, status: boolean): void {
+        Cacher.status[chain] = status
+    }
+
+    static updatePrestat(chain: string, stat: CacherStat): void {
+        // if (Cacher.preStat[chain] === undefined) {
+        //     Cacher.preStat[chain] = {}
+        // }
+        Cacher.preStat[chain] = stat
     }
 
     static async send(chain: string, method: string): Promise<Record<string, string>> {

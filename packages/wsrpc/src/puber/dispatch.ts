@@ -42,7 +42,7 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
     const res = { id, jsonrpc } as WsData
     switch (typ) {
         case RpcTyp.Cacher:
-            if (Cacher.statusOk()) {
+            if (Cacher.statusOk(chain)) {
                 const re: any = await Cacher.send(chain, method)
                 // log.info(`receive cacher result: ${JSON.stringify(re)}`)
                 // TODO: updateTime check
@@ -54,6 +54,7 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
                 return Response.Fail(resp, JSON.stringify(res), 500)
             }
             // noder
+            log.error(`chain ${chain} rpc cacher fail, transpond to noder method[${method}] params[${params}]`)
             return Noder.sendRpc(chain, data, resp)
         case RpcTyp.Recorder:
             res.result = `recoder: ${method}`
@@ -73,7 +74,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber): P
     log.debug(`new ${typ} ws request ${method} of chain ${chain} params: `, params)
     switch (typ) {
         case RpcTyp.Cacher:
-            if (Cacher.statusOk()) {// no need to clear puber.subid and suber.pubers
+            if (Cacher.statusOk(chain)) {// no need to clear puber.subid and suber.pubers
                 const res = { id, jsonrpc } as WsData
                 const re = await Cacher.send(chain, method)
                 if (re.result) {
@@ -83,6 +84,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber): P
                 res.error = { code: 500, message: 'error cache response' }
                 return puber.ws.send(JSON.stringify(res))
             }
+            log.error(`chain ${chain} ws cacher fail, transpond to noder method[${method}] params[${params}]`)
             return Noder.sendWs(puber, data)
         case RpcTyp.Kver:
             return Kver.send(puber, data)

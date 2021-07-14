@@ -147,7 +147,7 @@ type DParT = {
 function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
     let dat = JSON.parse(data as string)
     if (subType === SuberTyp.Kv) {
-        log.info(`new kv ws response: id ${dat.id} chain ${dat.chain}`)
+        log.info(`new kv ws response: request id ${dat.id} chain ${dat.chain}`)
         if (dat.data) {
             // subscribe response
             dat = JSON.parse(dat.data)
@@ -156,7 +156,7 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
         }
         // dat.error: no need handle
     } else {
-        log.info(`new node ws response: ${JSON.stringify(dat)}`)
+        log.info(`new node ws response: request id ${dat.id}`)
     }
     // NOTE: if asynclize parseReqId, 
     // subReqMap may uninit, then miss the first data response
