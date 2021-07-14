@@ -61,11 +61,11 @@ namespace Matcher {
         // update suber.pubers
         suber.pubers = suber.pubers || new Set<IDT>()
         suber.pubers.add(puber.id)
-        GG.updateOrAddSuber(chain, SuberTyp.Node, suber)
+        Suber.updateOrAddSuber(chain, SuberTyp.Node, suber)
 
         kvSuber.pubers = suber.pubers || new Set<IDT>()
         kvSuber.pubers.add(puber.id)
-        GG.updateOrAddSuber(chain, SuberTyp.Kv, kvSuber)
+        Suber.updateOrAddSuber(chain, SuberTyp.Kv, kvSuber)
 
         // update puber.subId
         puber.subId = suber.id
@@ -138,7 +138,7 @@ namespace Matcher {
 
     const remSuberPubers = (chain: string, subType: SuberTyp, subId: IDT, pubId: IDT): void => {
         /// suber may be closed 
-        let re = GG.getSuber(chain, subType, subId)
+        let re = Suber.getSuber(chain, subType, subId)
         if (isNone(re)) {
             log.error(`handle puber close error: invalid ${chain} suber ${subId} type ${subType}, may closed`)
             // process.exit(2)
@@ -146,7 +146,7 @@ namespace Matcher {
         }
         const suber = re.value
         suber.pubers?.delete(pubId)
-        GG.updateOrAddSuber(chain, subType, suber)
+        Suber.updateOrAddSuber(chain, subType, suber)
     }
 
     const clearSubscribeContext = async (puber: Puber, reason: CloseReason) => {

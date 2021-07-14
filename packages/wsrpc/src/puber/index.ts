@@ -98,7 +98,7 @@ class Puber {
         }
 
         // TODO
-        let sre = G.getSuber(chain, type, subId!)
+        let sre = Suber.getSuber(chain, type, subId!)
         if (isNone(sre)) {
             log.error(`send message error: invalid suber ${puber.subId} chain ${chain} type ${type}, may closed`)
             // clear request cache

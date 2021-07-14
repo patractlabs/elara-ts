@@ -1,7 +1,7 @@
 import { randomId } from 'lib/utils'
 import WebSocket from 'ws'
-import { ReqT, ReqTyp, WsData, CloseReason } from '../interface'
-import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PResultT, isNone } from 'lib'
+import { ReqT, ReqTyp, WsData, CloseReason, ChainSuber, SuberMap, SubscripT } from '../interface'
+import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PResultT, isNone, Option, Some, None } from 'lib'
 import GG from '../global'
 import Chain from '../chain'
 import Dao from '../dao'
@@ -297,13 +297,13 @@ async function openHandler(chain: string, subType: SuberTyp, subId: IDT, ws: Web
             // remove puber
             const pubtmp = pubers
             pubtmp.delete(pubId)
-            const subRe = GG.getSuber(chain, subType, subId)
+            const subRe = Suber.getSuber(chain, subType, subId)
             if (isNone(subRe)) {
                 log.error(`chain ${chain} ${subType} suber[${subId}] invalid`)
             } else {
                 const suber = subRe.value
                 suber.pubers = pubtmp
-                GG.updateOrAddSuber(chain, subType, suber)
+                Suber.updateOrAddSuber(chain, subType, suber)
                 log.warn(`update ${chain} ${subType} suber[${subId}] pubers since puber[${pubId}] may closed when re-open`)
             }
             continue
@@ -351,7 +351,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
     const ws = new WebSocket(url, { perMessageDeflate: false })
     let suber = { id: randomId(), ws, url, chain, type, stat: SuberStat.Create, pubers } as Suber
     log.info('create new suber with puber: ', pubers)
-    GG.updateOrAddSuber(chain, type, suber)
+    Suber.updateOrAddSuber(chain, type, suber)
     ws.once('open', () => {
         /// pubers may closed when re-open
         log.info(`Websocket connection opened: chain[${chain}]`)
@@ -359,7 +359,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         GG.resetTryCnt(chain)   // reset chain connection count
 
         // update suber status
-        let re = GG.getSuber(chain, type, suber.id)
+        let re = Suber.getSuber(chain, type, suber.id)
         if (isNone(re)) {
             log.error(`update suber on open error: invalid suber ${suber.id} chain ${chain} type ${type}`)
             process.exit(2)
@@ -367,7 +367,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         const subTmp = re.value as Suber
         subTmp.stat = SuberStat.Active
         log.debug(`on open suber pubers: `, subTmp.pubers)
-        GG.updateOrAddSuber(chain, type, subTmp)
+        Suber.updateOrAddSuber(chain, type, subTmp)
 
         if (!pubers || pubers.size < 1) {
             log.info(`no pubers need to recover, chain ${chain} type ${type} suber ${subTmp.id}`)
@@ -385,7 +385,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
 
     ws.on('close', async (code: number, reason: string) => {
         log.error(`${chain} ${type} suber[${suber.id}] socket closed: `, code, reason)
-        const re = GG.getSuber(chain, type, suber.id)
+        const re = Suber.getSuber(chain, type, suber.id)
         if (isNone(re)) {
             log.error(`Handle suber close event error: invalid suber ${suber.id} of chain ${chain}`)
             process.exit(1)
@@ -470,7 +470,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         }
 
         // delete suber before
-        GG.delSuber(chain, type, suber.id)
+        Suber.delSuber(chain, type, suber.id)
         // try to reconnect after 5 second
         delays(5, () => {
             log.warn(`create new suber try to connect ${curTryCnt + 1} times, pubers `, pubers)
@@ -536,9 +536,52 @@ interface Suber {
 
 class Suber {
 
+    private static g: ChainSuber = {}
+
+    private static topic: Record<string, SubscripT> = {}
+
+    // suber 
+    static getSuber(chain: string, type: SuberTyp, subId: IDT): Option<Suber> {
+        const ct = `${chain}-${type}`
+        // log.debug(`get suber: ${Suber.g[ct]}, ${!Suber.g[ct]}, ${Suber.g[ct][subId]}, ${!Suber.g[ct][subId]}`)
+        if (!Suber.g[ct] || !Suber.g[ct][subId]) {
+            return None
+        }
+        return Some(Suber.g[ct][subId])
+    }
+
+    static getSubersByChain(chain: string, type: SuberTyp,): SuberMap {
+        const ct = `${chain}-${type}`
+        return Suber.g[ct] || {}
+    }
+
+    static getAllSuber(): ChainSuber {
+        return Suber.g
+    }
+
+    static updateOrAddSuber(chain: string, type: SuberTyp, suber: Suber): void {
+        const ct = `${chain}-${type}`
+        Suber.g[ct] = Suber.g[ct] || {}
+        Suber.g[ct][suber.id] = suber
+        // log.debug(`updateOradd ${chain} ${type} suber[${suber.id}] pubers: `, Suber.g[ct][suber.id].pubers)
+    }
+
+    static delSuber(chain: string, type: SuberTyp, subId: IDT): void {
+        const ct = `${chain}-${type}`
+        // Suber.g[ct][subId].pubers?.clear()    // BUG: will clear other  suber's pubers
+        delete Suber.g[ct][subId]
+        log.debug(`delete ${chain} ${type} suber[${subId}] result: `, Suber.g[ct][subId] === undefined)
+    }
+
+    // subscribed topic
+
+    static getTopic(chain: string): SubscripT {
+        return Suber.topic[chain]
+    }
+
     static async selectSuber(chain: string, type: SuberTyp,): PResultT<Suber> {
 
-        const subers = GG.getSubersByChain(chain, type)
+        const subers = Suber.getSubersByChain(chain, type)
         const keys = Object.keys(subers)
         if (!keys || keys.length < 1) {
             log.error('Select suber error: no valid subers of chain ', chain)
@@ -575,7 +618,7 @@ class Suber {
 
     static async init() {
         // fetch chain list
-        const chains = Chain.G.getChains()
+        const chains = Chain.getChains()
 
         // config
         const wsConf = Conf.getWsPool()
@@ -589,7 +632,7 @@ class Suber {
 
     static async unsubscribe(chain: string, type: SuberTyp, subId: IDT, topic: string, subsId: string): PResultT<void> {
         /// may be closed now
-        const re = GG.getSuber(chain, type, subId)
+        const re = Suber.getSuber(chain, type, subId)
         if (isNone(re)) {
             log.error(`get suber to unsubcribe error: invalid suber ${subId} of chain ${chain} type ${type}: may closed`)
             return Err(`suber may closed`)
@@ -611,7 +654,7 @@ class Suber {
         }
         suber.ws.send(Util.reqFastStr(unsub))
         log.info(`Suber[${subId}] send unsubcribe topic[${unsubMethod}] id[${subsId}] of chain ${chain} `, chain, subId, topic, subsId)
-        return Ok(void(0))
+        return Ok(void (0))
     }
 
     static isSubscribeID(id: string): boolean {

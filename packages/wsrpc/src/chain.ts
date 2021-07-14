@@ -4,7 +4,7 @@ import { ChainConfig, getAppLogger, PVoidT } from 'lib'
 import { isErr } from 'lib'
 import Dao from './dao'
 import Conf from '../config'
-import Redis, {DBT} from 'lib/utils/redis'
+import Redis, { DBT } from 'lib/utils/redis'
 
 const log = getAppLogger('chain')
 
@@ -21,8 +21,8 @@ pubsubRd.onError((err: string) => {
 })
 
 enum ChainEvt {
-    Add    = 'chain-add',
-    Del    = 'chain-del',
+    Add = 'chain-add',
+    Del = 'chain-del',
     Update = 'chain-update'
 }
 
@@ -52,7 +52,7 @@ chainPSub.psubscribe('*', (err, topicNum) => {
 
 chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
     log.info('received new topic message: ', chan)
-    switch(chan) {
+    switch (chan) {
         case ChainEvt.Add:
             log.info('Topic chain message: ', chain)
             chainAddHandler(chain)
@@ -75,48 +75,47 @@ chainPSub.on('error', (err) => {
     log.error('Redis chain-server listener error: ', err)
 })
 
-namespace Chain {
-    export namespace G {
-        const Chains: Set<string> = new Set()
-        const ChainConf: {[key in string]: ChainConfig} = {}
+class Chain {
+    private static chains: Set<string> = new Set()
+    private static conf: Record<string, ChainConfig> = {}
 
-        export const addChainConf = (chainConf: ChainConfig): void => {
-            ChainConf[chainConf.name] = chainConf
-        }
-
-        // chains
-        export const addChain = (chain: string): Set<string> => {
-            return Chains.add(chain)
-        }
-
-        export const delChain = (chain: string): boolean => {
-            return Chains.delete(chain)
-        }
-
-        export const getChains = (): Set<string> => {
-            return Chains
-        }
-
-        export const hasChain = (chain: string): boolean => {
-            return Chains.has(chain)
-        }
+    static addChainConf(chainConf: ChainConfig): void {
+        Chain.conf[chainConf.name] = chainConf
     }
 
-    export const parseConfig = async (chain: string, serverId: number) => {
+    // chains
+    static addChain(chain: string): Set<string> {
+        return Chain.chains.add(chain)
+    }
+
+    static delChain(chain: string): boolean {
+        return Chain.chains.delete(chain)
+    }
+
+    static getChains(): Set<string> {
+        return Chain.chains
+    }
+
+    static hasChain(chain: string): boolean {
+        return Chain.chains.has(chain)
+    }
+    // }
+
+    static parseConfig = async (chain: string, serverId: number) => {
         const conf = await Dao.getChainConfig(chain)
-        if (isErr(conf)) { 
+        if (isErr(conf)) {
             log.error(`Parse config of chain[${chain}] error: `, conf.value)
-            return 
+            return
         }
         const chainf = conf.value as ChainConfig
-        if (chainf.serverId != serverId) { 
+        if (chainf.serverId != serverId) {
             log.warn(`chain ${chain} serveId[${chainf.serverId}] not match, current server ID ${serverId}`)
-            return 
+            return
         }
-        G.addChain(chain)
+        Chain.addChain(chain)
     }
 
-    export const init = async () => {
+    static init = async () => {
         let re = await Dao.getChainList()
         if (isErr(re)) {
             log.error(`fetch chain list error: ${re.value}`)
@@ -128,7 +127,7 @@ namespace Chain {
 
         const server = Conf.getServer()
         for (let c of chains) {
-            parses.push(parseConfig(c, server.id))
+            parses.push(Chain.parseConfig(c, server.id))
         }
         return Promise.all(parses)
     }

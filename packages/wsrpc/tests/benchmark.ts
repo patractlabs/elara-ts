@@ -36,14 +36,14 @@ const methods = [
 ]
 
 const topics = [
-    'state_subscribeRuntimeVersion', 
-    'chain_subscribeNewHead', 'chain_subscribeAllHeads', 'chain_subscribeFinalizedHeads',
+    // 'state_subscribeRuntimeVersion', 
+    // 'chain_subscribeNewHead', 'chain_subscribeAllHeads', 'chain_subscribeFinalizedHeads',
     'state_subscribeStorage'
 ]
 
 const sendReq = async (w: Ws, lis: string[]) => {
     for (let m of lis) {
-        const req = {"id": randomId(), "jsonrpc":"2.0", "method": m,"params":[]}
+        // const req = {"id": randomId(), "jsonrpc":"2.0", "method": m,"params":[]}
         // log.info('ws state: ', w.readyState, req)
         if (w.readyState == 1) {
             await sleeps(0.1)
@@ -52,7 +52,7 @@ const sendReq = async (w: Ws, lis: string[]) => {
                 const reqParam = {"id": id, "jsonrpc":"2.0", "method":m,"params":[["0x2aeddc77fe58c98d50bd37f1b90840f9cd7f37317cd20b61e9bd46fab87047149c21b6ab44c00eb3127a30e486492921e58f2564b36ab1ca21ff630672f0e76920edd601f8f2b89a"]]}
                 w.send(JSON.stringify(reqParam))
             }
-            w.send(JSON.stringify(req))
+            // w.send(JSON.stringify(req))
         }
     }
 }
@@ -155,7 +155,7 @@ const connTest = async (loop: number) => {
 
 (async () => {
     if (true) {
-        wsTestRunner(1, true, 500, WsTyp.Sub)
+        wsTestRunner(0, true, 300, WsTyp.Sub)
     } else {
         // wsTestRunner(0, false, 100)
         connTest(0)

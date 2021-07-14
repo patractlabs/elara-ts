@@ -3,11 +3,9 @@ import Http from 'http'
 import { Ok, Err, getAppLogger, PResultT, PVoidT } from 'lib'
 import Chain from './chain'
 import { ChainPidT } from './interface'
-import GG from './global'
-import { SuberTyp } from './matcher/suber'
+import Suber, { SuberTyp } from './matcher/suber'
 
 const log = getAppLogger('util')
-const G = Chain.G
 
 const UrlReg = (() => {
     return /^\/([a-zA-Z]{4,20})\/([a-z0-9]{32})$/
@@ -52,7 +50,7 @@ namespace Util {
             const parse = UrlReg.exec(url)
             const chain = parse![1].toLowerCase()
             // chain check
-            if (!G.hasChain(chain)) {
+            if (!Chain.hasChain(chain)) {
                 return Err(`invalid chain[${chain}]`)
             }
             // pid check
@@ -81,8 +79,8 @@ namespace Util {
     }
 
     export function debugSuber() {
-        let ksub = GG.getSubersByChain('polkadot', SuberTyp.Kv)
-        let nsub = GG.getSubersByChain('polkadot', SuberTyp.Node)
+        let ksub = Suber.getSubersByChain('polkadot', SuberTyp.Kv)
+        let nsub = Suber.getSubersByChain('polkadot', SuberTyp.Node)
         log.debug(`kv suber pubers: `, ksub[Object.keys(ksub)[0]]?.pubers)
         log.debug(`node suber pubers: `, nsub[Object.keys(nsub)[0]]?.pubers)
     }

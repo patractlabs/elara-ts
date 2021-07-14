@@ -38,7 +38,7 @@ async function statusCheck(chain: string): PVoidT {
 
 function cacherMoniter(): NodeJS.Timeout {
     return setInterval(async () => {
-        const chains = Chain.G.getChains()
+        const chains = Chain.getChains()
         for (let chain of chains) {
             statusCheck(chain)
         }

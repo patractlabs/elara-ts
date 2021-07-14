@@ -1,16 +1,8 @@
 import { getAppLogger, IDT } from "lib"
-import { ResultT, Err, Ok, Option, None, Some} from "lib"
-import { ReqT } from "./interface"
-import { ChainSuber, SuberMap } from "./interface"
-import Suber, { SuberTyp,  } from "./matcher/suber"
+import { ResultT, Err, Ok } from "lib"
+import { ReqT, SubscripT } from "./interface"
 const log = getAppLogger('global')
-// subscribe type
-export interface SubscripT {
-    id: string,
-    pubId: IDT,
-    method: string,
-    params: any[]
-}
+
 export type SubscripMap = { [key in string]: SubscripT }
 type TopicSubedT = { [key in string]: SubscripMap }
 const TopicSubed: TopicSubedT = {}
@@ -25,42 +17,7 @@ let ID_CNT: number = 0
 const TryCntMap: { [key in string]: number } = {}
 const ConnCntMap: { [key in string]: { [key in string]: number } } = {}
 
-const Subers: ChainSuber = {}
-
-
 namespace G {
-
-    export const getSuber = (chain: string, type: SuberTyp, subId: IDT): Option<Suber> => {
-        const ct = `${chain}-${type}`
-        // log.debug(`get suber: ${Subers[ct]}, ${!Subers[ct]}, ${Subers[ct][subId]}, ${!Subers[ct][subId]}`)
-        if (!Subers[ct] || !Subers[ct][subId]) {
-            return None
-        }
-        return Some(Subers[ct][subId])
-    }
-
-    export const getSubersByChain = (chain: string, type: SuberTyp,): SuberMap => {
-        const ct = `${chain}-${type}`
-        return Subers[ct] || {}
-    }
-
-    export const getAllSuber = (): ChainSuber => {
-        return Subers
-    }
-
-    export const updateOrAddSuber = (chain: string, type: SuberTyp, suber: Suber): void => {
-        const ct = `${chain}-${type}`
-        Subers[ct] = Subers[ct] || {}
-        Subers[ct][suber.id] = suber
-        // log.debug(`updateOradd ${chain} ${type} suber[${suber.id}] pubers: `, Subers[ct][suber.id].pubers)
-    }
-
-    export const delSuber = (chain: string, type: SuberTyp, subId: IDT): void => {
-        const ct = `${chain}-${type}`
-        // Subers[ct][subId].pubers?.clear()    // BUG: will clear other  suber's pubers
-        delete Subers[ct][subId]
-        log.debug(`delete ${chain} ${type} suber[${subId}] result: `, Subers[ct][subId] === undefined)
-    }
 
     export const getID = (): number => {
         return ID_CNT++
