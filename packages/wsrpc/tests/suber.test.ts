@@ -1,8 +1,6 @@
-import WebSocket from "ws"
-import { randomId } from "lib/utils"
-import Suber, { SuberTyp, SuberStat } from "../src/matcher/suber"
-import { isNone } from 'elara-lib'
-import G from '../src/global'
+import WebSocket from 'ws'
+import { randomId, isNone } from 'elara-lib'
+import Suber, { SuberTyp, SuberStat } from '../src/matcher/suber'
 
 describe('suber G test suit', () => {
     const ws = {} as WebSocket
@@ -14,20 +12,20 @@ describe('suber G test suit', () => {
     const pubers = new Set([pubId])
     const suber = { id: subId, ws, url, chain, type, stat: SuberStat.Create, pubers } as Suber
     it('none', () => {
-        let re = G.getAllSuber()
+        let re = Suber.getAllSuber()
         expect(re).toEqual({})
     })
 
     it('add', () => {
-        G.updateOrAddSuber(chain, type, suber)
-        let re: any = G.getSuber(chain, type, subId)
+        Suber.updateOrAddSuber(chain, type, suber)
+        let re: any = Suber.getSuber(chain, type, subId)
         expect(isNone(re)).toBeFalsy()
         const sub = re.value as Suber
         expect(sub.pubers).toEqual(new Set([pubId]))
         let pid = randomId()
         sub.pubers?.add(pid)
-        G.updateOrAddSuber(chain, type, sub)
-        let res: any = G.getSuber(chain, type, sub.id)
+        Suber.updateOrAddSuber(chain, type, sub)
+        let res: any = Suber.getSuber(chain, type, sub.id)
         expect(res.value.pubers).toEqual(new Set([pubId, pid]))
     })
 })

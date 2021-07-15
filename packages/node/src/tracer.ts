@@ -12,7 +12,7 @@ const Pobs = new PerformanceObserver((items) => {
 
 Pobs.observe({
     entryTypes: ['measure'],
-    buffered: true
+    // buffered: true
 })
 
 

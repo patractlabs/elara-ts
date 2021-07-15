@@ -180,7 +180,7 @@ const dataParse = (data: WebSocket.Data): ResultT<DParT> => {
 
     if (req.type === ReqTyp.Unsub || isClose) {
         handleUnsubscribe(req, dres)
-        if (req.originId === 0) { return Ok(true) }
+        if (req.originId === 0) { return Ok({req, data: true}) }
     } else if (isSubscribe(req.type === ReqTyp.Sub, dres)) {
         // first response of subscribe
         log.info(`first response of subscribe method[${req.method}] params[${req.params}] puber[${req.pubId}]: `, dat)
@@ -222,13 +222,13 @@ const msgCb = (dat: WebSocket.Data) => {
         log.error('Parse suber message data error: ', re.value)
         return
     }
-    if (re.value === true) { 
+    if (re.value.data === true) { 
         log.info(`unsubscribe topic done after puber closed: ${Util.globalStat()}`)
         return 
     }
 
     const {data, req} = re.value 
-    puberSend(req.pubId, data)
+    puberSend(req.pubId, data as WebSocket.Data)
     log.info(`new suber message of [${req.method}] parse time[${time}]:  `, Util.globalStat())
 }
 
@@ -263,13 +263,13 @@ const recoverPuberTopics = (puber: Puber, ws: WebSocket, subsId: string) => {
         log.error(`revocer puber[${id}] subscribe topic error: ${re.value}`)
         process.exit(2)
     }
-    re = G.getReqCache(re.value)
-    if (isErr(re)) {
-        log.error(`revocer puber[${id}] subscribe topic error: ${re.value}`)
+    const rre = G.getReqCache(re.value)
+    if (isErr(rre)) {
+        log.error(`revocer puber[${id}] subscribe topic error: ${rre.value}`)
         process.exit(2)
     }
 
-    const req = re.value as ReqT
+    const req = rre.value as ReqT
     log.info(`recover new subscribe topic request: ${JSON.stringify(req)}`)
     ws.send(Util.reqFastStr({
         id: req.id, 
@@ -413,7 +413,7 @@ interface Suber {
 
 namespace Suber {
 
-    export const selectSuber = async (chain: string): PResultT => {
+    export const selectSuber = async (chain: string): PResultT<Suber> => {
     
         const subers = G.getChainSubers(chain)
         const keys = Object.keys(subers)

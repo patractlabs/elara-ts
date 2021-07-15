@@ -1,4 +1,4 @@
-export const formateDate = (date) => {
+export const formateDate = (date: Date) => {
     let yyyy = date.getFullYear()
     let MM = (date.getMonth() + 1) >= 10 
         ? (date.getMonth() + 1) : ("0" + (date.getMonth() + 1))

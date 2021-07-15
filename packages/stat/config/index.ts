@@ -1,4 +1,4 @@
-const config = {
+export const config = {
     keys: ['stat@#^*&'],
     name: 'stat',
     port: 7002,

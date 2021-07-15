@@ -1,12 +1,10 @@
 import { IDT, isErr } from 'elara-lib'
 import KEY from '../lib/KEY'
-import { Some, None, Option } from 'elara-lib'
+import { Some, None } from 'elara-lib'
 import Project from './project'
 import { actRd } from '../db/redis'
 
-type POption<T> = Promise<Option<T>>
-
-interface AccountT {
+export interface AccountT {
     uid: IDT
     vip: any
     createTime: string
@@ -15,7 +13,7 @@ interface AccountT {
 
 class Account {
     uid; vip; createTime; ext
-    constructor(uid, vip, createtime, ext) {
+    constructor(uid: string, vip: string, createtime: string, ext: any) {
         this.uid = uid
         this.vip = vip
         this.createTime = createtime
@@ -23,7 +21,7 @@ class Account {
     }
 
     //: Promise<Option<AccountT>>
-    static async info(uid) {
+    static async info(uid: string) {
         let reply = await actRd.hgetall(KEY.UID(uid))
         let projects = await Project.projectNumOfAllChain(uid)
         if (isErr(projects)) {
@@ -41,4 +39,4 @@ class Account {
 }
 
 // cannot export default , will be undefined function call
-export = Account
+export default Account

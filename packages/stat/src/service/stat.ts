@@ -13,7 +13,7 @@ const safeParseInt = (val: string | null): number => {
     return 0
 }
 
-interface StatProtocol {
+export interface StatProtocol {
     protocol: string,    // websocket, http/https
     header: any,        // ctx.request.header same as http.Incomingmessage.headers
     ip: string,
@@ -40,8 +40,8 @@ class Stat {
         let chain = info.chain
         let pid = info.pid
         let method = info.method
-        let req = info.req/*请求体 */
-        let resp = info.resp/*响应体 */
+        // let req = info.req/*请求体 */
+        // let resp = info.resp/*响应体 */
         let code = info.code
         let bandwidth = info.bandwidth/*响应带宽*/
         let start = parseInt(info.start)
@@ -66,7 +66,7 @@ class Stat {
         await statRd.ltrim(KEY.REQUEST_RESPONSE(), 0, config.maxReqKeepNum)
     }
     
-    static async _timeout(pid: any, delay) {
+    static async _timeout(pid: any, delay: number) {
         let date = formateDate(new Date())
 
         if (delay >= config.timeout) {
@@ -85,31 +85,31 @@ class Stat {
         }
     }
 
-    static async _today_request(pid) {
+    static async _today_request(pid: string) {
         let timestamp = now()
         let date = formateDate(new Date())
 
         await statRd.incr(KEY.REQUEST(pid, date))
         await statRd.set(KEY.REQUEST_UPDATETIME(pid, date), timestamp)
     }
-    static async _method(pid, method) {
+    static async _method(pid: string, method: string) {
         let date = formateDate(new Date())
         let key_method = KEY.METHOD(pid, date)
         await statRd.hincrby(key_method, method, 1);
     }
-    static async _chain(chain) {
+    static async _chain(chain: string) {
         await statRd.incr(KEY.TOTAL(chain))
     }
-    static async _bandwidth(pid, bandwidth) {
+    static async _bandwidth(pid: string, bandwidth: string) {
         let date = formateDate(new Date())
         await statRd.incrby(KEY.BANDWIDTH(pid, date), parseInt(bandwidth))
     }
-    static async _code(pid, code) {
+    static async _code(pid: string, code: string) {
         let date = formateDate(new Date())
         let key_code = KEY.CODE(pid, date)
         await statRd.hincrby(key_code, code, 1);
     }
-    static async _header(header, pid) {
+    static async _header(header: any, pid: string) {
         let agent = header['user-agent'] ? header['user-agent'] : 'null'
         let origin = header['origin'] ? header['origin'] : 'null'
         // let ip = (header['x-forwarded-for'] ? header['x-forwarded-for'].split(/\s*,\s/[0]) : null)  || ''
@@ -117,12 +117,12 @@ class Stat {
         Stat._agent(pid, agent)
         Stat._origin(pid, origin)
     }
-    static async _agent(pid, agent) {
+    static async _agent(pid: string, agent: string) {
         let date = formateDate(new Date())
         let key_agent = KEY.AGENT(pid, date)
         await statRd.hincrby(key_agent, agent, 1)
     }
-    static async _origin(pid, origin) {
+    static async _origin(pid: string, origin: string) {
         let date = formateDate(new Date())
         let key_origin = KEY.ORIGIN(pid, date)
         await statRd.hincrby(key_origin, origin, 1)
@@ -130,7 +130,7 @@ class Stat {
 
     //链的总请求数
     static async getChain() {
-        let total = {}
+        let total: any = {}
         // TODO chain config
         let chains = ['polkadot', 'westend']
 
@@ -142,7 +142,7 @@ class Stat {
     }
 
     //项目的某日统计信息
-    static async day(pid, date) {
+    static async day(pid: string, date: string) {
         if (!date) {
             date = formateDate(new Date())
         }
@@ -178,19 +178,19 @@ class Stat {
         return today
     }
     //项目的周统计信息
-    static async days(pid, days) {
+    static async days(pid: string, days: number) {
         let oneday = 24 * 60 * 60 * 1000
         let today = (new Date()).getTime()
 
-        let data = {}
-        for (var i = 0; i < parseInt(days); i++) {
-            let date = formateDate(new Date(today - i * oneday))
+        let data: any = {}
+        for (var i = 0; i < parseInt(days.toString()); i++) {
+            let date: string = formateDate(new Date(today - i * oneday))
             data[date] = await Stat.day(pid, date)
         }
 
         return data
     }
-    static async requests(size) {
+    static async requests(size: number) {
         let requests: any = []
 
         try {
@@ -216,16 +216,6 @@ class Stat {
 
 }
 
-namespace KEYS {
-    const S = 'Stat_'
-
-    export const dashBoardKey = (date: string, pid: IDT): string => {
-        return  `H_${S}${date}_${pid}`
-    }
-}
-
-
-
 namespace Stat {
     export const dashboard = async () => {
         let dashboard = {}
@@ -243,4 +233,4 @@ namespace Stat {
     }
 }
 
-export = Stat
+export default Stat

@@ -1,5 +1,4 @@
 import Project from '../../service/project'
-import Stat from'../../service/stat'
 import Limit from '../../service/limit'
 import { KCtxT, NextT, getAppLogger, Code, Resp, Msg } from 'elara-lib'
 import { isErr } from 'elara-lib'
@@ -56,7 +55,7 @@ let createProeject = async (ctx: KCtxT, next: NextT) => {
 //验证登录态，获取项目详情
 const getProject = async (ctx: KCtxT, next: NextT) => {
     log.info('Into project detail')
-    let uid = ctx.state.user
+    // let uid = ctx.state.user
     let pid = ctx.request.params.pid
     let chain = ctx.request.params.chain    // TODO
     // check UID or not
