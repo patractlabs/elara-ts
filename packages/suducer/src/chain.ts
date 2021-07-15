@@ -6,7 +6,7 @@ import Dao from './dao'
 import { G } from './global'
 import Conf from '../config'
 const log = getAppLogger('chain', true)
-import Redis, { DBT } from '@elara/lib/utils/redis'
+import { Redis, DBT } from '@elara/lib'
 
 const redisConf = Conf.getRedis()
 const pubsubRd = new Redis(DBT.Pubsub, {host: redisConf.host, port: redisConf.port})

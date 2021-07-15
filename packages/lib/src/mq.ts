@@ -1,9 +1,9 @@
-import Redis, { DBT, RArgT } from './redis'
+import { Redis, DBT, RArgT } from './redis'
 import { getAppLogger } from './log'
 
-const log = getAppLogger('mq-redis')
+const log = getAppLogger('mq')
 
-type SubCbT = (data: any) => void
+export type SubCbT = (data: any) => void
 
 export class Subscriber extends Redis {
     constructor(db: DBT = DBT.Pubsub, arg?: RArgT) {
@@ -64,7 +64,7 @@ export class Producer extends Redis {
     }
 }
 
-interface StreamInfoT {
+export interface StreamInfoT {
     length: number,
     radixTreeKeys: number,
     radixTreeNodes: number,
@@ -74,22 +74,22 @@ interface StreamInfoT {
     lastEntry: any
 }
 
-interface GroupInfoT {
+export interface GroupInfoT {
     name: string,
     consumers: number,
     pending: number,
     lastDeliveredId: string,
 }
 
-type GroupListT = GroupInfoT[]
+export type GroupListT = GroupInfoT[]
 
-interface ConsumerInfoT {
+export interface ConsumerInfoT {
     name: string,
     pending: number,
     idle: number,
 }
 
-type ConsumerListT = ConsumerInfoT[]
+export type ConsumerListT = ConsumerInfoT[]
 
 class Mq extends Redis {
 

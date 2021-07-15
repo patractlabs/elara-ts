@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 import { IDT } from '@elara/lib'
-import { randomId, md5 } from '@elara/lib/utils'
+import { randomId, md5 } from '@elara/lib'
 import { TopicT } from './interface'
 
 export enum SuducerT {

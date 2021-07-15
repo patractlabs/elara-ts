@@ -1,7 +1,7 @@
 import Http from 'http'
 import Net from 'net'
 import WebSocket from 'ws'
-import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT } from '@elara/lib'
+import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT, unexpectListener } from '@elara/lib'
 import Util from './src/util'
 import { ChainPidT, ReqDataT, WsData, CloseReason } from './src/interface'
 import Conf, { UnsafeMethods } from './config'
@@ -10,7 +10,6 @@ import Service from './src/service'
 import Matcher from './src/matcher'
 import Puber from './src/puber'
 import { Response } from './src/util'
-import unexpectListener from '@elara/lib/utils/unexpect'
 
 const log = getAppLogger('app')
 const Server = Http.createServer()

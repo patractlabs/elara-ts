@@ -1,4 +1,4 @@
-import Redis, { DBT } from '@elara/lib/utils/redis'
+import { Redis, DBT } from '@elara/lib'
 import { ChainConfig, KEYS, getAppLogger } from '@elara/lib'
 import { Topic } from '../types'
 

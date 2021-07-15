@@ -22,7 +22,7 @@ export interface RClientT {
     db: DBT
 }
 
-class Redis {
+export class Redis {
     protected client: RdT
     private db: DBT
 
@@ -62,5 +62,3 @@ class Redis {
         })
     }
 }
-
-export default Redis

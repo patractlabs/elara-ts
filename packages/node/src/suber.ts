@@ -1,4 +1,4 @@
-import { randomId } from '@elara/lib/utils'
+import { randomId } from '@elara/lib'
 import WebSocket from 'ws'
 import { ReqT, ReqTyp, WsData } from './interface'
 import { ChainConfig, getAppLogger, isErr, IDT, Err, Ok, ResultT, PVoidT, PResultT } from '@elara/lib'

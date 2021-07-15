@@ -2,7 +2,6 @@
   "name": "@elara/scripts",
   "version": "0.1.0",
   "description": "",
-  "main": "app.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,6 +9,7 @@
   "license": "ISC",
   "private": true,
   "dependencies": {
-    "@elara/lib": "0.1.0"
+    "@elara/lib": "0.1.0",
+    "esbuild": "^0.12.15"
   }
 }

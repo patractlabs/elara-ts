@@ -1,4 +1,4 @@
-import Redis, { DBT } from '@elara/lib/utils/redis'
+import { Redis, DBT } from '@elara/lib'
 import { getAppLogger, KEYS } from '@elara/lib'
 import { dotenvInit } from '@elara/lib'
 dotenvInit()

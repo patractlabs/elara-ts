@@ -4,11 +4,12 @@ import { ChainConfig, getAppLogger, PVoidT } from '@elara/lib'
 import { isErr } from '@elara/lib'
 import Dao from './dao'
 import Conf from '../config'
-import Redis, { DBT } from '@elara/lib/utils/redis'
+import { Redis, DBT } from '@elara/lib'
 
 const log = getAppLogger('chain')
+const rconf = Conf.getRedis()
 
-const pubsubRd = new Redis(DBT.Pubsub)
+const pubsubRd = new Redis(DBT.Pubsub, { host: rconf.host, port: rconf.port})
 const chainPSub = pubsubRd.getClient()
 
 pubsubRd.onConnect(() => {

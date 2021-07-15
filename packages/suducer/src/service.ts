@@ -6,7 +6,7 @@ import { G } from './global'
 import Chain from './chain'
 import Pool from './pool'
 import { SuducerT } from './suducer'
-import { randomId } from '@elara/lib/utils'
+import { randomId } from '@elara/lib'
 import { CacheStrategyT, ReqT } from './interface'
 
 const log = getAppLogger('suducer', true)

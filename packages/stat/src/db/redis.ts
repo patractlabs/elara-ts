@@ -1,4 +1,4 @@
-import Redis, { DBT } from '@elara/lib/utils/redis'
+import { Redis, DBT } from '@elara/lib'
 
 export const statRd = new Redis(DBT.Stat).getClient()
 

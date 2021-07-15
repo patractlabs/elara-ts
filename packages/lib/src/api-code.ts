@@ -9,7 +9,7 @@ export enum Code {
     // 1000 - 1999 
     // NOTE: something system error, shouldn't post the Msg to customer
 
-    Pro_Err = 1001,    
+    Pro_Err = 1001,
 
 
     // 2000 - 2999

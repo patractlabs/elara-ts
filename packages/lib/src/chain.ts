@@ -1,4 +1,4 @@
-import { RpcMapT } from './common-rpc'
+import { RpcMapT } from './rpc'
 
 export enum Network {
     Live = 'live',
@@ -26,10 +26,13 @@ export interface ChainConfig {
     [key: string]: any
 }
 
-export const toJsonstr = (chain: ChainConfig): string => {
-    return JSON.stringify(chain)
-}
+export class Chain {
 
-export const toChain = (chain: string): ChainConfig => {
-    return JSON.parse(chain)
+    static toJsonstr(chain: ChainConfig): string {
+        return JSON.stringify(chain)
+    }
+
+    static toChain(chain: string): ChainConfig {
+        return JSON.parse(chain)
+    }
 }

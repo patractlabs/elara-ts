@@ -1,4 +1,4 @@
-import {Code, Msg} from './api-code'
+import { Code, Msg } from './api-code'
 
 export class Resp {
     constructor(public code: Code, public msg: Msg, public data: any) {
@@ -15,7 +15,7 @@ export class Resp {
         )
     }
 
-    static Fail = (code: Code, msg: Msg, data: any = {}) => {      
+    static Fail = (code: Code, msg: Msg, data: any = {}) => {
         return new Resp(code, msg, data)
     }
 

@@ -8,7 +8,10 @@
   "private": true,
   "scripts": {
     "wsrpc": "yarn workspace @elara/wsrpc",
-    "suducer": "yarn workspace @elara/suducer"
+    "suducer": "yarn workspace @elara/suducer",
+    "lib": "yarn workspace @elara/lib",
+    "script": "yarn workspace @elara/scripts",
+    "build": "ts-node packages/scripts/build.ts"
   },
   "repository": {
     "type": "git",
@@ -23,6 +26,7 @@
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "jest": "^26.6.3",
+    "lerna": "^4.0.0",
     "ts-jest": "^26.5.6",
     "typescript": "^4.3.5"
   }

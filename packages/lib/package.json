@@ -1,23 +1,25 @@
 {
-  "name": "@elara/lib",
-  "version": "0.1.0",
-  "description": "common library for elara-ts",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Bruce",
-  "license": "GPL-3.0",
-  "private": true,
-  "dependencies": {
-    "dotenv": "^10.0.0",
-    "ioredis": "^4.27.2",
-    "kafkajs": "^1.15.0",
-    "koa-log4": "^2.3.2",
-    "ws": "^7.4.5"
-  },
-  "devDependencies": {
-    "@types/ioredis": "^4.26.3",
-    "@types/koa-log4": "^2.3.2",
-    "@types/ws": "^7.4.4"
-  }
+    "name": "@elara/lib",
+    "version": "0.1.0",
+    "description": "common library for elara-ts",
+    "main": "src/index.ts",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "tsc"
+    },
+    "author": "Bruce",
+    "license": "GPL-3.0",
+    "private": true,
+    "dependencies": {
+        "dotenv": "^10.0.0",
+        "ioredis": "^4.27.2",
+        "kafkajs": "^1.15.0",
+        "koa-log4": "^2.3.2",
+        "ws": "^7.4.5"
+    },
+    "devDependencies": {
+        "@types/ioredis": "^4.26.3",
+        "@types/koa-log4": "^2.3.2",
+        "@types/ws": "^7.4.4"
+    }
 }

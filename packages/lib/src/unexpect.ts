@@ -5,7 +5,7 @@ const log = getAppLogger('Unexpect')
 const errorTypes = ['unhandledRejection', 'uncaughtException']
 const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2']
 
-function unexpectListener(): void {
+export function unexpectListener(): void {
     errorTypes.map(type => {
         process.on(type, async (err) => {
             try {
@@ -28,5 +28,3 @@ function unexpectListener(): void {
         })
     })
 }
-
-export default unexpectListener

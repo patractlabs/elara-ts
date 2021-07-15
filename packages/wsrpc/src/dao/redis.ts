@@ -1,13 +1,16 @@
-import Redis, { DBT } from '@elara/lib/utils/redis'
+import { Redis, DBT } from '@elara/lib'
 import { getAppLogger, KEYS } from '@elara/lib'
+import Conf from '@flipcards/wsrpc/config'
 
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
 
 const log = getAppLogger('redis')
 
+const rconf = Conf.getRedis()
+
 // TODO redis pool
-const chainRd = new Redis(DBT.Chain)
+const chainRd = new Redis(DBT.Chain, { host: rconf.host, port: rconf.port })
 const chainRedis = chainRd.getClient()
 
 chainRd.onError((err: string) => {
@@ -19,7 +22,7 @@ chainRd.onConnect(() => {
     log.info(`redis db chain connection open`)
 })
 
-const cacheRd = new Redis(DBT.Cache)
+const cacheRd = new Redis(DBT.Cache, { host: rconf.host, port: rconf.port })
 const cacheRedis = cacheRd.getClient()
 
 cacheRd.onConnect(() => {

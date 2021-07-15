@@ -1,5 +1,5 @@
 import Ws from 'ws'
-import { randomId } from '../../lib/utils'
+import { randomId } from '@elara/lib'
 const log = console
 
 async function sleeps(s: number): Promise<void> {
