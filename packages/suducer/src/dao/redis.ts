@@ -1,6 +1,6 @@
-import Redis, { DBT } from 'lib/utils/redis'
-import { getAppLogger, KEYS } from 'lib'
-import { dotenvInit } from 'lib'
+import Redis, { DBT } from 'elara-lib/utils/redis'
+import { getAppLogger, KEYS } from 'elara-lib'
+import { dotenvInit } from 'elara-lib'
 dotenvInit()
 import Conf from '../../config'
 

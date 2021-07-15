@@ -1,6 +1,6 @@
 // import Trace from 'trace_events'
 import { PerformanceObserver } from 'perf_hooks'
-import { getAppLogger } from 'lib'
+import { getAppLogger } from 'elara-lib'
 
 const log = getAppLogger('tracer')
 

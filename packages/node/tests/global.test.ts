@@ -1,5 +1,5 @@
-import { isOk, isErr } from 'lib'
-import { randomId } from 'lib/utils'
+import { isOk, isErr } from 'elara-lib'
+import { randomId } from 'elara-lib/utils'
 import WebSocket from 'ws'
 import G from '../src/global'
 import { ReqT } from '../src/interface'

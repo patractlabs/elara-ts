@@ -1,10 +1,10 @@
 /// chain list init and handler the chain update
 
-import { ChainConfig, getAppLogger, PVoidT } from 'lib'
-import { isErr } from 'lib'
+import { ChainConfig, getAppLogger, PVoidT } from 'elara-lib'
+import { isErr } from 'elara-lib'
 import Dao from './dao'
 import Conf from '../config'
-import Redis, { DBT } from 'lib/utils/redis'
+import Redis, { DBT } from 'elara-lib/utils/redis'
 
 const log = getAppLogger('chain')
 

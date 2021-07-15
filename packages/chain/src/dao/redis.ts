@@ -1,5 +1,5 @@
-import Redis, { DBT } from 'lib/utils/redis'
-import { ChainConfig, KEYS } from 'lib'
+import Redis, { DBT } from 'elara-lib/utils/redis'
+import { ChainConfig, KEYS } from 'elara-lib'
 import { Topic } from '../types'
 
 const KEY = KEYS.Chain

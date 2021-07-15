@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
-import { isOk } from 'lib'
-import { randomId } from 'lib/utils'
+import { isOk } from 'elara-lib'
+import { randomId } from 'elara-lib/utils'
 import G from '../src/global'
 import Matcher from '../src/matcher'
 import Suber from '../src/suber'

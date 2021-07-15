@@ -1,4 +1,4 @@
-import { Redis } from 'lib'
+import { Redis } from 'elara-lib'
 const DBT = Redis.DBT
 
 export const statRd = Redis.newClient(DBT.Stat).client

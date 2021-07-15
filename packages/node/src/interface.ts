@@ -1,4 +1,4 @@
-import { IDT } from 'lib'
+import { IDT } from 'elara-lib'
 import Suber from './suber'
 import Puber from './puber'
 

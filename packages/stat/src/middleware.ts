@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import koaBody from 'koa-body'
-import { getAppLogger, Resp, Code, Msg, NextT, KCtxT } from 'lib'
+import { getAppLogger, Resp, Code, Msg, NextT, KCtxT } from 'elara-lib'
 
 const log = getAppLogger('stat-midware', true)
 

@@ -3,7 +3,7 @@ import { setConfig } from "../../config"
 const Account = require('./account')
 const { formateDate } = require('../lib/date');
 const KEY = require('../lib/KEY')
-import { isSome } from 'lib'
+import { isSome } from 'elara-lib'
 import { actRd, statRd } from '../db/redis'
 const config = setConfig()
 

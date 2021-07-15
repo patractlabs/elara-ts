@@ -1,4 +1,4 @@
-import { getAppLogger, IDT } from 'lib'
+import { getAppLogger, IDT } from 'elara-lib'
 import { now, formateDate } from '../lib/date'
 import KEY from '../lib/KEY'
 import { setConfig } from '../../config'

@@ -1,5 +1,5 @@
-import Redis, { DBT } from 'lib/utils/redis'
-import { ChainConfig, ChainType, KEYS, Network } from 'lib'
+import Redis, { DBT } from 'elara-lib/utils/redis'
+import { ChainConfig, ChainType, KEYS, Network } from 'elara-lib'
 
 const KEY = KEYS.Chain
 const Rd = new Redis(DBT.Chain).getClient()

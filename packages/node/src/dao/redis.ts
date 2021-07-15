@@ -1,5 +1,5 @@
-import { Redis } from 'lib'
-import { getAppLogger, KEYS } from 'lib'
+import { Redis } from 'elara-lib'
+import { getAppLogger, KEYS } from 'elara-lib'
 
 // const KCache = KEYS.Cache
 const KChain = KEYS.Chain

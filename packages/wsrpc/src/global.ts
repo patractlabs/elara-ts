@@ -1,5 +1,5 @@
-import { getAppLogger, IDT } from "lib"
-import { ResultT, Err, Ok } from "lib"
+import { getAppLogger, IDT } from 'elara-lib'
+import { ResultT, Err, Ok } from 'elara-lib'
 import { ReqT, SubscripT } from "./interface"
 const log = getAppLogger('global')
 

@@ -1,5 +1,5 @@
 import Http from 'http'
-import { ChainConfig, getAppLogger, isErr, PVoidT } from "lib"
+import { ChainConfig, getAppLogger, isErr, PVoidT } from 'elara-lib'
 import Dao from '../dao'
 import { ReqDataT } from "../interface"
 import Util from '../util'

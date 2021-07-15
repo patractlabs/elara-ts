@@ -1,7 +1,7 @@
 import Cacher from "./cacher"
 import Chain from "./chain"
 import Matcher from "./matcher"
-import { getAppLogger, PVoidT } from 'lib'
+import { getAppLogger, PVoidT } from 'elara-lib'
 import Dao from "./dao"
 
 const log = getAppLogger('service')

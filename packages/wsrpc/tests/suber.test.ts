@@ -1,7 +1,7 @@
 import WebSocket from "ws"
 import { randomId } from "lib/utils"
 import Suber, { SuberTyp, SuberStat } from "../src/matcher/suber"
-import { isNone } from "lib"
+import { isNone } from 'elara-lib'
 import G from '../src/global'
 
 describe('suber G test suit', () => {

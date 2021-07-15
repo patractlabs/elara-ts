@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "[中文](https://github.com/patractlabs/elara/blob/master/README-zh.md)",
   "main": "app.ts",
+  "workspaces": ["packages/*"],
+  "private": true,
   "scripts": {
     "test": "jest"
   },

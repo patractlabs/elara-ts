@@ -1,7 +1,7 @@
 const Project = require('../../service/project')
 const Limit = require('../../service/limit')
 // const CODE = require('../helper/code')
-import { Resp, Code, Msg } from 'lib'
+import { Resp, Code, Msg } from 'elara-lib'
 
 let checkLimit = async (ctx, next) => {
     let chain = ctx.request.params.chain

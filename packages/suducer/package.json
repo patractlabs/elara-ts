@@ -1,7 +1,7 @@
 {
-  "name": "suducer",
-  "version": "1.0.0",
-  "description": "subscriber-producer",
+  "name": "elara-suducer",
+  "version": "0.1.0",
+  "description": "elara-ts cache rpc producer",
   "main": "app.ts",
   "scripts": {
     "test": "jest"
@@ -10,7 +10,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "config": "^3.3.6",
-    "lib": "file:../lib",
+    "elara-lib": "0.1.0",
     "ws": "^7.5.1"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
-import { IDT, isErr } from 'lib'
+import { IDT, isErr } from 'elara-lib'
 import KEY from '../lib/KEY'
-import { Some, None, Option } from 'lib'
+import { Some, None, Option } from 'elara-lib'
 import Project from './project'
 import { actRd } from '../db/redis'
 

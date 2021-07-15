@@ -1,12 +1,12 @@
 /// service strategy: once request of chain received, init all 
 /// the service of this chain. otherwise not init
 /// 
-import { getAppLogger, isNone } from 'lib'
+import { getAppLogger, isNone } from 'elara-lib'
 import { G } from './global'
 import Chain from './chain'
 import Pool from './pool'
 import { SuducerT } from './suducer'
-import { randomId } from 'lib/utils'
+import { randomId } from 'elara-lib/utils'
 import { CacheStrategyT, ReqT } from './interface'
 
 const log = getAppLogger('suducer', true)

@@ -1,4 +1,4 @@
-import { ChainConfig, Err, Ok, PResultT, PVoidT } from 'lib'
+import { ChainConfig, Err, Ok, PResultT, PVoidT } from 'elara-lib'
 import { Topic } from '../types'
 import Rd from './redis'
 

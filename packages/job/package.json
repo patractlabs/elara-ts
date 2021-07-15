@@ -1,6 +1,6 @@
 {
-  "name": "job",
-  "version": "1.0.0",
+  "name": "elara-job",
+  "version": "0.1.0",
   "description": "",
   "main": "app.ts",
   "scripts": {
