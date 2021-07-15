@@ -1,5 +1,5 @@
 import WebSocket from 'ws'
-import { isSome } from 'elara-lib'
+import { isSome } from '@elara/lib'
 import Suducer, { SuducerT } from '../src/suducer'
 import { TopicT } from '../src/interface'
 import G from '../src/global'

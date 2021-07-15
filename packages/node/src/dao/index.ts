@@ -1,5 +1,5 @@
 
-import { PResultT,Ok, Err, ChainConfig } from 'elara-lib'
+import { PResultT,Ok, Err, ChainConfig } from '@elara/lib'
 import Rd from './redis'
 
 namespace Dao {

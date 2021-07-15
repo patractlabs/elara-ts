@@ -1,6 +1,6 @@
 import WebSocket, { EventEmitter } from 'ws'
-import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT } from 'elara-lib'
-import { randomId } from 'elara-lib/utils'
+import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT } from '@elara/lib'
+import { randomId } from '@elara/lib/utils'
 import { WsData } from './interface'
 import G from './global'
 import Matcher from './matcher'

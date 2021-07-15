@@ -1,4 +1,4 @@
-import { Err, Ok, getAppLogger, IDT, ResultT, RpcMethods, RpcMethodT } from 'elara-lib'
+import { Err, Ok, getAppLogger, IDT, ResultT, RpcMethods, RpcMethodT } from '@elara/lib'
 import { SuberMap, PuberMap, ChainSuber, SubscripT, SubscripMap, ReqMap, ReqT } from './interface'
 import Suber from './suber'
 import Puber from './puber'

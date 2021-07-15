@@ -1,4 +1,4 @@
-import { getAppLogger } from 'elara-lib'
+import { getAppLogger } from '@elara/lib'
 import { ReqDataT } from "../interface"
 import { SuberTyp } from "../matcher/suber"
 import Puber from "../puber"

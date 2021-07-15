@@ -1,5 +1,5 @@
 {
-  "name": "elara-node",
+  "name": "@elara/node",
   "version": "0.1.0",
   "description": "node transpond service for elara fail",
   "main": "app.ts",
@@ -9,17 +9,15 @@
   },
   "author": "Bruce",
   "license": "GPL-3.0",
+  "private": true,
   "dependencies": {
     "config": "^3.3.6",
     "fast-json-stringify": "^2.7.6",
-    "elara-lib": "0.1.0",
+    "@elara/lib": "0.1.0",
     "ws": "^7.4.6"
   },
   "devDependencies": {
     "@types/config": "0.0.38",
-    "@types/jest": "^26.0.23",
-    "@types/ws": "^7.4.4",
-    "jest": "^27.0.4",
-    "ts-jest": "^27.0.3"
+    "@types/ws": "^7.4.4"
   }
 }

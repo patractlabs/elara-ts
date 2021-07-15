@@ -1,6 +1,6 @@
 import Stat from '../../service/stat'
 import { formateDate } from '../../lib/date'
-import { KCtxT, NextT, Resp } from 'elara-lib'
+import { KCtxT, NextT, Resp } from '@elara/lib'
 
 let chain = async (ctx: KCtxT, next: NextT) => {
     let chainInfo = await Stat.getChain()

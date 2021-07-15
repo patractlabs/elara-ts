@@ -1,4 +1,4 @@
-import { getAppLogger } from 'elara-lib'
+import { getAppLogger } from '@elara/lib'
 import Dao from '../dao'
 
 const log = getAppLogger('cacher')

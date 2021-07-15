@@ -1,9 +1,9 @@
 import crypto from 'crypto'
 import { now } from '../lib/date'
-import { getAppLogger } from 'elara-lib'
-import { IDT } from 'elara-lib'
-import { Err, isErr, Ok, PResultT } from 'elara-lib'
-import { KEYS } from 'elara-lib'
+import { getAppLogger } from '@elara/lib'
+import { IDT } from '@elara/lib'
+import { Err, isErr, Ok, PResultT } from '@elara/lib'
+import { KEYS } from '@elara/lib'
 import { projRd } from '../db/redis'
 
 const KEY = KEYS.Project

@@ -1,31 +1,25 @@
 {
-  "name": "elara-wsrpc",
+  "name": "@elara/wsrpc",
   "version": "0.1.0",
   "description": "elara-ts core service",
   "main": "app.ts",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "start": "ts-node app.ts",
+    "build": "tsc",
+    "start:node": "node ./dist/wsrpc/app.js"
   },
   "author": "Bruce",
   "license": "GPL-3.0",
+  "private": true,
   "dependencies": {
+    "@elara/lib": "0.1.0",
     "config": "^3.3.6",
-    "http-proxy": "^1.18.1",
-    "kafkajs": "^1.15.0",
-    "koa": "^2.13.1",
-    "elara-lib": "0.1.0",
-    "pg": "^8.6.0",
-    "pg-hstore": "^2.3.4",
-    "sequelize": "^6.6.4",
+    "sequelize": "^6.6.5",
     "ws": "^7.4.5"
   },
   "devDependencies": {
     "@types/config": "0.0.38",
-    "@types/http-proxy": "^1.17.6",
-    "@types/koa": "^2.13.1",
-    "@types/sequelize": "^4.28.9",
-    "@types/ws": "^7.4.6",
-    "jest": "^27.0.6",
-    "ts-jest": "^27.0.3"
+    "@types/ws": "^7.4.6"
   }
 }

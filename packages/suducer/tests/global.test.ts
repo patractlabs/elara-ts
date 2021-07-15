@@ -1,4 +1,4 @@
-import { ChainConfig, isSome, isNone, RpcMapT, RpcStrategy } from 'elara-lib'
+import { ChainConfig, isSome, isNone, RpcMapT, RpcStrategy } from '@elara/lib'
 import { randomId } from '../../lib/utils'
 import G from '../src/global'
 import Suducer, { SuducerT } from '../src/suducer'

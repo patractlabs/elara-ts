@@ -1,4 +1,4 @@
-import { ChainConfig, Err, Ok, PResultT } from 'elara-lib'
+import { ChainConfig, Err, Ok, PResultT } from '@elara/lib'
 import Rd from './redis'
 
 // TODO result

@@ -1,7 +1,7 @@
 import Project from '../../service/project'
 import Limit from '../../service/limit'
-import { KCtxT, NextT, getAppLogger, Code, Resp, Msg } from 'elara-lib'
-import { isErr } from 'elara-lib'
+import { KCtxT, NextT, getAppLogger, Code, Resp, Msg } from '@elara/lib'
+import { isErr } from '@elara/lib'
 
 const log = getAppLogger('stat-pro', true)
 

@@ -1,9 +1,10 @@
-import { isOk, isErr } from 'elara-lib'
-import { randomId } from 'elara-lib/utils'
+import { isOk, isErr } from '@elara/lib'
+import { randomId } from '@elara/lib/utils'
 import WebSocket from 'ws'
 import G from '../src/global'
 import { ReqT } from '../src/interface'
 import Puber from '../src/puber'
+import Suber from '../src/suber'
 
 /// all the map result should be {} or map instance
 /// all the instance should be Err or Ok
@@ -53,7 +54,7 @@ describe('suber test suit', () => {
         G.updateAddSuber(chain, suber)
         let re = G.getSuber(chain, id)
         expect(isOk(re)).toEqual(true)
-        const sub = re.value
+        const sub = re.value as Suber
         expect(sub).toEqual(suber)
         expect(sub.pubers).toEqual(new Set([pubId1, pubId2]))
     })
@@ -83,8 +84,9 @@ describe('puber test suit', () => {
         G.updateAddPuber(puber)
         let re = G.getPuber(pubId)
         expect(isOk(re)).toEqual(true)
-        expect(re.value).toEqual(puber)
-        expect(re.value.subId).toEqual(undefined)
+        const pb = re.value as Puber
+        expect(pb).toEqual(puber)
+        expect(pb.subId).toEqual(undefined)
     })
 
     it('update puber', () => {

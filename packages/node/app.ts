@@ -1,6 +1,6 @@
 import Http from 'http'
 import WebSocket from 'ws'
-import { getAppLogger, Ok, isErr, ChainConfig, PResultT, Err } from 'elara-lib'
+import { getAppLogger, Ok, isErr, ChainConfig, PResultT, Err } from '@elara/lib'
 import Puber from './src/puber'
 import Suber from './src/suber'
 import Util from './src/util'

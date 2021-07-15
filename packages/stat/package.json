@@ -1,5 +1,5 @@
 {
-  "name": "elara-stat",
+  "name": "@elara/stat",
   "version": "0.1.0",
   "description": "elara-ts stat",
   "main": "app.ts",
@@ -8,6 +8,7 @@
   },
   "author": "Bruce",
   "license": "GPL-3.0",
+  "private": true,
   "dependencies": {
     "dotenv": "^9.0.2",
     "ioredis": "^4.27.2",
@@ -16,7 +17,7 @@
     "koa-router": "^10.0.0",
     "koa-session": "^6.2.0",
     "koa-static": "^5.0.0",
-    "elara-lib": "0.1.0",
+    "@elara/lib": "0.1.0",
     "passport-github2": "^0.1.12"
   },
   "devDependencies": {

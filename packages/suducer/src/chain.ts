@@ -1,12 +1,12 @@
 /// chain list init and handler the chain update
 
-import { ChainConfig, getAppLogger, PVoidT } from 'elara-lib'
-import { isErr } from 'elara-lib'
+import { ChainConfig, getAppLogger, PVoidT } from '@elara/lib'
+import { isErr } from '@elara/lib'
 import Dao from './dao'
 import { G } from './global'
 import Conf from '../config'
 const log = getAppLogger('chain', true)
-import Redis, { DBT } from 'elara-lib/utils/redis'
+import Redis, { DBT } from '@elara/lib/utils/redis'
 
 const redisConf = Conf.getRedis()
 const pubsubRd = new Redis(DBT.Pubsub, {host: redisConf.host, port: redisConf.port})

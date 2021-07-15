@@ -1,4 +1,4 @@
-import { dotenvInit } from 'elara-lib'
+import { dotenvInit } from '@elara/lib'
 dotenvInit()
 import Config from 'config'
 

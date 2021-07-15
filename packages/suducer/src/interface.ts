@@ -1,4 +1,4 @@
-import { IDT, RpcMapT, ChainConfig } from 'elara-lib'
+import { IDT, RpcMapT, ChainConfig } from '@elara/lib'
 import Suducer
  from './suducer'
 

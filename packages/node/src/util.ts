@@ -1,4 +1,4 @@
-import { getAppLogger, Ok, PResultT, Err } from 'elara-lib'
+import { getAppLogger, Ok, PResultT, Err } from '@elara/lib'
 import { performance } from 'perf_hooks'
 import G from './global'
 import { ChainPidT } from './interface'

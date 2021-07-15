@@ -1,4 +1,4 @@
-var lib = 'elara-lib';
+var lib = '@elara/lib';
 var run = lib + '/run';
 var depend = run + '/depend';
 var licenses = run + '/licenses';

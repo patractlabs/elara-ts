@@ -1,5 +1,5 @@
-import { isErr, KCtxT, NextT, Resp, RpcStrategy, Code, Msg } from 'elara-lib'
-import { getAppLogger, ChainConfig } from 'elara-lib'
+import { isErr, KCtxT, NextT, Resp, RpcStrategy, Code, Msg } from '@elara/lib'
+import { getAppLogger, ChainConfig } from '@elara/lib'
 import Chain from '../services'
 
 const log = getAppLogger('chain', true)

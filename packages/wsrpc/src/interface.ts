@@ -1,4 +1,4 @@
-import { IDT } from 'elara-lib'
+import { IDT } from '@elara/lib'
 import Suber, { SuberTyp } from './matcher/suber'
 
 export interface ReqDataT {

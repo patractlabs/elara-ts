@@ -1,6 +1,6 @@
 /// chain list init and handler the chain update
 
-import { getAppLogger, PVoidT, PResultT } from 'elara-lib'
+import { getAppLogger, PVoidT, PResultT } from '@elara/lib'
 import Conf from '../config'
 import Dao, { chainPSub } from '../src/dao'
 import G from './global'

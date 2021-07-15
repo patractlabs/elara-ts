@@ -1,9 +1,8 @@
-import Redis, { DBT } from 'elara-lib/utils/redis'
-import { ChainConfig, ChainType, KEYS, Network } from 'elara-lib'
+import Redis, { DBT } from '@elara/lib/utils/redis'
+import { ChainConfig, ChainType, KEYS, Network } from '@elara/lib'
 
 const KEY = KEYS.Chain
 const Rd = new Redis(DBT.Chain).getClient()
-const Cd = new Redis(DBT.Cache).getClient()
 
 const newChain = async (chain: string) => {
     // const chain = 'Polkadot'
@@ -24,16 +23,6 @@ const newChain = async (chain: string) => {
     await Rd.hmset(KEY.hChain(chain), polkadot)
     let cnt = await Rd.incr(KEY.chainNum())
     await Rd.zadd(KEY.zChainList(), cnt, chain.toLowerCase())
-}
-
-const test = async () => {
-    let re = await Cd.hgetall(KEYS.Cache.hCache('Polkadot', 'rpc_methods'))
-    console.log(re)
-    const res = JSON.parse(re.result)
-    console.log(res.version)
-    for (let m of res.methods) {
-        console.log(m)
-    }
 }
 
 const init = async () => {

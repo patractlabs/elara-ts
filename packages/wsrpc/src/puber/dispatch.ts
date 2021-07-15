@@ -1,5 +1,5 @@
 import Http from 'http'
-import { getAppLogger, PVoidT } from 'elara-lib'
+import { getAppLogger, PVoidT } from '@elara/lib'
 import Cacher from "../cacher"
 // import Recorder from '../recorder'
 import Puber from '.'

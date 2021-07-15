@@ -1,4 +1,4 @@
-import { getAppLogger, Resp, Code, Msg, NextT, KCtxT } from 'elara-lib'
+import { getAppLogger, Resp, Code, Msg, NextT, KCtxT } from '@elara/lib'
 
 const log = getAppLogger('stat-midware', true)
 

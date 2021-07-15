@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
-import { isOk } from 'elara-lib'
-import { randomId } from 'elara-lib/utils'
+import { isOk } from '@elara/lib'
+import { randomId } from '@elara/lib/utils'
 import G from '../src/global'
 import Matcher from '../src/matcher'
 import Suber from '../src/suber'
@@ -15,12 +15,13 @@ describe('matcher test suit', () => {
         url: '123.com', ws: {} as WebSocket 
     } as Suber
     let puber = {id: pubId, pid: 1, chain, ws: {} as WebSocket }
-    // const req = {}
+    const ws = {} as WebSocket
+    const pid = randomId()
 
     it('regist',  async () => {
         G.updateAddPuber(puber)
         G.updateAddSuber(chain, suber)
-        await Matcher.regist(puber)
+        await Matcher.regist(ws, chain, pid)
         let re: any = G.getChainSubers(chain)
         // expect(re[subId]).toEqual({...suber, pubers: new Set([pubId])})
         expect(re[subId].pubers).toEqual(new Set([pubId]))
@@ -31,7 +32,7 @@ describe('matcher test suit', () => {
 
     it('unregist', async () => {
         // Matcher.setSubContext()
-        let re: any = await Matcher.unRegist(pubId)
+        let re: any = await Matcher.unRegist(pid, 1000)
         re = G.getChainSubers(chain)
         expect(re[subId]).toEqual({...suber, pubers: new Set()})
         expect(re[subId].pubers).toEqual(new Set())
