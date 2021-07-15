@@ -1,4 +1,4 @@
-import { Err, Ok, PResultT } from 'elara-lib'
+import { ChainConfig, Err, Ok, PResultT } from 'elara-lib'
 import Rd from './redis'
 
 // TODO result
@@ -7,8 +7,8 @@ namespace Dao {
         return Ok(await Rd.getChainList())
     }
 
-    export const getChainConfig = async (chain: string): PResultT<Record<string, string>> => {
-        const conf = await Rd.getChainConfig(chain)
+    export const getChainConfig = async (chain: string): PResultT<ChainConfig> => {
+        const conf = await Rd.getChainConfig(chain) as ChainConfig
         if (!conf.name) {
             return Err('Invalid chain config')
         }

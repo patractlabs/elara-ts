@@ -504,7 +504,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
 function geneUrl(conf: ChainConfig): string[] {
     let res = [`ws://${conf.baseUrl}:${conf.wsPort}`]
 
-    if (conf.kvEnable) {
+    if (conf.kvEnable.toString() === 'true') {
         let url = conf.kvBaseUrl!
         let port = conf.kvPort!
         res.push(`ws://${url}:${port}`)
@@ -610,7 +610,8 @@ class Suber {
             newSuber(chain, urls[0], SuberTyp.Node, new Set())
 
             // kv Suber
-            if (conf.kvEnable) {
+            if ((conf.kvEnable.toString()) === 'true') {
+                log.debug(`chain ${chain} kv subscribe enable: `, conf.kvEnable)
                 newSuber(chain, urls[1], SuberTyp.Kv, new Set())
             }
         }
