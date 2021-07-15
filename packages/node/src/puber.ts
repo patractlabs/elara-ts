@@ -1,6 +1,6 @@
 import WebSocket, { EventEmitter } from 'ws'
-import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT } from 'lib'
-import { randomId } from 'lib/utils'
+import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT } from 'elara-lib'
+import { randomId } from 'elara-lib/utils'
 import { WsData } from './interface'
 import G from './global'
 import Matcher from './matcher'
@@ -28,7 +28,7 @@ namespace Puber {
         return puber
     }
 
-    export const updateTopics = (pubId: IDT, subsId: string): ResultT => {
+    export const updateTopics = (pubId: IDT, subsId: string): ResultT<Puber> => {
         let re = G.getPuber(pubId)
         if (isErr(re)) {
             log.error(`update puber[${pubId}] topics error: ${re.value}`)
@@ -62,12 +62,12 @@ namespace Puber {
         }
         const dat = re.value
 
-        re = Matcher.getSuber(chain, id)
-        if (isErr(re)) {
-            log.error(`[SBH] send message error: ${re.value}`)
+        const sre = Matcher.getSuber(chain, id)
+        if (isErr(sre)) {
+            log.error(`[SBH] send message error: ${sre.value}`)
             process.exit(1) 
         }
-        const suber = re.value as Suber
+        const suber = sre.value as Suber
 
         // transpond requset
         log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)

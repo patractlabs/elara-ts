@@ -1,6 +1,6 @@
 import Stat from '../../service/stat'
 import { formateDate } from '../../lib/date'
-import { KCtxT, NextT, Resp } from 'lib'
+import { KCtxT, NextT, Resp } from 'elara-lib'
 
 let chain = async (ctx: KCtxT, next: NextT) => {
     let chainInfo = await Stat.getChain()
@@ -10,18 +10,18 @@ let chain = async (ctx: KCtxT, next: NextT) => {
 
 let day = async (ctx: KCtxT, next: NextT) => {
     let today = formateDate(new Date())
-    let uid = ctx.state.user
+    // let uid = ctx.state.user
     let pid = ctx.request.params.pid
     let date = ctx.request.params.date ? parseInt(ctx.request.params.date) : today
 
     // await checkProject(pid, uid)
-    let dayInfo = await Stat.day(pid, date)
+    let dayInfo = await Stat.day(pid, date as string)
     ctx.response.body = Resp.Ok(dayInfo).toString()
     return next()
 }
 
 let week = async (ctx: KCtxT, next: NextT) => {
-    let uid = ctx.state.user
+    // let uid = ctx.state.user
     let pid = ctx.request.params.pid
 
     // await checkProject(pid, uid)
@@ -32,7 +32,7 @@ let week = async (ctx: KCtxT, next: NextT) => {
 
 let month = async (ctx: KCtxT, next: NextT) => {
 
-    let uid = ctx.state.user
+    // let uid = ctx.state.user
     let pid = ctx.request.params.pid
 
     // await checkProject(pid, uid)

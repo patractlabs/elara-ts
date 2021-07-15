@@ -1,6 +1,6 @@
 {
-  "name": "node",
-  "version": "1.0.0",
+  "name": "elara-node",
+  "version": "0.1.0",
   "description": "node transpond service for elara fail",
   "main": "app.ts",
   "scripts": {
@@ -12,7 +12,7 @@
   "dependencies": {
     "config": "^3.3.6",
     "fast-json-stringify": "^2.7.6",
-    "lib": "file:../lib",
+    "elara-lib": "0.1.0",
     "ws": "^7.4.6"
   },
   "devDependencies": {

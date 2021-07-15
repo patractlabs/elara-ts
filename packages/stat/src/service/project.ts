@@ -1,10 +1,9 @@
 import crypto from 'crypto'
 import { now } from '../lib/date'
-import { setConfig } from '../../config'
-import { getAppLogger } from 'lib'
-import { IDT } from 'lib'
-import { Err, isErr, Ok, PResultT } from 'lib'
-import { KEYS } from 'lib'
+import { getAppLogger } from 'elara-lib'
+import { IDT } from 'elara-lib'
+import { Err, isErr, Ok, PResultT } from 'elara-lib'
+import { KEYS } from 'elara-lib'
 import { projRd } from '../db/redis'
 
 const KEY = KEYS.Project
@@ -17,8 +16,7 @@ projRd.on('error', (e) => {
     log.error('Redis error: ', e)
 })
 
-const config = setConfig()
-const log = getAppLogger('stat-pro', true)
+const log = getAppLogger('stat-pro')
 
 enum Status {
     Active = 'Active',
@@ -65,7 +63,7 @@ const isInValidKey = (chain: SNU, id: INU): boolean => {
 }
 
 // depends on the db strategy
-const dumpProject = async (project: Project): PResultT => {
+const dumpProject = async (project: Project): PResultT<string> => {
     // TODO error handle, transaction 
     // hset project item
     if (isInValidKey(project.chain, project.id)) {
@@ -89,14 +87,9 @@ const dumpProject = async (project: Project): PResultT => {
     return Ok('ok')
 }
 
-// TODO: spilt the redis operations
-namespace RDB {
-
-}
-
 namespace Project {
 
-    export const create = async (uid: IDT, chain: string, name: string): PResultT => {
+    export const create = async (uid: IDT, chain: string, name: string): PResultT<Project> => {
         log.info('Into projec create!', uid, chain, name)
             
         let id = crypto.randomBytes(16).toString('hex');
@@ -153,21 +146,21 @@ namespace Project {
         return project.status === Status.Active
     }
 
-    const setStatus = async (chain: string, pid: IDT, status: Status): PResultT => {
+    export const setStatus = async (chain: string, pid: IDT, status: Status): PResultT<Status> => {
         if (isInValidKey(chain, pid)) {
             return Err('Empty chain or pid')
         }
         const key = KEY.hProject(chain, pid)
         try {
             projRd.hset(key, 'status', status)
-            return Ok({status})
+            return Ok(status)
         } catch (e) {
             log.error('Set project status error: ', e)
             return Err(e)
         }
     }
     
-    export const switchStatus = async (chain: string, pid: IDT): PResultT => {
+    export const switchStatus = async (chain: string, pid: IDT): PResultT<Status> => {
         if (isInValidKey(chain, pid)) {
             return Err('Empty chain or pid')
         }
@@ -184,17 +177,17 @@ namespace Project {
                 log.error('Project status error');
                 return Err('Status error')
             }
-            return Ok({ status })
+            return Ok(status)
         } catch (e) {
             log.error('Switch project status error: ', e)
             return Err(e)
         }
     }
 
-    export const detail = async (chain: string, pid: IDT): PResultT => {
+    export const detail = async (chain: string, pid: IDT): PResultT<Project> => {
         // TODO: the way to quick wrap
         const key = KEY.hProject(chain, pid)
-        let pro
+        let pro = {} as Project
         try {
             let lis = [key]
             if (isEmpty(chain)) {
@@ -206,9 +199,9 @@ namespace Project {
             }
            
             for (let p of lis) {
-                pro = await projRd.hgetall(p)
+                pro = await projRd.hgetall(p) as Project
                 // log.warn('Project detail: ', pro)
-                if (isEmpty(pro?.id)) {
+                if (isEmpty(pro.id as SNU)) {
                     return Err('No this project or chain exist')
                 }
             }
@@ -225,14 +218,14 @@ namespace Project {
             secret: pro.secret,
             createTime: pro.createTime,
             lastTime: pro.lastTime,
-            allowList: pro.allowList === 'false' ? false : true
+            allowList: pro.allowList 
         })
     }
 
     // project number in every chain of user
-    export const projectNumOfAllChain = async (uid: IDT): PResultT => {
+    export const projectNumOfAllChain = async (uid: IDT): PResultT<any> => {
         const key = KEY.zProjectList(uid)
-        let re = {}
+        let re: any = {}
         try {
             let chains = await projRd.keys(key)
             for (let k of chains) {
@@ -256,7 +249,7 @@ namespace Project {
      *              else all the projects
      * @returns 
      */
-    export const projectList = async (uid: IDT, chain: string): PResultT => {
+    export const projectList = async (uid: IDT, chain: string): PResultT<Project[]> => {
         
         try {
             const key = KEY.zProjectList(uid, chain)

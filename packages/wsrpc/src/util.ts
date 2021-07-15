@@ -1,6 +1,6 @@
 import { performance } from 'perf_hooks'
 import Http from 'http'
-import { Ok, Err, getAppLogger, PResultT, PVoidT } from 'lib'
+import { Ok, Err, getAppLogger, PResultT, PVoidT } from 'elara-lib'
 import Chain from './chain'
 import { ChainPidT } from './interface'
 import Suber, { SuberTyp } from './matcher/suber'

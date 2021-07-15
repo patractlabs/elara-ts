@@ -1,6 +1,6 @@
 /// chain list init and handler the chain update
 
-import { getAppLogger, PVoidT, PResultT } from 'lib'
+import { getAppLogger, PVoidT, PResultT } from 'elara-lib'
 import Conf from '../config'
 import Dao, { chainPSub } from '../src/dao'
 import G from './global'
@@ -35,7 +35,7 @@ const chainUpdateHandler = async (chain: string): PVoidT => {
 }
 
 // pattern subscription
-chainPSub.psubscribe('*', (err, topicNum) => {
+chainPSub.psubscribe('*', (err: any, topicNum: number) => {
     log.info('psubscribe all chain event topic!', err, topicNum)
 })
 
@@ -66,7 +66,7 @@ chainPSub.on('error', (err) => {
 
 namespace Chain {
 
-    export const fetchChains = async (): PResultT => {
+    export const fetchChains = async (): PResultT<string[]> => {
         return Dao.getChainList()
     }
 }

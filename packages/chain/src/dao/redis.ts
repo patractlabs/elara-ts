@@ -1,14 +1,20 @@
-import Redis, { DBT } from 'lib/utils/redis'
-import { ChainConfig, KEYS } from 'lib'
+import Redis, { DBT } from 'elara-lib/utils/redis'
+import { ChainConfig, KEYS, getAppLogger } from 'elara-lib'
 import { Topic } from '../types'
 
 const KEY = KEYS.Chain
+const log = getAppLogger('redis')
 
-const chainClient = Redis.newClient(DBT.Chain)
-const chainRd = chainClient.client
+const chainClient = new Redis(DBT.Chain)
+const chainRd = chainClient.getClient()
 
-Redis.onConnect(chainClient)
-Redis.onError(chainClient)
+chainClient.onConnect(() => {
+    log.info(`redis db chain connection open`)
+})
+chainClient.onError((err: string) => {
+    log.error(`redis db chain connection error: ${err}`)
+    process.exit(1)
+})
 
 namespace Rd {
     export const chainName = async (chain: string) => {

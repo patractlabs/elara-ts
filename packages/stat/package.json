@@ -1,7 +1,7 @@
 {
-  "name": "static",
-  "version": "1.0.0",
-  "description": "",
+  "name": "elara-stat",
+  "version": "0.1.0",
+  "description": "elara-ts stat",
   "main": "app.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -16,7 +16,7 @@
     "koa-router": "^10.0.0",
     "koa-session": "^6.2.0",
     "koa-static": "^5.0.0",
-    "lib": "file:../lib",
+    "elara-lib": "0.1.0",
     "passport-github2": "^0.1.12"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import { Err, Ok, getAppLogger, IDT, ResultT, RpcMethods, RpcMethodT } from 'lib'
+import { Err, Ok, getAppLogger, IDT, ResultT, RpcMethods, RpcMethodT } from 'elara-lib'
 import { SuberMap, PuberMap, ChainSuber, SubscripT, SubscripMap, ReqMap, ReqT } from './interface'
 import Suber from './suber'
 import Puber from './puber'
@@ -66,7 +66,7 @@ namespace G {
         return ID_CNT++
     }
 
-    export const getSuber = (chain: string, subId: IDT): ResultT => {
+    export const getSuber = (chain: string, subId: IDT): ResultT<Suber> => {
         chain = chain.toLowerCase()
         if (!Subers[chain] || !Subers[chain][subId]) {
             return Err(`No this suber ${subId} of ${chain}`)
@@ -98,7 +98,7 @@ namespace G {
         delete Subers[chain][subId]
     }
 
-    export const getPuber = (pubId: IDT): ResultT => {
+    export const getPuber = (pubId: IDT): ResultT<Puber> => {
         if (!Pubers[pubId]) {
             return Err(`No puber [${pubId}]`)
         }
@@ -134,7 +134,7 @@ namespace G {
         delete ReqMap[reqId]
     }
 
-    export const getReqCache = (reqId: IDT): ResultT => {
+    export const getReqCache = (reqId: IDT): ResultT<ReqT> => {
         if (!ReqMap[reqId]) {
             return Err(`invalid request id ${reqId}`)
         }
@@ -167,7 +167,7 @@ namespace G {
         }
     }
 
-    export const getSubTopic = (chain: string, pid: IDT, subsId: IDT): ResultT => {
+    export const getSubTopic = (chain: string, pid: IDT, subsId: IDT): ResultT<SubscripT> => {
         const key = `${chain.toLowerCase()}-${pid}`
         if (!TopicSubed[key] || !TopicSubed[key][subsId]) {
             return Err(`Invalid subscribed topic: chain ${chain} pid[${pid} id[${subsId}]`)
@@ -226,7 +226,7 @@ namespace G {
         SubMap[subscriptId] = id
     }
 
-    export const getReqId = (subscriptId: string): ResultT => {
+    export const getReqId = (subscriptId: string): ResultT<IDT> => {
         if (!SubMap[subscriptId]) {
             return Err(`No this subscription ${subscriptId}`)
         }

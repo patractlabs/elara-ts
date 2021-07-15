@@ -10,12 +10,12 @@
 
 import WebSocket from 'ws'
 import EventEmitter from 'events'
-import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT } from 'lib'
+import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT } from 'elara-lib'
 import G from './global'
 import { WsData, SubscripT, ReqT, ReqTyp } from './interface'
 import Puber from './puber'
 import Suber from './suber'
-import { randomId } from 'lib/utils'
+import { randomId } from 'elara-lib/utils'
 import Util from './util'
 import Conf from '../config'
 import Topic from './topic'
@@ -79,7 +79,7 @@ const clearSubContext = async (puber: Puber, code: number) => {
     }
 }
 
-const connLimit = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
+const connLimit = async (ws: WebSocket, chain: string, pid: IDT): PResultT<void> => {
     const wsConf = Conf.getWs()
     const curConn = G.getConnCnt(chain, pid)
     log.info(`current ws connection of chain ${chain} pid[${pid}]: ${curConn}/${wsConf.maxConn}`)
@@ -87,7 +87,7 @@ const connLimit = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
         ws.close(1002, 'Out of connection limit')
         return Err('Out of connectino limit')
     }
-    return Ok(0)
+    return Ok(void(0))
 }
 
 const isSubReq = (method: string): boolean => {
@@ -99,13 +99,13 @@ const isUnsubReq = (method: string): boolean => {
 }
 
 namespace Matcher {
-    export const regist = async (ws: WebSocket, chain: string, pid: IDT): PResultT => {
-        let re: ResultT = await connLimit(ws, chain, pid)
+    export const regist = async (ws: WebSocket, chain: string, pid: IDT): PResultT<Puber> => {
+        const re: ResultT<void> = await connLimit(ws, chain, pid)
         if (isErr(re)) { return re }
         
-        re = await Suber.selectSuber(chain)
-        if (isErr(re)) { return re }
-        const suber = re.value as Suber
+        const sre = await Suber.selectSuber(chain)
+        if (isErr(sre)) { return sre }
+        const suber = sre.value as Suber
 
         // create new puber 
         const puber = Puber.create(ws, chain, pid)
@@ -125,7 +125,7 @@ namespace Matcher {
         return Ok(puber)
     }
     
-    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subId: IDT, data: WsData): ResultT => {
+    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subId: IDT, data: WsData): ResultT<WsData> => {
         const method = data.method!
         let type = ReqTyp.Rpc
         
@@ -159,7 +159,7 @@ namespace Matcher {
     }
 
     // according to message set the subscribe context
-    export const setSubContext = (req: ReqT, subsId: string): ResultT => {
+    export const setSubContext = (req: ReqT, subsId: string): ResultT<void> => {
         // update subscribe request cache
         req.subsId = subsId
         G.updateReqCache(req)
@@ -178,7 +178,7 @@ namespace Matcher {
         G.addSubTopic(puber.chain, puber.pid, {id: subsId, pubId: req.pubId, method: req.method, params: req.params})
    
         log.info(`After set subscribe context requestId[${req.id}] global stat: `, Util.globalStat())    // for test
-        return Ok(0)
+        return Ok(void(0))
     }
 
     export const unRegist = async (pubId: IDT, code: number): PVoidT => {
@@ -196,12 +196,12 @@ namespace Matcher {
         G.decrConnCnt(puber.chain, puber.pid)   
         clearSubContext(puber, code) 
 
-        re = G.getSuber(puber.chain, puber.subId!)
-        if (isErr(re)) {
-            log.error('Unregist puber error: ', re.value)
+        const sre = G.getSuber(puber.chain, puber.subId!)
+        if (isErr(sre)) {
+            log.error('Unregist puber error: ', sre.value)
             return
         }
-        const suber = re.value as Suber
+        const suber = sre.value as Suber
 
         if (!suber.pubers || suber.pubers.size < 1) {
             log.error('Unregist puber error: empty puber member')
@@ -213,17 +213,17 @@ namespace Matcher {
         // global.gc()
     }
 
-    export const getSuber = (chain: string, pubId: IDT): ResultT => {
-        let re = G.getPuber(pubId)
-        if (isErr(re)) {
-            return re
+    export const getSuber = (chain: string, pubId: IDT): ResultT<Suber> => {
+        const pre = G.getPuber(pubId)
+        if (isErr(pre)) {
+            return pre
         }
-        const puber = re.value as Puber
-        re = G.getSuber(chain, puber.subId!)
-        if (isErr(re)) {
+        const puber = pre.value as Puber
+        const sre = G.getSuber(chain, puber.subId!)
+        if (isErr(sre)) {
             return Err(`No valid suber of chain[${chain}]-subID[${puber.subId}]`)
         }
-        return Ok(re.value as Suber)
+        return Ok(sre.value as Suber)
     }
 
     

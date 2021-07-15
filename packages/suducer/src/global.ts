@@ -1,6 +1,6 @@
 import EventEmitter from 'events'
-import { getAppLogger, ChainConfig, RpcMapT, RpcStrategy, IDT } from 'lib'
-import { None, Some, Option } from 'lib'
+import { getAppLogger, ChainConfig, RpcMapT, RpcStrategy, IDT } from 'elara-lib'
+import { None, Some, Option } from 'elara-lib'
 import { CacheT, ChainT, SuducerMap, SuducersT, PubsubT, CacheStrategyT, PsubStrategyT } from './interface'
 import Suducer, { SuducerT } from './suducer'
 

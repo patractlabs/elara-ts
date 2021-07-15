@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import KoaBody from 'koa-body'
-import { getAppLogger, accessLogger, KCtxT, NextT, Resp, Code, Msg } from 'lib'
+import { getAppLogger, accessLogger, KCtxT, NextT, Resp, Code, Msg } from 'elara-lib'
 import routerCompose from './src/router-compose'
 
 const app = new Koa()

@@ -3,7 +3,7 @@ import { setConfig } from "../../config"
 const Account = require('./account')
 const { formateDate } = require('../lib/date');
 const KEY = require('../lib/KEY')
-import { isSome } from 'lib'
+import { isSome } from 'elara-lib'
 import { actRd, statRd } from '../db/redis'
 const config = setConfig()
 
@@ -14,7 +14,7 @@ class Limit {
     }
 
     //账户的每日限额
-    static async create(uid) {
+    static async create(uid: string) {
         let account = await Account.info(uid)
         // let limit: any = new Limit()
         // limit.daily = config.limit.daily[0]
@@ -33,10 +33,10 @@ class Limit {
         return new Limit(dayl, prol)
     }
     //是否在黑名单
-    static async isBlack(uid) {
+    static async isBlack(uid: string) {
         return await actRd.sismember(KEY.BLACKUID(), uid)
     }
-    static async isLimit(uid, pid) {
+    static async isLimit(uid: string, pid: string) {
         let date = formateDate(new Date())
         let limit = await Limit.create(uid)
 

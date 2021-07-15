@@ -1,7 +1,7 @@
 {
-  "name": "api",
-  "version": "1.0.0",
-  "description": "",
+  "name": "elara-wsrpc",
+  "version": "0.1.0",
+  "description": "elara-ts core service",
   "main": "app.ts",
   "scripts": {
     "test": "jest"
@@ -13,7 +13,7 @@
     "http-proxy": "^1.18.1",
     "kafkajs": "^1.15.0",
     "koa": "^2.13.1",
-    "lib": "file:../lib",
+    "elara-lib": "0.1.0",
     "pg": "^8.6.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.6.4",

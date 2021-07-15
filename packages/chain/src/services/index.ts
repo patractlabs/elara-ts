@@ -1,4 +1,4 @@
-import { getAppLogger, PResultT, Ok, ChainConfig, isErr } from 'lib'
+import { getAppLogger, PResultT, Ok, ChainConfig, isErr } from 'elara-lib'
 import Dao from '../dao'
 import { Topic } from '../types'
 

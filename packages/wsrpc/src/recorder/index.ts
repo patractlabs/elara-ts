@@ -1,6 +1,6 @@
 // import crypto from 'crypto'
 import { Sequelize, DataTypes } from 'sequelize'
-import { getAppLogger, PVoidT } from 'lib'
+import { getAppLogger, PVoidT } from 'elara-lib'
 
 const log = getAppLogger('recorder')
 

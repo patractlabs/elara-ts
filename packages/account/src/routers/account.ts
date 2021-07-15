@@ -1,4 +1,4 @@
-import { Resp, NextT, KCtxT } from 'lib'
+import { Resp, NextT, KCtxT } from 'elara-lib'
 
 let login = async (ctx: KCtxT, next: NextT) => {
     console.log()

@@ -1,6 +1,6 @@
 import Http from 'http'
 import WebSocket from 'ws'
-import { getAppLogger, Ok, isErr, ChainConfig, PResultT, Err } from 'lib'
+import { getAppLogger, Ok, isErr, ChainConfig, PResultT, Err } from 'elara-lib'
 import Puber from './src/puber'
 import Suber from './src/suber'
 import Util from './src/util'
@@ -31,7 +31,7 @@ namespace Response {
     }
 }
 
-const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResultT => {
+const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResultT<Http.ClientRequest> => {
     const chain = cp.chain
     // const pid = cp.pid
     let re = await Dao.getChainConfig(chain)
@@ -63,7 +63,7 @@ const isMethodOk = (method: string): boolean => {
     return method === 'POST'
 }
 
-const pathOk = async (url: string, host: string): PResultT => {
+const pathOk = async (url: string, host: string): PResultT<ChainPidT> => {
     let nurl = new URL(url, `http://${host}`)
     let path = nurl.pathname
     // chain pid valid check
