@@ -1,14 +1,16 @@
-const Project = require('../../service/project')
-const Limit = require('../../service/limit')
+const Project = require('../service/project')
+const Limit = require('../service/limit')
 // const CODE = require('../helper/code')
-import { Resp, Code, Msg, NextT, KCtxT } from '@elara/lib'
+import { Resp, Code, Msg, NextT, KCtxT, getAppLogger } from '@elara/lib'
 import Router from 'koa-router'
 
-const router = new Router()
+const log = getAppLogger('limit')
+const R = new Router()
 
 let checkLimit = async (ctx: KCtxT, next: NextT) => {
     let chain = ctx.request.params.chain
     let pid = ctx.request.params.pid
+    log.debug(`new limit check request: ${chain} ${pid}`)
     if ('00000000000000000000000000000000' == pid) {//不需要check
         ctx.response.body = JSON.stringify(Resp.Ok())
         return next()
@@ -43,11 +45,7 @@ let checkLimit = async (ctx: KCtxT, next: NextT) => {
 
     return next()
 }
-router.get('limit', '/:chain/', checkLimit)
+R.get('/:chain/:pid([a-z0-9]{32})', checkLimit)
 
-export default router.routes()
-
-// module.exports = {
-//     'GET /limit/:chain/:pid([a-z0-9]{32})': checkLimit
-// }
+export default R.routes()
 

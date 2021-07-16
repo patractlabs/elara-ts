@@ -1,7 +1,10 @@
-import Project from '../../service/project'
-import Limit from '../../service/limit'
+import Project from '../service/project'
+import Limit from '../service/limit'
 import { KCtxT, NextT, getAppLogger, Code, Resp, Msg } from '@elara/lib'
 import { isErr } from '@elara/lib'
+import Router from 'koa-router'
+
+const R = new Router()
 
 const log = getAppLogger('stat-pro', true)
 
@@ -51,6 +54,8 @@ let createProeject = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
+R.post('/create', createProeject)
+
 
 //验证登录态，获取项目详情
 const getProject = async (ctx: KCtxT, next: NextT) => {
@@ -67,6 +72,9 @@ const getProject = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
+R.get('/:chain/:pid([a-z0-9]{32})', getProject)
+
+
 //验证登陆态,获取账户下按链统计的项目计数
 let getProjectCount = async (ctx: KCtxT, next: NextT) => {
     let uid = ctx.state.user
@@ -78,8 +86,10 @@ let getProjectCount = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
+R.get('/count', getProjectCount)
+
 //验证登录态，获取账户下所有项目详情
-let getProjects = async (ctx: KCtxT, next: NextT) => {
+R.get('/list', async (ctx: KCtxT, next: NextT) => {
 
     let chain = ctx.request.query.chain
     let uid = ctx.state.user
@@ -90,9 +100,10 @@ let getProjects = async (ctx: KCtxT, next: NextT) => {
     }
     ctx.body = Resp.Ok(projects.value)
     return next()
-}
+})
 
-let switchStatus = async (ctx: KCtxT, next: NextT) => {
+// 转换项目状态
+R.post('/status/switch', async (ctx: KCtxT, next: NextT) => {
     const bd = ctx.request.body
     const chain = bd.chain
     const pid = bd.pid
@@ -102,14 +113,6 @@ let switchStatus = async (ctx: KCtxT, next: NextT) => {
     }
     ctx.body = Resp.Ok(re.value)
     return next()
-}
+})
 
-    
-module.exports = {
-    'GET /project/:chain/:pid([a-z0-9]{32})': getProject,
-    'GET /project/:pid([a-z0-9]{32})': getProject,  //项目详情
-    'GET /project/list': getProjects,   //账户下所有项目详情 chain参数指定特定链下面的项目列表
-    'POST /project/create': createProeject, //新建项目
-    'GET /project/count': getProjectCount,   //分链的项目计数
-    'POST /project/status/switch': switchStatus,
-}
+export default R.routes()

@@ -1,6 +1,9 @@
-import Stat from '../../service/stat'
-import { formateDate } from '../../lib/date'
+import Stat from '../service/stat'
+import { formateDate } from '../lib/date'
 import { KCtxT, NextT, Resp } from '@elara/lib'
+import Router from 'koa-router'
+
+const R = new Router()
 
 let chain = async (ctx: KCtxT, next: NextT) => {
     let chainInfo = await Stat.getChain()
@@ -53,11 +56,20 @@ let dashboard=async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-module.exports = {
-    'GET /stat/chain': chain, //链总请求数
-    'GET /stat/day/:pid([a-z0-9]{32})': day, //项目的今天统计信息
-    'GET /stat/week/:pid([a-z0-9]{32})': week, //项目的周统计信息
-    'GET /stat/month/:pid([a-z0-9]{32})': month, //项目的今天统计信息
-    'GET /stat/requests': requests, // last request
-    'GET /stat/dashboard': dashboard
-}
+R.get('/chain', chain)
+R.get('/day/:pid([a-z0-9]{32})', day)
+R.get('/week/:pid([a-z0-9]{32})', week)
+R.get('/month/:pid([a-z0-9]{32})', month)
+R.get('/requests', requests)
+R.get('/dashboard', dashboard)
+
+export default R.routes()
+
+// module.exports = {
+//     'GET /stat/chain': chain, //链总请求数
+//     'GET /stat/day/:pid([a-z0-9]{32})': day, //项目的今天统计信息
+//     'GET /stat/week/:pid([a-z0-9]{32})': week, //项目的周统计信息
+//     'GET /stat/month/:pid([a-z0-9]{32})': month, //项目的今天统计信息
+//     'GET /stat/requests': requests, // last request
+//     'GET /stat/dashboard': dashboard
+// }
