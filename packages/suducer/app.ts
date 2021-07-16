@@ -1,6 +1,5 @@
-import { getAppLogger, dotenvInit } from '@elara/lib'
+import { getAppLogger, dotenvInit, unexpectListener } from '@elara/lib'
 import Service from './src/service'
-import unexpectListener from '@elara/lib/unexpect'
 
 dotenvInit()
 const env = process.env.NODE_ENV
