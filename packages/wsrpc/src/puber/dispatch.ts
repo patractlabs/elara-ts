@@ -87,7 +87,11 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber): P
             log.error(`chain ${chain} ws cacher fail, transpond to noder method[${method}] params[${params}]`)
             return Noder.sendWs(puber, data)
         case RpcTyp.Kver:
-            return Kver.send(puber, data)
+            if (puber.kvSubId !== undefined) {
+                return Kver.send(puber, data)
+            }
+            log.debug(`chain ${chain} kv is not support, transpond to noder`)
+            return Noder.sendWs(puber, data)
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))
         case RpcTyp.Noder:

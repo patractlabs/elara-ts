@@ -19,6 +19,7 @@ import { md5, randomId } from '@elara/lib'
 import Util from '../util'
 import Conf from '../../config'
 import Topic from './topic'
+import Dao from '../dao'
 
 const log = getAppLogger('matcher')
 
@@ -51,30 +52,43 @@ namespace Matcher {
         if (isErr(ren)) { return ren }
         const suber = ren.value as Suber
 
-        let rek = await Suber.selectSuber(chain, SuberTyp.Kv)
-        if (isErr(rek)) { return rek }
-        const kvSuber = rek.value as Suber
-
         // create new puber 
         const puber = Puber.create(ws, chain, pid)
+        let kvOk = false
+        let kvSuber: Suber
+        const kvre = await Dao.getChainConfig(chain)
+        if (isErr(kvre)) {
+            log.error(`get chain ${chain} config error: ${kvre.value}`)
+        } else {
+            const conf = kvre.value
+            log.debug(`chain ${chain} kv enable: ${conf.kvEnable}`)
+            if (conf.kvEnable.toString() === 'true') {
+                kvOk = true
+            }
+        }
+        if (kvOk) {
+            let rek = await Suber.selectSuber(chain, SuberTyp.Kv)
+            if (isErr(rek)) { return rek }
+            kvSuber = rek.value as Suber
+            kvSuber.pubers = suber.pubers || new Set<IDT>()
+            kvSuber.pubers.add(puber.id)
+            Suber.updateOrAddSuber(chain, SuberTyp.Kv, kvSuber)
+            puber.kvSubId = kvSuber.id
+        }
 
         // update suber.pubers
         suber.pubers = suber.pubers || new Set<IDT>()
         suber.pubers.add(puber.id)
         Suber.updateOrAddSuber(chain, SuberTyp.Node, suber)
 
-        kvSuber.pubers = suber.pubers || new Set<IDT>()
-        kvSuber.pubers.add(puber.id)
-        Suber.updateOrAddSuber(chain, SuberTyp.Kv, kvSuber)
-
+        
         // update puber.subId
         puber.subId = suber.id
-        puber.kvSubId = kvSuber.id
         Puber.updateOrAdd(puber)
 
         // side context set
         GG.incrConnCnt(chain, puber.pid)
-        log.info(`regist puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvSuber.id}]: `, Util.globalStat())
+        log.info(`regist puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvOk ? kvSuber!.id : 'none'}]: `, Util.globalStat())
         return Ok(puber)
     }
 
