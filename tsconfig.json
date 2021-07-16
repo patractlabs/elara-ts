@@ -23,9 +23,9 @@
         "skipLibCheck": true, /* Skip type checking of declaration files. */
         "forceConsistentCasingInFileNames": true, /* Disallow inconsistently-cased references to the same file. */
         "baseUrl": "./",
-        "paths": {
-            "@flipcards/*": ["packages/*"]
-        },
+        // "paths": {
+        //     "@flipcards/*": ["packages/*"]
+        // },
     },
     "exclude": ["node_modules", "**/node_modules/*", "dist"],
     // "include": [

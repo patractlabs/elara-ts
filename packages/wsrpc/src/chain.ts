@@ -13,7 +13,7 @@ const pubsubRd = new Redis(DBT.Pubsub, { host: rconf.host, port: rconf.port})
 const chainPSub = pubsubRd.getClient()
 
 pubsubRd.onConnect(() => {
-    log.info(`redis db pubsub connection open`)
+    log.info(`redis db pubsub connection open: ${rconf.host}:${rconf.port}`)
 })
 
 pubsubRd.onError((err: string) => {

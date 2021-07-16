@@ -35,4 +35,4 @@ const routerCompose: any = () => {
     return router.routes()
 }
 
-export = routerCompose
+export default routerCompose

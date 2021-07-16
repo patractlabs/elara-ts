@@ -4,12 +4,16 @@
   "description": "elara-ts stat",
   "main": "app.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "start": "ts-node app.ts",
+    "build": "tsc",
+    "start:node": "node ./dist/app.js"
   },
   "author": "Bruce",
   "license": "GPL-3.0",
   "private": true,
   "dependencies": {
+    "@elara/lib": "0.1.0",
     "dotenv": "^9.0.2",
     "ioredis": "^4.27.2",
     "koa-body": "^4.2.0",
@@ -17,7 +21,6 @@
     "koa-router": "^10.0.0",
     "koa-session": "^6.2.0",
     "koa-static": "^5.0.0",
-    "@elara/lib": "0.1.0",
     "passport-github2": "^0.1.12"
   },
   "devDependencies": {
@@ -25,6 +28,7 @@
     "@types/koa-passport": "^4.0.2",
     "@types/koa-router": "^7.4.2",
     "@types/koa-session": "^5.10.3",
+    "@types/koa-static": "^4.0.2",
     "last": "^1.1.0"
   }
 }

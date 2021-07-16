@@ -5,7 +5,10 @@
   "main": "app.ts",
   "scripts": {
     "test": "jest",
-    "coverage": "jest --coverage"
+    "coverage": "jest --coverage",
+    "start": "ts-node app.ts",
+    "build": "tsc",
+    "start:node": "node ./dist/app.js"
   },
   "author": "Bruce",
   "license": "GPL-3.0",

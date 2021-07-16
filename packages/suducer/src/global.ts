@@ -160,14 +160,14 @@ export namespace G {
     }
 
     export const getAllChains = (): Option<string[]> => {
-        if (Chains === {}) {
+        if (Chains == {}) {
             return None
         }
         return Some(Object.keys(Chains))
     }
 
     export const getAllChainConfs = (): Option<ChainT> => {
-        if (Chains === {}) {
+        if (Chains == {}) {
             return None
         }
         return Some(Chains)

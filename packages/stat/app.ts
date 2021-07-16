@@ -1,5 +1,6 @@
 import path from 'path'
 import Koa from 'koa'
+import Http from 'http'
 import KoaBody from 'koa-body'
 import Kstatic from 'koa-static'
 import Session from 'koa-session'
@@ -7,8 +8,11 @@ import { accessLogger, getAppLogger, dotenvInit } from '@elara/lib'
 import { accessControl, authCheck, dashboard, errHanldle, responseTime } from './src/middleware'
 import Passport from './src/lib/passport'
 import routerCompose from './src/router-compose'
+
+import limitRouter from './src/routers/v1/limit'
 dotenvInit()   // init dot env
 const app = new Koa()
+
 export const log = getAppLogger('stat', true)
 
 const session = {
@@ -30,15 +34,22 @@ app
     .use(errHanldle)
     .use(authCheck)
     .use(accessControl)
-    .use(routerCompose('./src/routers/v1'))
+    .use(routerCompose())
+    .use(limitRouter)
 
-app.on('error', (err) => {
-    log.error('Stat service error: ', err)
-})
+// app.on('error', (err) => {
+//     log.error('Stat service error: ', err)
+// })
     
-app.listen('7002', () => {
+const server = Http.createServer(app.callback())
+
+server.listen('7002', () => {
     log.info('Stat service listen on port 7002')
 })
+
+// app.listen('7002', () => {
+//     log.info('Stat service listen on port 7002')
+// })
 
 
 

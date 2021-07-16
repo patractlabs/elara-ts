@@ -1,6 +1,6 @@
 import { Redis, DBT } from '@elara/lib'
 import { getAppLogger, KEYS } from '@elara/lib'
-import Conf from '@flipcards/wsrpc/config'
+import Conf from '../../config'
 
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
@@ -19,14 +19,14 @@ chainRd.onError((err: string) => {
 })
 
 chainRd.onConnect(() => {
-    log.info(`redis db chain connection open`)
+    log.info(`redis db chain connection open: ${rconf.host}:${rconf.port}`)
 })
 
 const cacheRd = new Redis(DBT.Cache, { host: rconf.host, port: rconf.port })
 const cacheRedis = cacheRd.getClient()
 
 cacheRd.onConnect(() => {
-    log.info(`redis db cache connection open`)
+    log.info(`redis db cache connection open: ${rconf.host}:${rconf.port}`)
 })
 
 cacheRd.onError((err: string) => {

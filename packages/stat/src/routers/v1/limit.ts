@@ -2,6 +2,9 @@ const Project = require('../../service/project')
 const Limit = require('../../service/limit')
 // const CODE = require('../helper/code')
 import { Resp, Code, Msg, NextT, KCtxT } from '@elara/lib'
+import Router from 'koa-router'
+
+const router = new Router()
 
 let checkLimit = async (ctx: KCtxT, next: NextT) => {
     let chain = ctx.request.params.chain
@@ -40,8 +43,11 @@ let checkLimit = async (ctx: KCtxT, next: NextT) => {
 
     return next()
 }
+router.get('limit', '/:chain/', checkLimit)
 
-module.exports = {
-    'GET /limit/:chain/:pid([a-z0-9]{32})': checkLimit
-}
+export default router.routes()
+
+// module.exports = {
+//     'GET /limit/:chain/:pid([a-z0-9]{32})': checkLimit
+// }
 

@@ -18,7 +18,7 @@ const formatstr = (i: number) => {
 
 const connBuild = (cnt: number, url: string, port: number) => {
     let wss = []
-    let pat = 'polkadot/qwertyuiopasdfghjklzxcvb'
+    let pat = 'jupiter/qwertyuiopasdfghjklzxcvb'
     for (let i = 0; i < cnt; i++) { 
         const id = formatstr(i)
         const ws = newConn(url, port, `${pat}${id}`)
@@ -36,8 +36,8 @@ const methods = [
 ]
 
 const topics = [
-    // 'state_subscribeRuntimeVersion', 
-    // 'chain_subscribeNewHead', 'chain_subscribeAllHeads', 'chain_subscribeFinalizedHeads',
+    'state_subscribeRuntimeVersion', 
+    'chain_subscribeNewHead', 'chain_subscribeAllHeads', 'chain_subscribeFinalizedHeads',
     'state_subscribeStorage'
 ]
 
@@ -85,7 +85,8 @@ const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = fal
 
 enum WsTyp {
     Sub = 'sub',
-    Rpc = 'rpc'
+    Rpc = 'rpc',
+    All = 'all'
 }
 
 const wsTestRunner = async (loop: number, newConn: boolean, conn: number, type: WsTyp) => {
@@ -93,6 +94,8 @@ const wsTestRunner = async (loop: number, newConn: boolean, conn: number, type: 
     let lis = topics
     if (type === WsTyp.Rpc) {
         lis = methods
+    } else if (type === WsTyp.All) {
+        lis.push(...methods)
     }
     if (loop <= 0) { loop = Number.MAX_VALUE } 
     for (let i = 0; i < loop; i++) {
@@ -155,7 +158,7 @@ const connTest = async (loop: number) => {
 
 (async () => {
     if (true) {
-        wsTestRunner(0, true, 500, WsTyp.Sub)
+        wsTestRunner(1, true, 1, WsTyp.All)
     } else {
         // wsTestRunner(0, false, 100)
         connTest(0)
