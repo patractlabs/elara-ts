@@ -1,13 +1,11 @@
 import path from 'path'
 import Koa from 'koa'
-import Http from 'http'
 import KoaBody from 'koa-body'
 import Kstatic from 'koa-static'
 import Session from 'koa-session'
 import { accessLogger, getAppLogger, dotenvInit } from '@elara/lib'
 import { accessControl, authCheck, dashboard, errHanldle, responseTime } from './src/middleware'
 import Passport from './src/lib/passport'
-// import routerCompose from './src/router-compose'
 import Router from 'koa-router'
 import limitRouter from './src/routers/limit'
 import projectRouter from './src/routers/project'
@@ -21,7 +19,7 @@ router.use('/limit', limitRouter)
 router.use('/project', projectRouter)
 router.use('/stat', statRouter)
 
-export const log = getAppLogger('app',)
+export const log = getAppLogger('app')
 
 const session = {
     key: 'elarasid',
@@ -42,22 +40,15 @@ app
     .use(errHanldle)
     .use(authCheck)
     .use(accessControl)
-    // .use(routerCompose())
     .use(router.routes())
 
-// app.on('error', (err) => {
-//     log.error('Stat service error: ', err)
-// })
-    
-const server = Http.createServer(app.callback())
-
-server.listen('7002', () => {
-    log.info('Stat service listen on port 7002')
+app.on('error', (err) => {
+    log.error('Stat service error: ', err)
 })
 
-// app.listen('7002', () => {
-//     log.info('Stat service listen on port 7002')
-// })
+app.listen('7002', () => {
+    log.info('Stat service listen on port 7002')
+})
 
 
 

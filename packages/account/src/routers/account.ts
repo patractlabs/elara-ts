@@ -1,4 +1,7 @@
 import { Resp, NextT, KCtxT } from '@elara/lib'
+import Router from 'koa-router'
+
+const R = new Router()
 
 let login = async (ctx: KCtxT, next: NextT) => {
     console.log()
@@ -8,6 +11,7 @@ let login = async (ctx: KCtxT, next: NextT) => {
     ctx.response.body = Resp.Ok().toString()
     return next()
 }
+
 let github = async (ctx: KCtxT, next: NextT) => {
     ctx.response.body = Resp.Ok().toString()
 
@@ -22,9 +26,9 @@ let logout = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-module.exports = {
-    'GET /auth/login': login, //登录信息
-    'GET /auth/github': github, //github验证
-    'GET /auth/github/callback': callback, //github 验证回调
-    'GET /auth/logout': logout, //退出登录
-}
+R.get('/login', login)
+R.get('/github', github)
+R.get('/github/callback', callback)
+R.get('/logout', logout)
+
+export default R.routes()

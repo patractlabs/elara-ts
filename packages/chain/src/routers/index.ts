@@ -1,7 +1,9 @@
 import { isErr, KCtxT, NextT, Resp, RpcStrategy, Code, Msg } from '@elara/lib'
 import { getAppLogger, ChainConfig } from '@elara/lib'
+import Router from 'koa-router'
 import Chain from '../services'
 
+const R = new Router()
 const log = getAppLogger('chain', true)
 
 const chainList = async (ctx: KCtxT, next: NextT) => {
@@ -60,10 +62,10 @@ const updateChain = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-module.exports = {
-    'GET /chain/list': chainList,
-    'POST /chain/detail': detail,
-    'POST /chain/add': addChain,
-    'POST /chain/delete': deleteChain,
-    'POST /chain/update': updateChain,
-}
+R.get('/list', chainList)
+R.post('/detail', detail)
+R.post('/add', addChain)
+R.post('/delete', deleteChain)
+R.post('/update', updateChain)
+
+export default R.routes()
