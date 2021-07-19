@@ -1,7 +1,7 @@
 import { isErr, KCtxT, NextT, Resp, RpcStrategy, Code, Msg } from '@elara/lib'
 import { getAppLogger, ChainConfig } from '@elara/lib'
 import Router from 'koa-router'
-import Chain from '../services'
+import Chain from '../service/chain'
 
 const R = new Router()
 const log = getAppLogger('chain', true)
@@ -26,7 +26,7 @@ const detail = async (ctx: KCtxT, next: NextT) => {
 }
 
 const addChain = async (ctx: KCtxT, next: NextT) => {
-    const req: ChainConfig = ctx.request.body
+    const req: ChainConfig = JSON.parse(ctx.request.body)
     log.info('add body: ', req, req.baseUrl)
     if (await Chain.isExist(req.name)) {
         throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)

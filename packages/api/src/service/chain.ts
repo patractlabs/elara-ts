@@ -1,8 +1,13 @@
 import { getAppLogger, PResultT, Ok, ChainConfig, isErr } from '@elara/lib'
 import Dao from '../dao'
-import { Topic } from '../types'
 
 const log = getAppLogger('chain', true)
+
+export enum Topic {
+    ChainAdd    = 'chain-add',
+    ChainDel    = 'chain-del',
+    ChainUpdate = 'chain-update'
+}
 
 namespace Chain {
     // TODO error handle
@@ -60,4 +65,4 @@ namespace Chain {
     }
 }
 
-export = Chain
+export default Chain

@@ -30,7 +30,7 @@ interface Project {
     status: Status      
     chain: string       // chain name
     name: string        // project name
-    uid: IDT            // user id
+    uid: string            // user id
     secret: string
     createTime: string | number
     lastTime: string | number
@@ -89,7 +89,7 @@ const dumpProject = async (project: Project): PResultT<string> => {
 
 namespace Project {
 
-    export const create = async (uid: IDT, chain: string, name: string): PResultT<Project> => {
+    export const create = async (uid: string, chain: string, name: string): PResultT<Project> => {
         log.info('Into projec create!', uid, chain, name)
             
         let id = crypto.randomBytes(16).toString('hex');

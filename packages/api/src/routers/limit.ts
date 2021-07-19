@@ -1,7 +1,7 @@
-const Project = require('../service/project')
-const Limit = require('../service/limit')
+import Project from '../service/project'
+import Limit from '../service/limit'
 // const CODE = require('../helper/code')
-import { Resp, Code, Msg, NextT, KCtxT, getAppLogger } from '@elara/lib'
+import { Resp, Code, Msg, NextT, KCtxT, getAppLogger, isOk } from '@elara/lib'
 import Router from 'koa-router'
 
 const log = getAppLogger('limit')
@@ -17,9 +17,9 @@ let checkLimit = async (ctx: KCtxT, next: NextT) => {
     }
 
     //检测项目id是否存在
-    let project = await Project.info(pid)
-    if (project.isOk()) {
-        project = project.data
+    let re = await Project.detail(chain, pid)
+    if (isOk(re)) {
+        const project = re.value
         //检测链是否匹配
         if (chain.toLowerCase() != project.chain.toLowerCase()) {
             throw Resp.Fail(Code.Chain_Err, Msg.Chain_Err) // CODE.CHAIN_ERROR
