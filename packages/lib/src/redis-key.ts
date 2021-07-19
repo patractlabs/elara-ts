@@ -65,8 +65,21 @@ namespace Cache {
     }
 }
 
+namespace Account {
+    const A = 'Account'
+  
+    export const hAccount = (uid?: IDT): string => {
+        let UID = `${uid}`
+        if (isEmpty(uid?.toString())) {
+            UID = '*_'
+        }
+        return `H_${A}_${UID.toLowerCase()}`
+    }
+  }
+
 export const KEYS = {
     Chain,
     Project,
     Cache,
+    Account
 }

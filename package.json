@@ -7,6 +7,7 @@
   ],
   "private": true,
   "scripts": {
+    "api": "yarn workspace @elara/api",
     "wsrpc": "yarn workspace @elara/wsrpc",
     "suducer": "yarn workspace @elara/suducer",
     "stat": "yarn workspace @elara/stat",

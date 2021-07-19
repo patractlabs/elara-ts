@@ -1,0 +1,43 @@
+{
+    "server": {
+        "port": 7000,
+        "session": {
+            "key": "elara@api-key",
+            "signed": false,
+            "maxAge": 2592000000,
+            "httpOnly": false
+        },
+        "isTest": true
+    },
+    "redis": {
+        "host": "127.0.0.1",
+        "port": 6379,
+        "db": 0,
+        "password": ""
+    },
+    
+    "limit": {
+        "daily": {
+            "develop": 1000000,
+            "team": 5000000
+        },
+        "project": {
+            "develop": 20,
+            "team": 100
+        },
+        "maxProjectNum": 100,
+        "timeout": 5000,
+        "maxReqKeep": 1000
+    },
+
+    "account":{
+        "loginUrl": "http://47.111.179.222:8000/account/auth/github/home",
+        "github": {
+            "clientID": "d67ed989933a697a9f9e",
+            "clientSecret": "7dadbfa07c43571d9bfedbcca0fe9d59ccc6cf92",
+            "callbackUrl": "http://47.111.179.222:8000/account/auth/github/callback"
+        },
+        "defaultLevel": 0,
+        "apiKey": "elara"
+    }
+}
