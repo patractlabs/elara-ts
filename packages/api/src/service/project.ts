@@ -1,4 +1,4 @@
-import { IDT, getAppLogger, randomId,Err, isErr, Ok, PResultT, KEYS, PVoidT } from '@elara/lib'
+import { IDT, getAppLogger, randomId,Err, isErr, Ok, PResultT, KEYS, PVoidT, Msg } from '@elara/lib'
 import { now } from '../lib/date'
 import { projRd } from '../dao/redis'
 
@@ -12,7 +12,7 @@ projRd.on('error', (e) => {
     log.error('Redis error: ', e)
 })
 
-const log = getAppLogger('stat-pro')
+const log = getAppLogger('project-service')
 
 export enum ProStatus {
     Active = 'Active',
@@ -54,7 +54,7 @@ const isEmpty = (str: SNU): boolean => {
  */
 const isInValidKey = (chain: SNU, id: INU): boolean => {
     if (isEmpty(chain) || isEmpty(id?.toString())) {
-        log.error('Empty chain or id')
+        log.error('invalid chain or user id')
         return true
     }
     return false
@@ -127,6 +127,7 @@ class Project {
         try {
             const key = KEY.zProjectNames(uid, chain)
             const names = await projRd.zrange(key, 0, -1)
+            log.debug(`project names: `, names, name)
             if (names.includes(name)) {
                 log.debug(`duplicate name ${name}`)
                 return true
@@ -247,10 +248,25 @@ class Project {
         }
     }
 
-    static async changeName(chain: string, pid: string, name: string): Promise<boolean> {
+    static async changeName(chain: string, uid: IDT, pid: string, name: string): PResultT<void> {
         const key = KEY.hProject(chain, pid)
-        const re = await projRd.hset(key, 'name', name)
-        return re === 1
+        const nameExist = await Project.isExist(uid, chain, name)
+        if (nameExist) {
+            log.warn(`update name error: project name ${name} exist`)
+            return Err(Msg.Dup_Name)
+        }
+        try {
+            const nkey = KEY.zProjectNames(uid, chain)
+            // get origin name
+            const oname = await projRd.hget(key, 'name')
+            projRd.zrem(nkey, oname!)
+
+            projRd.hset(key, 'name', name)
+            projRd.zadd(nkey, now(), name)
+        } catch(e) {
+            return Err(e)
+        }
+        return Ok(void(0))
     }
 
     static async delete(chain: string, pid: string) {

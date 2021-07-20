@@ -6,21 +6,27 @@ import { lengthOk } from '../lib'
 import Router from 'koa-router'
 
 const R = new Router()
+const log = getAppLogger('project', true)
 
-const log = getAppLogger('stat-pro', true)
-
-//验证登录态，新建项目
-let createProeject = async (ctx: KCtxT, next: NextT) => {
-    let uid = ctx.state.user
-    log.debug('create project request: ', uid, ctx.request.body)
-    const {chain, name, reqSecLimit, bwDayLimit} = JSON.parse(ctx.request.body)
-    
-    reqSecLimit
-    bwDayLimit
-    if (!lengthOk(name, 4, 32) || !/[a-zA-Z0-9]{4,32}/.test(name)) {
-        log.error('Project name invalid or empty, name ', name);
+function checkName(name: string): void {
+    const regOk = /[a-zA-Z0-9]{4,32}/.test(name)
+    const lenOk = lengthOk(name, 4, 32)
+    log.debug(`name check result: ${regOk} ${lenOk}`)
+    if (!lenOk || !regOk) {
+        log.error(`Project name invalid or empty, name[${name}]`)
         throw Resp.Fail(Code.Pro_Name_Err, Msg.Pro_Name_Error)
     }
+}
+
+//验证登录态，新建项目
+const createProeject = async (ctx: KCtxT, next: NextT) => {
+    let uid = ctx.state.user
+    log.debug('create project request: ', uid, ctx.request.body)
+    const { chain, name, reqSecLimit, bwDayLimit } = JSON.parse(ctx.request.body)
+
+    reqSecLimit
+    bwDayLimit
+    checkName(name)
 
     // check valid chain name in config list
     // TODO add config check
@@ -33,7 +39,7 @@ let createProeject = async (ctx: KCtxT, next: NextT) => {
     if (isErr(count)) {
         throw Resp.Fail(Code.Pro_Num_Limit, count.value as Msg)
     }
-    
+
     let limit = await Limit.create(uid)
     if (count.value >= limit.project) {
         log.error('Out of max project create number!')
@@ -105,7 +111,7 @@ R.get('/list', async (ctx: KCtxT, next: NextT) => {
 
 // 转换项目状态
 R.post('/status/update', async (ctx: KCtxT, next: NextT) => {
-    const {chain, pid, status} = JSON.parse(ctx.request.body)
+    const { chain, pid, status } = JSON.parse(ctx.request.body)
     log.debug('update status: ', ctx.request.body, status, Object.values(ProStatus))
     if (!Object.values(ProStatus).includes(status)) {
         log.error(`invalid status`)
@@ -122,15 +128,20 @@ R.post('/limit/update', async (ctx: KCtxT, next: NextT) => {
         log.error(`chain and project id cannot be null`)
         throw Resp.Fail(Code.Pro_Name_Err, 'chain and project id cannot be null' as Msg)
     }
-    
+
     Project.updateLimit(chain, pid, reqSecLimit, bwDayLimit)
     ctx.body = Resp.Ok()
     return next()
 })
 
-R.post('/name/change', async (ctx: KCtxT, next: NextT) => {
+R.post('/name', async (ctx: KCtxT, next: NextT) => {
+    const uid = ctx.state.user
     const { chain, pid, name } = JSON.parse(ctx.request.body)
-    Project.changeName(chain, pid, name)
+    checkName(name)
+    const re = await Project.changeName(chain, uid, pid, name)
+    if (isErr(re)) {
+        throw Resp.Fail(Code.Dup_Name, re.value as Msg)
+    }
     ctx.body = Resp.Ok(name)
     return next()
 })
