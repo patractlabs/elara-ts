@@ -1,7 +1,8 @@
-import Project from '../service/project'
+import Project, { ProStatus } from '../service/project'
 import Limit from '../service/limit'
 import { KCtxT, NextT, getAppLogger, Code, Resp, Msg } from '@elara/lib'
 import { isErr } from '@elara/lib'
+import { lengthOk } from '../lib'
 import Router from 'koa-router'
 
 const R = new Router()
@@ -11,18 +12,19 @@ const log = getAppLogger('stat-pro', true)
 //验证登录态，新建项目
 let createProeject = async (ctx: KCtxT, next: NextT) => {
     let uid = ctx.state.user
-    let chain = ctx.request.body.chain
-    let name = ctx.request.body.name
-    log.info('request: ', uid, chain, name)
-
-    if (name === '' || name === null || !/[a-zA-Z]{4,32}/.test(name)) {
-        log.error('Project name invalid or empty');
+    log.debug('create project request: ', uid, ctx.request.body)
+    const {chain, name, reqSecLimit, bwDayLimit} = JSON.parse(ctx.request.body)
+    
+    reqSecLimit
+    bwDayLimit
+    if (!lengthOk(name, 4, 32) || !/[a-zA-Z0-9]{4,32}/.test(name)) {
+        log.error('Project name invalid or empty, name ', name);
         throw Resp.Fail(Code.Pro_Name_Err, Msg.Pro_Name_Error)
     }
 
     // check valid chain name in config list
     // TODO add config check
-    if (![chain?.toLowerCase()]) {
+    if (!chain?.toLowerCase()) {
         log.error('Invalid chain!')
         throw Resp.Fail(Code.Chain_Err, Msg.Chain_Err)
     }
@@ -59,10 +61,9 @@ R.post('/create', createProeject)
 
 //验证登录态，获取项目详情
 const getProject = async (ctx: KCtxT, next: NextT) => {
-    log.info('Into project detail')
     // let uid = ctx.state.user
-    let pid = ctx.request.params.pid
-    let chain = ctx.request.params.chain    // TODO
+    const { chain, pid } = ctx.request.params
+    log.info('Into project detail: ', chain, pid)
     // check UID or not
     let project = await Project.detail(chain, pid)
     if (isErr(project)) {
@@ -91,7 +92,7 @@ R.get('/count', getProjectCount)
 //验证登录态，获取账户下所有项目详情
 R.get('/list', async (ctx: KCtxT, next: NextT) => {
 
-    let chain = ctx.request.query.chain
+    const { chain } = ctx.request.query
     let uid = ctx.state.user
     log.info('Into project list: ', uid, chain)
     let projects = await Project.projectList(uid, chain)
@@ -103,15 +104,34 @@ R.get('/list', async (ctx: KCtxT, next: NextT) => {
 })
 
 // 转换项目状态
-R.post('/status/switch', async (ctx: KCtxT, next: NextT) => {
-    const bd = ctx.request.body
-    const chain = bd.chain
-    const pid = bd.pid
-    let re = await Project.switchStatus(chain, pid)
-    if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Err, re.value as Msg)
+R.post('/status/update', async (ctx: KCtxT, next: NextT) => {
+    const {chain, pid, status} = JSON.parse(ctx.request.body)
+    log.debug('update status: ', ctx.request.body, status, Object.values(ProStatus))
+    if (!Object.values(ProStatus).includes(status)) {
+        log.error(`invalid status`)
     }
-    ctx.body = Resp.Ok(re.value)
+    await Project.updateStatus(chain, pid, status)
+
+    ctx.body = Resp.Ok(status)
+    return next()
+})
+
+R.post('/limit/update', async (ctx: KCtxT, next: NextT) => {
+    const { chain, pid, reqSecLimit, bwDayLimit } = JSON.parse(ctx.request.body)
+    if (!chain || !pid) {
+        log.error(`chain and project id cannot be null`)
+        throw Resp.Fail(Code.Pro_Name_Err, 'chain and project id cannot be null' as Msg)
+    }
+    
+    Project.updateLimit(chain, pid, reqSecLimit, bwDayLimit)
+    ctx.body = Resp.Ok()
+    return next()
+})
+
+R.post('/name/change', async (ctx: KCtxT, next: NextT) => {
+    const { chain, pid, name } = JSON.parse(ctx.request.body)
+    Project.changeName(chain, pid, name)
+    ctx.body = Resp.Ok(name)
     return next()
 })
 

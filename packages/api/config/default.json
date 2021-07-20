@@ -1,12 +1,6 @@
 {
     "server": {
         "port": 7000,
-        "session": {
-            "key": "elara@api-key",
-            "signed": false,
-            "maxAge": 2592000000,
-            "httpOnly": false
-        },
         "isTest": true
     },
     "redis": {
@@ -17,17 +11,19 @@
     },
     
     "limit": {
-        "daily": {
+        "requestLimit": {
             "develop": 1000000,
             "team": 5000000
         },
-        "project": {
-            "develop": 20,
-            "team": 100
+        "projectLimit": {
+            "develop": 10,
+            "team": 50
         },
-        "maxProjectNum": 100,
+        "reqSecLimit": 10,
+        "bwDayLimit": 1024000000,   
+        "maxProjectNum": 10,
         "timeout": 5000,
-        "maxReqKeep": 1000
+        "maxReqKeep": 100
     },
 
     "account":{

@@ -55,6 +55,10 @@ namespace Project {
         // log.info('Project list key: ', key)
         return key
     }
+
+    export const zProjectNames = (uid: IDT, chain: string): string => {
+        return `Z_${P}_Name_${chain.toLowerCase()}_${uid}`
+    }
 }
 
 namespace Cache {

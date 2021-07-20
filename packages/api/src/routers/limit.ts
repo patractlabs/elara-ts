@@ -25,7 +25,7 @@ let checkLimit = async (ctx: KCtxT, next: NextT) => {
             throw Resp.Fail(Code.Chain_Err, Msg.Chain_Err) // CODE.CHAIN_ERROR
         }
         //检测是否运行中
-        if (!project.isActive()) {
+        if (!Project.isActive(project)) {
             throw Resp.Fail(Code.Pro_Stat_Err, Msg.Pro_Stat_Err) // CODE.PROJECT_NOT_ACTIVE
         }
         let isBlack = await Limit.isBlack(project.uid)

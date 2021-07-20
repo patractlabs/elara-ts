@@ -1,15 +1,7 @@
 import Config from 'config'
 
-interface Session {
-    key: string,
-    signed: boolean,
-    maxAge: number,
-    httpOnly: boolean
-}
-
 interface Server {
     port: number,
-    session: Session,
     isTest: boolean
 }
 

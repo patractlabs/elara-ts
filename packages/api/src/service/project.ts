@@ -1,9 +1,5 @@
-import crypto from 'crypto'
+import { IDT, getAppLogger, randomId,Err, isErr, Ok, PResultT, KEYS, PVoidT } from '@elara/lib'
 import { now } from '../lib/date'
-import { getAppLogger } from '@elara/lib'
-import { IDT } from '@elara/lib'
-import { Err, isErr, Ok, PResultT } from '@elara/lib'
-import { KEYS } from '@elara/lib'
 import { projRd } from '../dao/redis'
 
 const KEY = KEYS.Project
@@ -18,24 +14,26 @@ projRd.on('error', (e) => {
 
 const log = getAppLogger('stat-pro')
 
-enum Status {
+export enum ProStatus {
     Active = 'Active',
     Stop = 'Stop',
-    Abnormal = 'Abnormnal'
+    Suspend = 'Suspend',
+    Delete = 'Delete'
 }
 
 /// 
 interface Project {
     id: IDT            // project id 
-    status: Status      
+    status: ProStatus
     chain: string       // chain name
     name: string        // project name
     uid: string            // user id
     secret: string
+    reqSecLimit: number,
+    bwDayLimit: number,
     createTime: string | number
-    lastTime: string | number
-    allowList: boolean   // white list
-    [key: string]: any
+    updateTime: string | number
+    // [key: string]: any
 }
 
 
@@ -56,60 +54,59 @@ const isEmpty = (str: SNU): boolean => {
  */
 const isInValidKey = (chain: SNU, id: INU): boolean => {
     if (isEmpty(chain) || isEmpty(id?.toString())) {
-        log.warn('Empty chain or id')
+        log.error('Empty chain or id')
         return true
     }
     return false
 }
 
 // depends on the db strategy
-const dumpProject = async (project: Project): PResultT<string> => {
-    // TODO error handle, transaction 
-    // hset project item
-    if (isInValidKey(project.chain, project.id)) {
+const dumpProject = async (project: Project): PResultT<"OK"> => {
+    const { id, chain, name, uid, createTime } = project
+
+    if (isInValidKey(chain, id)) {
         return Err('Empty chain or pid')
     }
-    let key = KEY.hProject(project.chain, project.id)
+    const timestr = createTime.toString()
     try {
-        await projRd.hmset(key, project)
-
-        // zadd list
-        key  = KEY.zProjectList(project.uid, project.chain)
-        await projRd.zadd(key, project.createTime.toString(), project.id)
-        
-        // incr project num
-        await projRd.incr(KEY.projectNum())
+        await Promise.all([
+            projRd.hmset(KEY.hProject(chain, id), project as any),
+            projRd.zadd(KEY.zProjectList(uid, chain), timestr, id),
+            projRd.zadd(KEY.zProjectNames(uid, chain), timestr, name),
+            projRd.incr(KEY.projectNum())
+        ])
     } catch (e) {
         log.error('Dump project error: ', e)
         return Err(e)
     }
-    
-    return Ok('ok')
+    return Ok("OK")
 }
 
-namespace Project {
+class Project {
 
-    export const create = async (uid: string, chain: string, name: string): PResultT<Project> => {
-        log.info('Into projec create!', uid, chain, name)
-            
-        let id = crypto.randomBytes(16).toString('hex');
-        let status = Status.Active;
-        let secret = crypto.randomBytes(16).toString('hex');
-        const timestamp = now()
-        let createTime = timestamp;
-        let lastTime = timestamp;
-        log.info('timestamp: ', timestamp)
-    
+    static async create(uid: string, chain: string, name: string, options?: Project): PResultT<Project> {
+        log.info('Into projec create!', uid, chain, name, options)
+        let reqSecLimit: number = 0
+        let bwDayLimit : number = 0
+        // const conf = Conf.getLimit()
+        if (!options) {
+            reqSecLimit = 0
+            bwDayLimit = 0
+        }
+
+        const timestamp = now()     // now second 
+
         let project = {
-            id,
+            id: randomId(),
             name,
             uid,
             chain,
-            secret,
-            status,
-            createTime,
-            lastTime,
-            allowList: false
+            secret: randomId(),
+            status: ProStatus.Active,
+            createTime: timestamp,
+            updateTime: timestamp,
+            reqSecLimit,
+            bwDayLimit
         }
         log.warn('Project to create: ', project)
         let re = await dumpProject(project)
@@ -119,21 +116,20 @@ namespace Project {
         return Ok(project)
     }
 
-    export const isExist = async(uid:IDT, chain: string, name: string): Promise<boolean> => {
-        log.info('Info project exist check: ', uid, chain, name)
-        if (isInValidKey(chain, uid)) {
-            return true 
-        }
+    static isActive(project: Project): boolean {
+        return project.status === ProStatus.Active
+    }
+
+    static async isExist(uid: IDT, chain: string, name: string): Promise<boolean> {
+        log.debug('Info project exist check: ', uid, chain, name)
+        if (isInValidKey(chain, uid)) { return true }
+    
         try {
-            const key = KEY.zProjectList(uid, chain)
-            let pidLis = await projRd.zrange(key, 0, -1)
-            for (let pid of pidLis) {
-                let pkey = KEY.hProject(chain, pid)
-                let pname = await projRd.hget(pkey, 'name')
-                if (pname === name) {
-                    log.warn('duplicate project name')
-                    return true
-                }
+            const key = KEY.zProjectNames(uid, chain)
+            const names = await projRd.zrange(key, 0, -1)
+            if (names.includes(name)) {
+                log.debug(`duplicate name ${name}`)
+                return true
             }
         } catch (e) {
             log.error('Project exist check error: ', e)
@@ -142,11 +138,7 @@ namespace Project {
         return false
     }
 
-    export const isActive = (project: Project): boolean => {
-        return project.status === Status.Active
-    }
-
-    export const setStatus = async (chain: string, pid: IDT, status: Status): PResultT<Status> => {
+    static async updateStatus(chain: string, pid: IDT, status: ProStatus): PResultT<ProStatus> {
         if (isInValidKey(chain, pid)) {
             return Err('Empty chain or pid')
         }
@@ -159,32 +151,8 @@ namespace Project {
             return Err(e)
         }
     }
-    
-    export const switchStatus = async (chain: string, pid: IDT): PResultT<Status> => {
-        if (isInValidKey(chain, pid)) {
-            return Err('Empty chain or pid')
-        }
-        const key = KEY.hProject(chain, pid)
-        try {
-            const stat = await projRd.hget(key, 'status')
-            let status = Status.Stop
-            if (stat === Status.Active) {
-                projRd.hset(key, 'status', Status.Stop)
-            } else if (stat === Status.Stop) {
-                projRd.hset(key, 'status', Status.Active)
-                status = Status.Active
-            } else {
-                log.error('Project status error');
-                return Err('Status error')
-            }
-            return Ok(status)
-        } catch (e) {
-            log.error('Switch project status error: ', e)
-            return Err(e)
-        }
-    }
 
-    export const detail = async (chain: string, pid: IDT): PResultT<Project> => {
+    static async detail(chain: string, pid: IDT): PResultT<Project> {
         // TODO: the way to quick wrap
         const key = KEY.hProject(chain, pid)
         let pro = {} as Project
@@ -197,9 +165,9 @@ namespace Project {
                     return Err('No this project or chain exist')
                 }
             }
-           
+
             for (let p of lis) {
-                pro = await projRd.hgetall(p) as Project
+                pro = await projRd.hgetall(p) as any as Project
                 // log.warn('Project detail: ', pro)
                 if (isEmpty(pro.id as SNU)) {
                     return Err('No this project or chain exist')
@@ -209,21 +177,21 @@ namespace Project {
             log.error('Get project detail error: ', e)
             return Err(e)
         }
+
         return Ok({
             id: pro.id,
             name: pro.name,
             uid: pro.uid,
             chain: pro.chain,
-            status: pro.status as Status,
+            status: pro.status as ProStatus,
             secret: pro.secret,
             createTime: pro.createTime,
-            lastTime: pro.lastTime,
-            allowList: pro.allowList 
-        })
+            updateTime: pro.updateTime,
+        } as Project)
     }
 
     // project number in every chain of user
-    export const projectNumOfAllChain = async (uid: IDT): PResultT<any> => {
+    static async projectNumOfAllChain(uid: IDT): PResultT<any> {
         const key = KEY.zProjectList(uid)
         let re: any = {}
         try {
@@ -249,8 +217,8 @@ namespace Project {
      *              else all the projects
      * @returns 
      */
-    export const projectList = async (uid: IDT, chain: string): PResultT<Project[]> => {
-        
+    static async projectList(uid: IDT, chain: string): PResultT<Project[]> {
+
         try {
             const key = KEY.zProjectList(uid, chain)
             let setLis
@@ -262,9 +230,9 @@ namespace Project {
             let lis: any[] = []
             for (let s of setLis) {
                 let pidLis = await projRd.zrange(s, 0, -1)
-               
+
                 for (let p of pidLis) {
-                    let pro = await detail(chain, p)
+                    let pro = await Project.detail(chain, p)
                     if (isErr(pro)) {
                         log.error('Get project detail error: ', pro.value)
                         return pro
@@ -278,6 +246,30 @@ namespace Project {
             return Err(e)
         }
     }
+
+    static async changeName(chain: string, pid: string, name: string): Promise<boolean> {
+        const key = KEY.hProject(chain, pid)
+        const re = await projRd.hset(key, 'name', name)
+        return re === 1
+    }
+
+    static async delete(chain: string, pid: string) {
+        const key = KEY.hProject(chain, pid)
+
+        projRd.hset(key, 'status', ProStatus.Delete)
+        // logic delete
+    }
+
+    static async updateLimit(chain: string, pid: IDT, reqSecLimit?: number, bwDayLimit?: number): PVoidT {
+        const key = KEY.hProject(chain, pid)
+        log.debug(`update ${chain} project[${pid}]: `)
+        if (reqSecLimit) {
+            projRd.hset(key, 'reqSecLimit', reqSecLimit)
+        }
+        if (bwDayLimit) {
+            projRd.hset(key, 'bwDayLimit', bwDayLimit)
+        }
+    }
 }
 
-export = Project
+export default Project
