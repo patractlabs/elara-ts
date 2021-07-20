@@ -3,4 +3,5 @@
 ./**/logs
 ./**/node_modules
 ./**/.vscode
+yarn*.log
 node_modules

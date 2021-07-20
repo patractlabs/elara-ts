@@ -87,9 +87,8 @@ namespace Util {
 }
 
 export class Response {
-    private static async end(res: Http.ServerResponse, chunk: any, code: number, md5?: string): PVoidT {
-        res.writeHead(code, { 'Content-Type': 'text/plain', 'Trailer': 'Content-MD5' })
-        res.addTrailers({ 'Content-MD5': md5 || '7878' })
+    private static async end(res: Http.ServerResponse, chunk: any, code: number): PVoidT {
+        res.writeHead(code, { 'Content-Type': 'text/plain'})
         res.write(chunk)
         res.end()
     }
