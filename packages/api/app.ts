@@ -53,7 +53,7 @@ app.on('error', (err) => {
 })
 
 app.listen(server.port, () => {
-    log.info('elara api service listen on port 7000')
+    log.info('elara api service listen on port 7000: ', process.env.NODE_ENV)
 })
 
 unexpectListener()

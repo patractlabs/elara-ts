@@ -20,6 +20,7 @@ export function accessLogger(out: boolean = outFlag): Application.Middleware {
         pattern: '-yyyy-MM-dd.log',
         maxLogSize: logSize,
         // filename: path.join(dir, 'logs/', 'access.log')
+        compress: true,     // 开启gzip压缩
         filename: './logs/access.log'
     }
 
@@ -41,7 +42,7 @@ export function getAppLogger(head: string, out: boolean = outFlag): Logger.Logge
         backups: 5, // default 5
         daysToKeep: 0,  // 大于0则删除x天之前的日志
         compress: true,     // 开启gzip压缩
-        pm2: true,
+        // pm2: true,
         replaceConsole: false,
     }
 

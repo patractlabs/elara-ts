@@ -18,7 +18,6 @@ class Limit {
         let account = await Account.detail(uid)
         // let limit: any = new Limit()
         // limit.daily = config.limit.daily[0]
-        // limit.project = config.limit.project[0]
 
         let dayl = 0
         let prol = 0

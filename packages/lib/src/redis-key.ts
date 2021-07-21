@@ -21,8 +21,10 @@ namespace Chain {
 namespace Project {
     const P = 'Project'
 
-    export const projectNum = () => {
-        return `${P}_Num`
+    export const projectNum = (uid?: IDT) => {
+        let UID = `${uid}`
+        if (isEmpty(uid?.toString())) { UID = '*'}
+        return `${P}_Num_${UID}`
     }
 
     export const hProject = (chain?: string, pid?: IDT) => {
@@ -42,18 +44,31 @@ namespace Project {
     }
 
     export const zProjectList = (uid?: IDT, chain?: string): string => {
-        let com = `Z_${P}_list_`
-        let CHAIN = '*'
-        let UID = `${uid}_`
+        let com = `Z_${P}_List_`
+        let CHAIN = '*_'
+        let UID = `${uid}`
         if (!isEmpty(chain)) {
-            CHAIN = `${chain?.toLowerCase()}`
+            CHAIN = `${chain?.toLowerCase()}_`
         }
+        if (isEmpty(uid?.toString())) {
+            UID = '*'
+        }
+        let key = `${com}${CHAIN}${UID}`
+        // log.info('Project list key: ', key)
+        return key
+    }
+
+    export const hProjectDelete = (uid?: IDT, pid?: IDT): string => {
+        const com = `H_${P}_Delete_`
+        let UID = `${uid}_`
+        let PID = `${pid}`
         if (isEmpty(uid?.toString())) {
             UID = '*_'
         }
-        let key = `${com}${UID}${CHAIN}`
-        // log.info('Project list key: ', key)
-        return key
+        if (isEmpty(pid?.toString())) {
+            PID = '*'
+        }
+        return `${com}${UID}${PID}`
     }
 
     export const zProjectNames = (uid: IDT, chain: string): string => {

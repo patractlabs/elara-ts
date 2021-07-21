@@ -21,6 +21,8 @@ interface Limit {
     daily: LimTypT,
     project: LimTypT,
     maxProjectNum: number,
+    reqSecLimit: number,
+    bwDayLimit: number,
     timeout: number,
     maxReqKeep: number
 }

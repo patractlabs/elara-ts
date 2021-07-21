@@ -1,6 +1,6 @@
 import { getAppLogger, Resp, Code, Msg, NextT, KCtxT } from '@elara/lib'
 
-const log = getAppLogger('stat-midware', true)
+const log = getAppLogger('midware', true)
 
 export const dashboard = async (ctx: KCtxT, next: NextT) => {
     if ('/dashboard' == ctx.path) {

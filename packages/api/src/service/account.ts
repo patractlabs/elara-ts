@@ -59,7 +59,7 @@ class Account {
 
     static async info(uid: string) {
         let reply = await Dao.getAccountDetail(uid)
-        let projects = await Project.projectNumOfAllChain(uid)
+        let projects = await Project.countByUser(uid)
         reply
         projects
     }
