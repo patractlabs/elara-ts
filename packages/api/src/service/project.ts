@@ -108,8 +108,18 @@ class Project {
         return project.status === ProStatus.Active
     }
 
-    
-    // TODO
+    static async isValidProject(chain: string, pid: string): Promise<boolean> {
+        const key = KEY.hProject(chain, pid)
+        const re = await keyExist(key)
+        if (re) { 
+            const status = await projRd.hget(key, 'status')
+            if (status == ProStatus.Active) {
+                return true
+            }
+        }
+        return false
+    }
+
     static async delete(chain: string, uid: string, pid: string): PResultT<void> {
         const key = KEY.hProject(chain, pid)
         const isOk =  await keyExist(key)

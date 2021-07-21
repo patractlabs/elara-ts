@@ -1,18 +1,30 @@
-import { PResultT, Ok, IDT, getAppLogger } from '@elara/lib'
+import { PResultT, Ok, Err, IDT, getAppLogger } from '@elara/lib'
 import { now } from '../lib/date'
 import Dao from '../dao'
 import Project from './project'
 
 const log = getAppLogger('account-pro', true)
 
+enum AccountStat {
+    Active = 'active',
+    Suspend = 'suspend',    // update 00:00 o'clock
+    Barred = 'barred'       // account abandon
+}
+
+enum AccountLevel {
+    Normal = 0,
+    Bronze,
+    Silver,
+    Gold
+}
+
 interface Account {
-    uid: IDT
-    username: IDT
-    vip: number
-    type: string
+    uid: string,
+    username: IDT,
+    level: AccountLevel,
+    type: string,
+    status: AccountStat,
     createTime: number | string
-    apikey: string
-    [key: string]: any
 }
 
 class Account {
@@ -20,29 +32,26 @@ class Account {
     static async create(
         uid: IDT,
         username: IDT,
-        vip: number,
+        level: number,
         type: string,
-        apikey: string
     ): PResultT<Account> {
-        log.info('Into account creat !', uid, username, vip, type, apikey)
+        log.debug('Into account create:', uid, username, level, type)
         const timestamp = now()
         let createTime: number = timestamp
         const account: Account = {
             uid,
             username,
-            vip,
-            type,
+            level: AccountLevel.Normal,
+            status: AccountStat.Active,
             createTime,
-            apikey,
-        }
-        log.warn('Account to create: ', account)
+        } as Account
+        log.debug('Account to create: ', account)
         Dao.createAccount(account)
         return Ok(account)
     }
 
     static async detail(uid: string): PResultT<Account> {
         const re: any = await Dao.getAccountDetail(uid.toString())
-        let projectNum = (await projects(uid)).valueOf
         let account = null
         if (re && re.uid) {
             account = {
@@ -51,8 +60,9 @@ class Account {
                 vip: re.vip,
                 username: re.username,
                 apikey: re.apikey,
-                projectNum: projectNum,
             }
+        } else {
+            return Err('')
         }
         return Ok(account)
     }
@@ -63,11 +73,6 @@ class Account {
         reply
         projects
     }
-
-}
-
-async function projects(uid: IDT): PResultT<number> {
-    return await Dao.getProjectNum(uid.toString())
 }
 
 export default Account

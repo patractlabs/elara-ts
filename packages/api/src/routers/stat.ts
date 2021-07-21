@@ -64,12 +64,3 @@ R.get('/requests', requests)
 R.get('/dashboard', dashboard)
 
 export default R.routes()
-
-// module.exports = {
-//     'GET /stat/chain': chain, //链总请求数
-//     'GET /stat/day/:pid([a-z0-9]{32})': day, //项目的今天统计信息
-//     'GET /stat/week/:pid([a-z0-9]{32})': week, //项目的周统计信息
-//     'GET /stat/month/:pid([a-z0-9]{32})': month, //项目的今天统计信息
-//     'GET /stat/requests': requests, // last request
-//     'GET /stat/dashboard': dashboard
-// }

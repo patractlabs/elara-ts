@@ -1,5 +1,15 @@
 {
     "limit": {
         "maxProjectNum": 2
+    },
+    "account":{
+        "loginUrl": "http://127.0.0.1:7000/auth/github/home",
+        "github": {
+            "clientID": "383ad9928e36b8e41d75",
+            "clientSecret": "73f31173665ce0407ea5701c784ba0d8c859a01f",
+            "callbackUrl": "http://127.0.0.1:7000/auth/github/callback"
+        },
+        "defaultLevel": 0,
+        "apiKey": "elara"
     }
 }

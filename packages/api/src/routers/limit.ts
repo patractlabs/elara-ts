@@ -1,6 +1,5 @@
 import Project from '../service/project'
 import Limit from '../service/limit'
-// const CODE = require('../helper/code')
 import { Resp, Code, Msg, NextT, KCtxT, getAppLogger, isOk } from '@elara/lib'
 import Router from 'koa-router'
 
@@ -41,7 +40,7 @@ let checkLimit = async (ctx: KCtxT, next: NextT) => {
     } else
         throw Resp.Fail(Code.Pro_Err, Msg.Pro_Err) // CODE.PROJECT_ERROR
 
-    ctx.response.body = JSON.stringify(Resp.Ok())
+    ctx.response.body = Resp.Ok()
 
     return next()
 }

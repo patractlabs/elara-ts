@@ -23,7 +23,9 @@ export const authCheck = async (ctx: KCtxT, next: NextT) => {
         ctx.state.user = 'TestUID'
         return next()
     }
-    if (!ctx.isAuthenticated()) {
+    log.debug('context: ', ctx, ctx.isAuthenticated())
+    const re = ctx.isAuthenticated()
+    if (!re) {
         throw Resp.Fail(Code.Auth_Fail, Msg.Auth_Fail)
     }
     return next()

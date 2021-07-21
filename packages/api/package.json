@@ -15,18 +15,24 @@
   "dependencies": {
     "@elara/lib": "0.1.0",
     "config": "^3.3.6",
+    "geoip-country": "^4.0.78",
     "ioredis": "^4.27.2",
+    "koa": "^2.13.1",
     "koa-body": "^4.2.0",
     "koa-passport": "^4.1.4",
     "koa-router": "^10.0.0",
     "koa-session": "^6.2.0",
+    "koa-static": "^5.0.0",
     "passport-github2": "^0.1.12"
   },
   "devDependencies": {
+    "@types/geoip-country": "^4.0.0",
     "@types/ioredis": "^4.26.3",
+    "@types/koa": "^2.13.4",
     "@types/koa-passport": "^4.0.2",
     "@types/koa-router": "^7.4.2",
     "@types/koa-session": "^5.10.3",
+    "@types/koa-static": "^4.0.2",
     "@types/passport-github2": "^1.2.5"
   }
 }

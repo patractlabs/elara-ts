@@ -19,16 +19,16 @@ const app = new Koa()
 const router = new Router()
 const server = Conf.getServer()
 
-router.use('/limit', limitRouter)
-router.use('/project', projectRouter)
-router.use('/stat', statRouter)
-router.use('/chain', chainRouter)
+router.use('/limit', authCheck, limitRouter)
+router.use('/project', authCheck, projectRouter)
+router.use('/stat', authCheck, statRouter)
+router.use('/chain', authCheck, chainRouter)
 router.use('/auth', accountRouter)
 
 export const log = getAppLogger('app')
 
 const session = {
-    key: 'elarasid',
+    key: 'sid',
     signed: false,
     maxAge: 2592000000,
     httpOnly: false
@@ -44,7 +44,7 @@ app
     .use(Passport.session())
     .use(responseTime)
     .use(errHanldle)
-    .use(authCheck)
+    // .use(authCheck)
     .use(accessControl)
     .use(router.routes())
 

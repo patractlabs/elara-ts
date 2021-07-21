@@ -23,6 +23,7 @@ export interface StatProtocol {
     method: string,      //  rpc-method { method: 'system_peers' }
     req: string,        // rpc req body
     resp: any,          // reseved
+    craeteTime: string,
     bandwidth: string | number,     // response package size
     respTime: number | string,      // rpc request response time, ws default 0
     ext?: any                        // extention    reserved

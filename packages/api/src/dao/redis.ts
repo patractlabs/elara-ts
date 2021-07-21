@@ -26,7 +26,7 @@ chainClient.onError((err: string) => {
 
 namespace Rd {
     export async function haddAccount(account: Account): Promise<"OK"> {
-        return actRd.hmset(actKEY.hAccount(account.uid), account)
+        return actRd.hmset(actKEY.hAccount(account.uid), account as any)
     }
 
     export async function hgetDetail(uid: string): Promise<Record<string, string>> {

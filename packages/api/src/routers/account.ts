@@ -1,12 +1,13 @@
-import { Resp, NextT, KCtxT, Code, Msg, isErr, randomId } from '@elara/lib'
+import { Resp, NextT, KCtxT, Code, Msg, isErr, randomId, getAppLogger } from '@elara/lib'
 import Router from 'koa-router'
 import Passport from '../lib/passport'
 import Account from '../service/account'
 import Conf from '../../config'
 
+const log = getAppLogger('account')
 const accountConf = Conf.getAccount()
 
-let login = async (ctx: KCtxT, next: NextT) => {
+async function login(ctx: KCtxT, next: NextT) {
     if (ctx.isAuthenticated()) {
         const account = await Account.detail(ctx.state.user)
         ctx.response.body = Resp.Ok(account.value)
@@ -16,17 +17,17 @@ let login = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-let github = async (ctx: KCtxT, next: NextT) => {
-    return Passport.authenticate('github')(ctx, next)
+async function github(ctx: KCtxT, next: NextT) {
+    return Passport.authenticate('github', { scope: ['user']})(ctx, next)
 }
 
-let callback = async (ctx: KCtxT, next: NextT): Promise<NextT> => {
-    let passportAuth = Passport.authenticate(
+async function githubCallback(ctx: KCtxT, next: NextT) {
+    return Passport.authenticate(
         'github',
         { scope: ['user'] },
         async (error: Error, user: any) => {
             if (error || user == null) {
-                console.log(error)
+                log.error('github callback error: ', error)
                 ctx.response.redirect(accountConf.loginUrl)
                 return next()
             }
@@ -37,53 +38,54 @@ let callback = async (ctx: KCtxT, next: NextT): Promise<NextT> => {
             }
 
             const uid = user.profile.id
-            const account = await Account.detail(uid)
+            const re = await Account.detail(uid)
             const sid = randomId(24)
-            if (account.value != null) {
-                // 已存在账户
-                ctx.login(uid) //设置登陆
-                ctx.session['sid'] = sid
-            } else {
-                // 创建账户
+
+            if (isErr(re) || re.value.uid === uid) {
                 const username = user.profile.username
                 let account = await Account.create(
                     uid,
                     username,
-                    accountConf.defaultLevel,
+                    0,
                     'github',
-                    accountConf.apiKey
-                    
                 )
                 if (isErr(account)) {
                     //新建账户失败，重定向到登陆页
                     ctx.response.redirect(accountConf.loginUrl) //重定向到登陆页
                     return next()
                 }
-                ctx.login(uid) //设置登陆
-                ctx.session['sid'] = sid
             }
+            ctx.login(uid) //设置登陆
+            ctx.session['sid'] = sid
 
             ctx.response.type = 'html'
-            ctx.response.body = html_login_succecc
+            ctx.response.body = html_login_success
             return next()
         }
     )(ctx, next)
-    return passportAuth
 }
 
-let logout = async (ctx: KCtxT, next: NextT) => {
+async function logout(ctx: KCtxT, next: NextT) {
     ctx.logOut()
     ctx.response.body = Resp.Ok().toString()
     return next()
 }
 
-let home = async (ctx: KCtxT, next: NextT) => {
-    ctx.response.type = 'html'
-    ctx.response.body = html_home
+async function updateStatus(ctx: KCtxT, next: NextT) {
+    ctx.body = Resp.Ok()
     return next()
 }
 
-const html_home = `
+async function detail(ctx: KCtxT, next: NextT) {
+    ctx.body = Resp.Ok()
+    return next()
+}
+
+
+/// for local test
+async function home(ctx: KCtxT, next: NextT) {
+    ctx.response.type = 'html'
+    ctx.response.body = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -92,11 +94,13 @@ const html_home = `
         <title>patract.io 授权</title>
     </head>
     <body>
-        <a href= '/account/auth/github'> 登录</a>
+        <a href= '/auth/github'> 登录</a>
     </body>
     </html>`
+    return next()
+}
 
-const html_login_succecc = `
+const html_login_success = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -115,8 +119,10 @@ const R = new Router()
 
 R.get('/login', login)
 R.get('/github', github)
-R.get('/github/callback', callback)
+R.get('/github/callback', githubCallback)
 R.get('/logout', logout)
 R.get('/github/home', home)
+R.post('/status', updateStatus)
+R.post('/info', detail)
 
 export default R.routes()
