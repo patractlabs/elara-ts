@@ -1,6 +1,5 @@
 import { performance } from 'perf_hooks'
-import Http from 'http'
-import { Ok, Err, getAppLogger, PResultT, PVoidT } from '@elara/lib'
+import { Ok, Err, getAppLogger, PResultT } from '@elara/lib'
 import Chain from './chain'
 import { ChainPidT } from './interface'
 import Suber, { SuberTyp } from './matcher/suber'
@@ -73,6 +72,10 @@ namespace Util {
         return (performance.now() - start).toFixed(0) + 'ms'
     }
 
+    export function traceDelay(start: number): number {
+        return Math.floor(performance.now() - start)
+    }
+
     export function globalStat(): string {
         return ''
         // return `suber: ${G.suberCnt()}, puber: ${G.puberCnt()}, topic: ${G.topicCnt()}, subMap: ${G.subMapCnt()}, reqMap: ${G.reqMapCnt()}`
@@ -84,24 +87,10 @@ namespace Util {
         log.debug(`kv suber pubers: `, ksub[Object.keys(ksub)[0]]?.pubers)
         log.debug(`node suber pubers: `, nsub[Object.keys(nsub)[0]]?.pubers)
     }
-}
 
-export class Response {
-    private static async end(res: Http.ServerResponse, chunk: any, code: number): PVoidT {
-        res.writeHead(code, { 'Content-Type': 'text/plain'})
-        res.write(chunk)
-        res.end()
-    }
-
-    static async Ok(res: Http.ServerResponse, data: any): PVoidT {
-        Response.end(res, data, 200)
-    }
-
-    static async Fail(res: Http.ServerResponse, data: any, code: number): PVoidT {
-        Response.end(res, data, code)
+    export function strBytes(str: string): number {
+        return Buffer.byteLength(str, 'utf8')
     }
 }
-
-
 
 export default Util

@@ -117,7 +117,8 @@ namespace Matcher {
             jsonrpc: data.jsonrpc,
             type,
             method,
-            params: data.params
+            params: data.params,
+            startTime: Util.traceStart()
         } as ReqT
         log.debug(`new ${chain} ${pid} ${subType} request cache: ${JSON.stringify(req)}`)
         GG.addReqCache(req)

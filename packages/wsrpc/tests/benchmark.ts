@@ -1,5 +1,6 @@
 import Ws from 'ws'
 import { randomId } from '@elara/lib'
+import Util from '../src/util'
 const log = console
 
 async function sleeps(s: number): Promise<void> {
@@ -89,7 +90,7 @@ enum WsTyp {
     All = 'all'
 }
 
-const wsTestRunner = async (loop: number, newConn: boolean, conn: number, type: WsTyp) => {
+export const wsTestRunner = async (loop: number, newConn: boolean, conn: number, type: WsTyp) => {
     let wss = connBuild(conn, '127.0.0.1', 7001)
     let lis = topics
     if (type === WsTyp.Rpc) {
@@ -158,7 +159,11 @@ const connTest = async (loop: number) => {
 
 (async () => {
     if (true) {
-        wsTestRunner(1, true, 1, WsTyp.All)
+        // wsTestRunner(1, true, 1, WsTyp.All)
+        let start = Util.traceStart()
+        console.log('start :', start)
+        let str = JSON.stringify({name: '蔡长霖'})
+        log.info(`${str}, ${str.length} chars, ${Buffer.byteLength(str, 'utf8')} bytes`)
     } else {
         // wsTestRunner(0, false, 100)
         connTest(0)

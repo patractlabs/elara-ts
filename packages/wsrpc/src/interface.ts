@@ -1,3 +1,4 @@
+import Http from 'http'
 import { IDT } from '@elara/lib'
 import Suber, { SuberTyp } from './matcher/suber'
 
@@ -20,6 +21,7 @@ export interface WsData extends ReqDataT {
     result?: any,
     data?: any
 }
+
 export type ChainPidT = {
     chain: string,
     pid: IDT
@@ -45,7 +47,8 @@ export interface ReqT {
     type: ReqTyp,
     jsonrpc: string,
     method: string,
-    params: any
+    params: any,
+    startTime: number,
 }
 
 export interface SubscripT {
@@ -68,4 +71,21 @@ export enum CloseReason {
     Kv = 'kv service unavailable',
     OutOfLimit = 'out of connect limit',
     SuberUnavail = 'suber unavailable'
+}
+
+export interface Statistics {
+    proto: string,   // http ws
+    header: Http.IncomingHttpHeaders,
+    chain: string,
+    pid: string,
+    method: string,
+    req: string,
+    reqtime: number,     // request start time
+    start: number,
+    type?: string,       // noder kv cacher recorder
+    code: number,        // 200 400 500
+    delay?: number,      // ms
+    bw?: number,         // bytes
+    timeout?: boolean,   // timeout threshold 1s
+    reqCnt?: number,     // for subscribe
 }

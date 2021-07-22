@@ -45,7 +45,7 @@ export class Subscriber extends Redis {
 
 export class Producer extends Redis {
     private grp: string
-    constructor({ db, grp, arg }: { db: DBT, grp?: string, arg?: RArgT }) {
+    constructor({ db = DBT.Pubsub, grp, arg }: { db: DBT, grp?: string, arg?: RArgT }) {
         super(db, arg)
         this.grp = grp ?? ''
     }

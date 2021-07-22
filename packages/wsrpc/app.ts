@@ -3,13 +3,13 @@ import Net from 'net'
 import WebSocket from 'ws'
 import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT, unexpectListener } from '@elara/lib'
 import Util from './src/util'
-import { ChainPidT, ReqDataT, WsData, CloseReason } from './src/interface'
+import { ChainPidT, ReqDataT, WsData, CloseReason, Statistics } from './src/interface'
 import Conf, { UnsafeMethods } from './config'
 import { dispatchWs, dispatchRpc } from './src/puber'
 import Service from './src/service'
 import Matcher from './src/matcher'
 import Puber from './src/puber'
-import { Response } from './src/util'
+import Response from './src/resp'
 
 const log = getAppLogger('app')
 const Server = Http.createServer()
@@ -44,20 +44,30 @@ function dataCheck(data: string): ResultT<WsData> {
 // Http rpc request 
 Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse) => {
     // method check
+    let reqStatis = {
+        proto: 'http',
+        method: req.method,
+        header: req.headers,
+        start: Util.traceStart(),
+        reqtime: Date.now()
+    } as Statistics
     if (!isPostMethod(req.method!)) {
         log.warn(`Invalid method ${req.method}, only POST support: `, req.url)
-        return Response.Fail(res, 'Invalid method, only POST support', 400)
+        return Response.Fail(res, 'Invalid method, only POST support', 400, reqStatis)
     }
 
     // path check
     let re = await pathOk(req.url!, req.headers.host!)
     if (isErr(re)) {
         log.error(`request path check fail: ${re.value}`)
-        return Response.Fail(res, re.value, 400)
+        return Response.Fail(res, re.value, 400, reqStatis)
     }
     const cp = re.value as ChainPidT
     let data = ''
     let dstart = 0
+    reqStatis.chain = cp.chain
+    reqStatis.pid = cp.pid as string
+
     req.on('data', (chunk) => {
         if (data == '') {
             dstart = Util.traceStart()
@@ -69,26 +79,28 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         const dtime = Util.traceEnd(dstart)
         log.info(`new rpc request: ${data}, parse time[${dtime}]`)
         let dat: ReqDataT
+        reqStatis.req = data
         try {
             let re = dataCheck(data)
             if (isErr(re)) {
                 log.error(`rpc request error: ${re.value}`)
-                return Response.Fail(res, re.value, 400)
+                return Response.Fail(res, re.value, 400, reqStatis)
             }
             dat = re.value
         } catch (err) {
             log.error(`rpc request catch error: `, err)
-            return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400)
+            return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400, reqStatis)
         }
         // dispatch request 
-        dispatchRpc(cp.chain, dat, res)
+        dispatchRpc(cp.chain, dat, res, reqStatis)
     })
 })
 
 // WebSocket request 
-Server.on('upgrade', async (res: Http.IncomingMessage, socket: Net.Socket, head): PVoidT => {
-    const path = res.url!
+Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head): PVoidT => {
+    const path = req.url!
     const re = await Util.urlParse(path)
+
     if (isErr(re)) {
         log.error('Invalid socket request: ', re.value)
         await socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
@@ -98,7 +110,7 @@ Server.on('upgrade', async (res: Http.IncomingMessage, socket: Net.Socket, head)
     }
 
     // only handle urlReg pattern request
-    wss.handleUpgrade(res, socket as any, head, (ws, req: any) => {
+    wss.handleUpgrade(req, socket as any, head, (ws, req: any) => {
         req['chain'] = re.value.chain
         req['pid'] = re.value.pid
         wss.emit('connection', ws, req)

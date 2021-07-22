@@ -3,8 +3,8 @@ import { getAppLogger, PVoidT } from '@elara/lib'
 import Cacher from "../cacher"
 // import Recorder from '../recorder'
 import Puber from '.'
-import { Response } from '../util'
-import { ReqDataT, WsData } from '../interface'
+import Response from '../resp'
+import { ReqDataT, Statistics, WsData } from '../interface'
 import Topic from '../matcher/topic'
 import Noder from '../noder'
 import Kver from '../kver'
@@ -28,7 +28,7 @@ function getRpcType(method: string, params: string[]): RpcTyp {
     return RpcTyp.Noder
 }
 
-export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.ServerResponse): PVoidT {
+export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.ServerResponse, stat: Statistics): PVoidT {
     const { id, jsonrpc, method, params } = data
     log.info(`new rpc request ${method} of chain ${chain}`)
 
@@ -36,9 +36,10 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
     if (Topic.subscribe.includes(method) || method.includes('subscribe')) {
         let res = { id, jsonrpc } as WsData
         res.error = { code: -32090, message: 'Subscriptions are not available on this transport.' }
-        return Response.Ok(resp, JSON.stringify(res))
+        return Response.Fail(resp, JSON.stringify(res), 400, stat)
     }
     const typ = getRpcType(method, params!)
+    stat.type = typ
     const res = { id, jsonrpc } as WsData
     switch (typ) {
         case RpcTyp.Cacher:
@@ -48,20 +49,20 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
                 // TODO: updateTime check
                 if (re.result) {
                     res['result'] = JSON.parse(re.result)
-                    return Response.Ok(resp, JSON.stringify(res))
+                    return Response.Ok(resp, JSON.stringify(res), stat)
                 }
                 res.error = { code: 3000, message: 'error cache response' }
-                return Response.Fail(resp, JSON.stringify(res), 500)
+                return Response.Fail(resp, JSON.stringify(res), 500, stat)
             }
             // noder
             log.error(`chain ${chain} rpc cacher fail, transpond to noder method[${method}] params[${params}]`)
-            return Noder.sendRpc(chain, data, resp)
+            return Noder.sendRpc(chain, data, resp, stat)
         case RpcTyp.Recorder:
             res.result = `recoder: ${method}`
-            return Response.Ok(resp, JSON.stringify(res))
+            return Response.Ok(resp, JSON.stringify(res), stat)
         case RpcTyp.Noder:
             res.result = `direct: ${method}`
-            return Noder.sendRpc(chain, data, resp)
+            return Noder.sendRpc(chain, data, resp, stat)
         default:
             log.error(`[SBH] no this rpc request type: ${typ}`)
             break

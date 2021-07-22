@@ -109,7 +109,9 @@ class Puber {
         log.debug(`ready to send ${type} subscribe request: ${JSON.stringify(sendData)}`)
         // transpond requset
         log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
-        return suber.ws.send(JSON.stringify(sendData))
+        return suber.ws.send(JSON.stringify(sendData), (dat) => {
+            log.error(`suber send callback: `, dat)
+        })
     }
 }
 
