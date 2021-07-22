@@ -48,7 +48,7 @@ export interface ReqT {
     jsonrpc: string,
     method: string,
     params: any,
-    startTime: number,
+    stat: Statistics,
 }
 
 export interface SubscripT {

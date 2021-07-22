@@ -37,9 +37,9 @@ function post(chain: string, url: string, data: ReqDataT, resp: Http.ServerRespo
         const time = Util.traceEnd(start)
         log.info(`new node rpc response: chain[${chain}] method ${data.method} time[${time}]`)
     })
-    req.on('error', (err) => {
+    req.on('error', (err: Error) => {
         log.error('post noder rpc request error: ', err)
-        Response.Fail(resp, err, 500, stat)
+        Response.Fail(resp, err.message, 500, stat)
     })
     req.write(JSON.stringify(data))
     req.end()
@@ -59,9 +59,9 @@ class Noder {
         return post(chain, url, data, resp, stat)
     }
 
-    static async sendWs(puber: Puber, data: ReqDataT): PVoidT {
+    static async sendWs(puber: Puber, data: ReqDataT, stat: Statistics): PVoidT {
         log.info(`new node ws requst, chain ${puber.chain} method ${data.method} params ${data.params}`)
-        Puber.transpond(puber, SuberTyp.Node, data)
+        Puber.transpond(puber, SuberTyp.Node, data, stat)
     }
 }
 

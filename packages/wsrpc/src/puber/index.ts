@@ -2,7 +2,7 @@ import WebSocket, { EventEmitter } from 'ws'
 import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT, isNone } from '@elara/lib'
 import { Option, None, Some } from '@elara/lib'
 import { randomId } from '@elara/lib'
-import { ReqDataT, WsData } from '../interface'
+import { ReqDataT, Statistics, WsData } from '../interface'
 import Matcher from '../matcher'
 import Suber, { SuberTyp } from '../matcher/suber'
 import G from '../global'
@@ -68,9 +68,10 @@ class Puber {
         return Ok(puber)
     }
 
-    static async transpond(puber: Puber, type: SuberTyp, data: ReqDataT): PVoidT {
+    static async transpond(puber: Puber, type: SuberTyp, data: ReqDataT, stat: Statistics): PVoidT {
         const { id, chain, pid } = puber
         const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
+        log.debug('puber transpond statistics: ', stat)
         // topic bind to chain and params 
         if (Matcher.isSubscribed(chain, pid, data)) {
             log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)
@@ -82,9 +83,11 @@ class Puber {
             subId = puber.kvSubId
         }
         log.debug(`new request suber[${subId}] type ${type}`)
-        let re = Matcher.newRequest(chain, pid, id, type, subId!, data)
+        let re = Matcher.newRequest(chain, pid, id, type, subId!, data, stat)
         if (isErr(re)) {
             log.error(`create new request error: ${re.value}`)
+            stat.code = 500
+            // publish statistics
             return puber.ws.send(re.value)
         }
         const dat = re.value
@@ -103,15 +106,14 @@ class Puber {
             log.error(`send message error: invalid suber ${puber.subId} chain ${chain} type ${type}, may closed`)
             // clear request cache
             G.delReqCache(dat.id)
+            // publish statistics, dont change code 
             return
         }
         const suber: Suber = sre.value
         log.debug(`ready to send ${type} subscribe request: ${JSON.stringify(sendData)}`)
         // transpond requset
         log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
-        return suber.ws.send(JSON.stringify(sendData), (dat) => {
-            log.error(`suber send callback: `, dat)
-        })
+        return suber.ws.send(JSON.stringify(sendData))
     }
 }
 

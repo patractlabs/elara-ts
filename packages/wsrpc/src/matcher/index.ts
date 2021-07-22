@@ -12,7 +12,7 @@ import WebSocket from 'ws'
 import EventEmitter from 'events'
 import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option, PBoolT } from '@elara/lib'
 import GG from '../global'
-import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason } from '../interface'
+import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason, Statistics } from '../interface'
 import Puber from '../puber'
 import Suber, { SuberTyp } from './suber'
 import { md5, randomId } from '@elara/lib'
@@ -92,7 +92,7 @@ namespace Matcher {
         return Ok(puber)
     }
 
-    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT): ResultT<ReqDataT> => {
+    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> => {
         const method = data.method!
         let type = ReqTyp.Rpc
 
@@ -104,6 +104,8 @@ namespace Matcher {
             }
         } else if (isSubReq(method)) {
             type = ReqTyp.Sub
+            stat.reqCnt = 0
+            stat.bw = 0
         }
 
         const req = {
@@ -118,7 +120,7 @@ namespace Matcher {
             type,
             method,
             params: data.params,
-            startTime: Util.traceStart()
+            stat
         } as ReqT
         log.debug(`new ${chain} ${pid} ${subType} request cache: ${JSON.stringify(req)}`)
         GG.addReqCache(req)

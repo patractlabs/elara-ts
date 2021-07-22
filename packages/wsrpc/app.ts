@@ -41,16 +41,21 @@ function dataCheck(data: string): ResultT<WsData> {
     }
     return Ok(dat)
 }
-// Http rpc request 
-Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse) => {
-    // method check
-    let reqStatis = {
-        proto: 'http',
-        method: req.method,
-        header: req.headers,
+
+function initStatistic(proto: string, method: string, header: Http.IncomingHttpHeaders): Statistics {
+    return {
+        proto,
+        method,
+        header,
         start: Util.traceStart(),
         reqtime: Date.now()
     } as Statistics
+}
+
+// Http rpc request 
+Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse) => {
+    // method check
+    let reqStatis = initStatistic('http', req.method!, req.headers)
     if (!isPostMethod(req.method!)) {
         log.warn(`Invalid method ${req.method}, only POST support: `, req.url)
         return Response.Fail(res, 'Invalid method, only POST support', 400, reqStatis)
@@ -100,19 +105,31 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
 Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head): PVoidT => {
     const path = req.url!
     const re = await Util.urlParse(path)
+    let reqStatis = initStatistic('ws', req.method!, req.headers)
+    reqStatis.type = 'conn'
 
     if (isErr(re)) {
         log.error('Invalid socket request: ', re.value)
+        // 
+        reqStatis.code = 400
+        // publish statistics
+
+        log.debug('request statistics: ', reqStatis)
         await socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
         socket.emit('close', true)
         return
-        // return 
     }
+
+    const { chain, pid } = re.value
+
+    reqStatis.chain = chain
+    reqStatis.pid = pid as string
 
     // only handle urlReg pattern request
     wss.handleUpgrade(req, socket as any, head, (ws, req: any) => {
-        req['chain'] = re.value.chain
-        req['pid'] = re.value.pid
+        req['chain'] = chain
+        req['pid'] = pid
+        req['stat'] = reqStatis
         wss.emit('connection', ws, req)
     })
 })
@@ -120,6 +137,7 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
 // WebSocket connection event handle
 wss.on('connection', async (ws, req: any) => {
 
+    const stat = req['stat']
     const re = await Matcher.regist(ws, req.chain, req.pid)
     if (isErr(re)) {
         log.error(`socket connect error: ${re.value}`)
@@ -127,27 +145,38 @@ wss.on('connection', async (ws, req: any) => {
             log.error(`suber is unavailable`)
             ws.send(`service unavailable now`)
         }
+        stat.code = 500
+        // publish statistics
         return ws.terminate()
     }
     const puber = re.value as Puber
     log.info(`New socket connection chain ${req.chain} pid[${req.pid}], current total connections `, wss.clients.size)
     const id = puber.id
+    stat.code = 200
+    // publish statistics
 
     ws.on('message', async (data) => {
         log.info(`new puber[${id}] request of chain ${req.chain}: `, data)
         let dat: ReqDataT
+        let reqStatis = initStatistic('ws', '', {} as Http.IncomingHttpHeaders)
+        reqStatis.req = data.toString()
+        reqStatis.code = 400
+
         try {
             let re = dataCheck(data.toString())
             if (isErr(re)) {
                 log.error(`${re.value}`)
+                // publis statistics
                 return puber.ws.send(re.value)
             }
             dat = re.value
         } catch (err) {
             log.error('Parse message to JSON error')
+            // publis statistics
             return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
-        dispatchWs(req.chain, dat, puber)
+        reqStatis.code = 200
+        dispatchWs(req.chain, dat, puber, reqStatis)
     })
 
     ws.on('close', async (code, reason) => {

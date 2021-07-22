@@ -1,5 +1,5 @@
 import { getAppLogger } from '@elara/lib'
-import { ReqDataT } from "../interface"
+import { ReqDataT, Statistics } from "../interface"
 import { SuberTyp } from "../matcher/suber"
 import Puber from "../puber"
 
@@ -36,9 +36,9 @@ class Kver {
         "author_unwatchExtrinsic",            // author_extrinsicUpdate
     ]
 
-    static send(puber: Puber, data: ReqDataT): void {
+    static send(puber: Puber, data: ReqDataT, stat: Statistics): void {
         log.info(`new kv request, chain ${puber.chain} method ${data.method} params `, data.params)
-        Puber.transpond(puber, SuberTyp.Kv, data)
+        Puber.transpond(puber, SuberTyp.Kv, data, stat)
     }
 }
 

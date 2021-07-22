@@ -10,6 +10,7 @@ import Puber from '../puber'
 import Conf from '../../config'
 import Util from '../util'
 import Topic from './topic'
+import G from '../global'
 
 const log = getAppLogger('suber')
 
@@ -79,7 +80,6 @@ function parseReq(dat: WsData): ResultT<ReqT | boolean> {
         // 
         log.error(`get request cache error: ${re.value}, puber has been closed `)
         return Ok(true)
-        process.exit(1)
     }
     const req = re.value as ReqT
     if (dat.id && isUnsubOnClose(dat, isSubscribeID(dat.id.toString()))) {
@@ -114,6 +114,15 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
             return
         }
         const reqId = re.value
+        // puublish statistic
+        const reqr = GG.getReqCache(reqId)
+        if (isErr(reqr)) {
+            log.error('invalid request cache: ', reqId)
+            process.exit(1)
+        }
+        const stat = reqr.value.stat
+        log.debug('unsubscribe statistic: ', stat)
+
         GG.delReqCache(reqId)
 
         GG.remSubTopic(req.chain, req.pid, subsId)
@@ -139,6 +148,16 @@ type DParT = {
     req: ReqT,
     data: string | WebSocket.Data | boolean
 }
+
+function updateStatistic(req: ReqT, data: string): void {
+    const stat = req.stat
+    stat.reqCnt! += 1
+    stat.bw! += Util.strBytes(data) + 1000000000000000  // dont do accumulate
+    req.stat = stat
+    G.updateReqCache(req)
+    log.debug('udpdate reqcahce statistic: ', stat)
+}
+
 /// 1. rpc response: clear reqcache, replace originid 
 /// 2. subscribe first response
 /// 3. subscribe response non-first
@@ -171,17 +190,24 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
 
     const req = re.value as ReqT
     // log.debug('parse request cache result: ', JSON.stringify(req))
+    const stat = req.stat
 
     // if suber close before message event,
     // request Cache will clear before suber delete
     if (dat.error || req.type !== ReqTyp.Sub) {
         // subscribe request cache will be clear on unsubscribe event
+        stat.delay = Util.traceDelay(stat.start)
+        stat.bw = Util.strBytes(data.toString())
+        // publish statistics 
+
         GG.delReqCache(req.id)
         log.info('delete request cache non-subscribe: ', req.id, JSON.stringify(req))
     }
 
     if (isSecondResp(dat.params)) {
-        return Ok({ req, data: JSON.stringify(dat) })
+        const dats = JSON.stringify(dat)
+        updateStatistic(req, dats)
+        return Ok({ req, data: dats })
     }
     const dres = dat.result
     const isClose = isUnsubOnClose(dat, isSubscribeID(dat.id))
@@ -198,6 +224,7 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
         // first response of subscribe
         // NOTE: may receive after puber closed
         log.debug(`first response of subscribe method[${req.method}] params[${req.params}] puber[${req.pubId}]: `, dat)
+        updateStatistic(req, dataToSend)
         // check puber is closed or not
         const pubre = Puber.get(req.pubId)
         if (isNone(pubre)) {
