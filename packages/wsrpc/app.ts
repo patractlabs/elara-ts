@@ -10,6 +10,7 @@ import Service from './src/service'
 import Matcher from './src/matcher'
 import Puber from './src/puber'
 import Response from './src/resp'
+import { Stat } from './src/statistic'
 
 const log = getAppLogger('app')
 const Server = Http.createServer()
@@ -113,7 +114,7 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
         // 
         reqStatis.code = 400
         // publish statistics
-
+        Stat.publish(reqStatis)
         log.debug('request statistics: ', reqStatis)
         await socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
         socket.emit('close', true)
@@ -147,6 +148,7 @@ wss.on('connection', async (ws, req: any) => {
         }
         stat.code = 500
         // publish statistics
+        Stat.publish(stat)
         return ws.terminate()
     }
     const puber = re.value as Puber
@@ -154,6 +156,7 @@ wss.on('connection', async (ws, req: any) => {
     const id = puber.id
     stat.code = 200
     // publish statistics
+    Stat.publish(stat)
 
     ws.on('message', async (data) => {
         log.info(`new puber[${id}] request of chain ${req.chain}: `, data)

@@ -6,6 +6,7 @@ import Util from '../util'
 import Puber from '../puber'
 import { SuberTyp } from '../matcher/suber'
 import Response from '../resp'
+import { Stat } from '../statistic'
 
 const log = getAppLogger('noder')
 
@@ -27,12 +28,12 @@ function post(chain: string, url: string, data: ReqDataT, resp: Http.ServerRespo
             stat.bw = bw
             stat.delay = Util.traceDelay(stat.start)
             stat.code = 200
-            if (stat.delay > 10) {
+            if (stat.delay > 1000) {
                 log.warn(`request ${stat.chain} pid[${stat.pid}] delay ${stat.delay} timeout: `, stat.req)
                 stat.timeout = true
             }
-            log.debug('statistics result: ', stat)
             // publish statistics
+            Stat.publish(stat)
         })
         const time = Util.traceEnd(start)
         log.info(`new node rpc response: chain[${chain}] method ${data.method} time[${time}]`)

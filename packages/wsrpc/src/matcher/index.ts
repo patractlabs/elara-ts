@@ -95,16 +95,17 @@ namespace Matcher {
     export const newRequest = (chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> => {
         const method = data.method!
         let type = ReqTyp.Rpc
-
+        let subsId
         if (isUnsubReq(method)) {
             log.info(`pre handle unsubscribe request: ${method}: `, data.params, Suber.isSubscribeID(data.params![0]))
             type = ReqTyp.Unsub
+            subsId = data.params![0]
             if (data.params!.length < 1 || !Suber.isSubscribeID(data.params![0])) {
                 return Err(`invalid unsubscribe params: ${data.params![0]}`)
             }
         } else if (isSubReq(method)) {
             type = ReqTyp.Sub
-            stat.reqCnt = 0
+            stat.reqCnt = 1 // for first response
             stat.bw = 0
         }
 
@@ -120,6 +121,7 @@ namespace Matcher {
             type,
             method,
             params: data.params,
+            subsId,
             stat
         } as ReqT
         log.debug(`new ${chain} ${pid} ${subType} request cache: ${JSON.stringify(req)}`)

@@ -9,6 +9,7 @@ import Topic from '../matcher/topic'
 import Noder from '../noder'
 import Kver from '../kver'
 import Util from '../util'
+import { Stat } from '../statistic'
 
 const log = getAppLogger('dispatch')
 
@@ -87,13 +88,13 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
                     stat.delay = Util.traceDelay(stat.start)
                     stat.bw = Util.strBytes(ress)
                     // publish statistics
-                    log.debug('ws cache statistics: ', stat)
+                    Stat.publish(stat)
                     return puber.ws.send(ress)
                 }
                 res.error = { code: 500, message: 'error cache response' }
                 stat.code = 500
                 // publish statistics
-                
+                Stat.publish(stat)
                 return puber.ws.send(JSON.stringify(res))
             }
             log.error(`chain ${chain} ws cacher fail, transpond to noder method[${method}] params[${params}]`)

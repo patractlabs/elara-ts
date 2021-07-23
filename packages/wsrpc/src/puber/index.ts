@@ -6,6 +6,8 @@ import { ReqDataT, Statistics, WsData } from '../interface'
 import Matcher from '../matcher'
 import Suber, { SuberTyp } from '../matcher/suber'
 import G from '../global'
+import { Stat } from '../statistic'
+import Util from '../util'
 
 const log = getAppLogger('puber')
 
@@ -75,8 +77,12 @@ class Puber {
         // topic bind to chain and params 
         if (Matcher.isSubscribed(chain, pid, data)) {
             log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)
+            const sres = JSON.stringify(res)
             res.error = { code: 1000, message: 'No need to subscribe twice' }
-            return puber.ws.send(JSON.stringify(res))
+            stat.code = 400
+            stat.bw = Util.strBytes(sres)
+            Stat.publish(stat)
+            return puber.ws.send(sres)
         }
         let subId = puber.subId
         if (type === SuberTyp.Kv) {
@@ -88,6 +94,7 @@ class Puber {
             log.error(`create new request error: ${re.value}`)
             stat.code = 500
             // publish statistics
+            Stat.publish(stat)
             return puber.ws.send(re.value)
         }
         const dat = re.value
@@ -105,8 +112,8 @@ class Puber {
         if (isNone(sre)) {
             log.error(`send message error: invalid suber ${puber.subId} chain ${chain} type ${type}, may closed`)
             // clear request cache
-            G.delReqCache(dat.id)
-            // publish statistics, dont change code 
+            // G.delReqCache(dat.id)
+            G.delReqCacheByPubStatis(dat.id)
             return
         }
         const suber: Suber = sre.value

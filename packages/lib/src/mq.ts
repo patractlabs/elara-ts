@@ -10,7 +10,7 @@ export class Subscriber extends Redis {
         super(db, arg)
     }
 
-    async subscribe(chan: string, cb: SubCbT, grp?: string, user?: string, ms: number = 5000): Promise<void> {
+    async subscribe(chan: string, cb: SubCbT, ms: number = 5000, grp?: string, user?: string): Promise<void> {
         let lastID = '>'
         let typ = 'group'
         let consumer = user
@@ -33,8 +33,10 @@ export class Subscriber extends Redis {
                 }
                 let res = re[0][1]
                 const { length } = re
-                log.info(`${typ} stream ${consumer} read result: `, res, length)
-                if (!length) { continue }
+                if (length !== 1) {
+                    log.error(`${typ} stream ${consumer} read result: `, res, length)
+                }
+                if (length < 1) { continue }
                 cb(res)
             } catch (err) {
                 log.error(`${typ} stram subscribe error: `, err)
@@ -54,7 +56,7 @@ export class Producer extends Redis {
         return this.grp
     }
 
-    async publish(chan: string, kvs: string[], maxlen: number = 1, id: string = '*'): Promise<string> {
+    async publish(chan: string, kvs: string[], maxlen: number = 10, id: string = '*'): Promise<string> {
         return this.client.xadd(chan, 'MAXLEN', maxlen, id, kvs)
     }
 
