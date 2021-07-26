@@ -87,12 +87,28 @@ namespace Cache {
 namespace Stat {
     const S = 'Stat'
 
+    export const hTotal = (): string => {
+        return `H_${S}_total`
+    }
+
     export const hDaily = (): string => {
         return `H_${S}_daily`
     }
 
+    export const hProDaily = (chain: string, pid: string, timestamp: number): string => {
+        return `H_${S}_daily_${chain.toLowercase()}_${pid}_${timestamp}`
+    }
+
     export const zStatList = (): string => {
         return `Z_${S}_list`
+    }
+
+    export const zReq = (chain: string, pid: string, timestamp: number): string => {
+        return `Z_${S}_req_${chain.toLowercase()}_${pid}_${timestamp}`
+    }
+
+    export const zBw = (chain: string, pid: string, timestamp: number): string => {
+        return `Z_${S}_bw_${chain.toLowercase()}_${pid}_${timestamp}`
     }
 
     export const stat = (chain: string, pid: string, key: string): string => {

@@ -122,7 +122,19 @@ async function dumpStatistic(stream: string): PVoidT {
 }
 
 export async function handleStat(stream: string[]): PVoidT {
-    const stat = JSON.parse(stream[1][1])
-    log.debug('get new statistic: ', stream, stat.code, stat.header.host)
-    dumpStatistic(stream[1][1])
+    const req = JSON.parse(stream[1][1]) as Statistics
+    log.debug('get new statistic: ', stream, req.code, req.header.host)
+    const key = md5(stream)
+    log.debug('dump request statistic: ', key, req.reqtime)
+    try {
+        // request record
+        Rd.setex(KEY.stat(req.chain, req.pid, key), redis.expiration, stream)
+        Rd.zadd(KEY.zStatList(), req.reqtime, key)
+
+        // daily statistic
+        dailyDashboardDump(req)
+
+    } catch (err) {
+        log.error(`dump request statistic [${req.chain}-${req.pid}] error: `, err)
+    }
 }
