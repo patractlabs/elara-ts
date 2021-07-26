@@ -62,3 +62,25 @@ export class Redis {
         })
     }
 }
+
+export class RedisPool {
+    protected pool: RdT[] = []
+    private db: DBT
+    private size: number
+    constructor(db: DBT, size: number, arg?: RArgT) {
+        this.db = db
+        this.size = size
+        const options = { ...arg?.options, db }
+        for (let i = 0; i < size; i++) {
+            this.pool.push(new IORedis(arg?.port, arg?.host, options))
+        }
+    }
+
+    getDB(): DBT {
+        return this.db
+    }
+
+    getSize(): number {
+        return this.size
+    }
+}

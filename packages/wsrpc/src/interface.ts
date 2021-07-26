@@ -78,7 +78,7 @@ export interface Statistics {
     chain: string,
     pid: string,
     method: string,
-    req: string,
+    req: ReqDataT,
     reqtime: number,     // request start time
     code: number,        // 200 400 500
     header?: Http.IncomingHttpHeaders,

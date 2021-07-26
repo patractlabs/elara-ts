@@ -4,7 +4,8 @@ interface Redis {
     host: string,
     port: number,
     db: number,
-    password: string
+    password: string,
+    expiration: number, // second
 }
 
 

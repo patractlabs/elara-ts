@@ -1,2 +1,5 @@
 {
+    "redis": {
+        "expiration": 180
+    }
 }

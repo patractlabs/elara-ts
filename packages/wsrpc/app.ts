@@ -3,7 +3,7 @@ import Net from 'net'
 import WebSocket from 'ws'
 import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT, unexpectListener } from '@elara/lib'
 import Util from './src/util'
-import { ChainPidT, ReqDataT, WsData, CloseReason, Statistics } from './src/interface'
+import { ChainPidT, ReqDataT, CloseReason, Statistics } from './src/interface'
 import Conf, { UnsafeMethods } from './config'
 import { dispatchWs, dispatchRpc } from './src/puber'
 import Service from './src/service'
@@ -32,8 +32,8 @@ function methodUnsafe(method: string): boolean {
     return false
 }
 
-function dataCheck(data: string): ResultT<WsData> {
-    let dat = JSON.parse(data) as WsData
+function dataCheck(data: string): ResultT<ReqDataT> {
+    let dat = JSON.parse(data) as ReqDataT
     if (!dat.id || !dat.jsonrpc || !dat.method || !dat.params) {
         return Err('invalid request must be JSON {"id": string, "jsonrpc": "2.0", "method": "your method", "params": []}')
     }
@@ -85,7 +85,6 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         const dtime = Util.traceEnd(dstart)
         log.info(`new rpc request: ${data}, parse time[${dtime}]`)
         let dat: ReqDataT
-        reqStatis.req = data
         try {
             let re = dataCheck(data)
             if (isErr(re)) {
@@ -93,6 +92,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
                 return Response.Fail(res, re.value, 400, reqStatis)
             }
             dat = re.value
+            reqStatis.req = dat
         } catch (err) {
             log.error(`rpc request catch error: `, err)
             return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400, reqStatis)
@@ -162,7 +162,6 @@ wss.on('connection', async (ws, req: any) => {
         log.info(`new puber[${id}] request of chain ${chain}: `, data)
         let dat: ReqDataT
         let reqStatis = initStatistic('ws', '', {} as Http.IncomingHttpHeaders)
-        reqStatis.req = data.toString()
         reqStatis.code = 400
         reqStatis.chain = chain
         reqStatis.pid = pid
@@ -176,6 +175,7 @@ wss.on('connection', async (ws, req: any) => {
                 return puber.ws.send(re.value)
             }
             dat = re.value
+            reqStatis.req = dat
         } catch (err) {
             log.error('Parse request to JSON error')
             // publis statistics
