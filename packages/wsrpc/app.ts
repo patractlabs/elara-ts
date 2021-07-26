@@ -137,9 +137,9 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
 
 // WebSocket connection event handle
 wss.on('connection', async (ws, req: any) => {
-
+    const { chain, pid } = req
     const stat = req['stat']
-    const re = await Matcher.regist(ws, req.chain, req.pid)
+    const re = await Matcher.regist(ws, chain, pid)
     if (isErr(re)) {
         log.error(`socket connect error: ${re.value}`)
         if (re.value.includes('suber inactive')) {
@@ -152,30 +152,34 @@ wss.on('connection', async (ws, req: any) => {
         return ws.terminate()
     }
     const puber = re.value as Puber
-    log.info(`New socket connection chain ${req.chain} pid[${req.pid}], current total connections `, wss.clients.size)
+    log.info(`New socket connection chain ${chain} pid[${pid}], current total connections `, wss.clients.size)
     const id = puber.id
     stat.code = 200
     // publish statistics
     Stat.publish(stat)
 
     ws.on('message', async (data) => {
-        log.info(`new puber[${id}] request of chain ${req.chain}: `, data)
+        log.info(`new puber[${id}] request of chain ${chain}: `, data)
         let dat: ReqDataT
         let reqStatis = initStatistic('ws', '', {} as Http.IncomingHttpHeaders)
         reqStatis.req = data.toString()
         reqStatis.code = 400
+        reqStatis.chain = chain
+        reqStatis.pid = pid
 
         try {
             let re = dataCheck(data.toString())
             if (isErr(re)) {
                 log.error(`${re.value}`)
                 // publis statistics
+                Stat.publish(reqStatis)
                 return puber.ws.send(re.value)
             }
             dat = re.value
         } catch (err) {
-            log.error('Parse message to JSON error')
+            log.error('Parse request to JSON error')
             // publis statistics
+            Stat.publish(reqStatis)
             return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }
         reqStatis.code = 200

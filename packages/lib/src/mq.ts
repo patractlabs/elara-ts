@@ -28,7 +28,7 @@ export class Subscriber extends Redis {
                     re = await this.client.xread('BLOCK', ms, 'STREAMS', chan, lastID)
                 }
                 if (!re) {
-                    log.info(`${consumer} no new ${typ} stream`)
+                    log.debug(`${consumer} no new ${typ} stream`)
                     continue
                 }
                 let res = re[0][1]
@@ -37,7 +37,7 @@ export class Subscriber extends Redis {
                     log.error(`${typ} stream ${consumer} read result: `, res, length)
                 }
                 if (length < 1) { continue }
-                cb(res)
+                cb(res[0])
             } catch (err) {
                 log.error(`${typ} stram subscribe error: `, err)
             }

@@ -1,7 +1,7 @@
 import { PVoidT, getAppLogger, DBT } from "@elara/lib"
-import { Statistics } from "./interface"
 import { Producer } from '@elara/lib'
 import Conf from '../config'
+import { Statistics } from './interface'
 
 const log = getAppLogger('stat')
 const redis = Conf.getRedis()

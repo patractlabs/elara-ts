@@ -75,15 +75,15 @@ export enum CloseReason {
 
 export interface Statistics {
     proto: string,   // http ws
-    header: Http.IncomingHttpHeaders,
     chain: string,
     pid: string,
     method: string,
     req: string,
     reqtime: number,     // request start time
+    code: number,        // 200 400 500
+    header?: Http.IncomingHttpHeaders,
     start: number,
     type?: string,       // noder kv cacher recorder
-    code: number,        // 200 400 500
     delay?: number,      // ms
     bw?: number,         // bytes
     timeout?: boolean,   // timeout threshold 1s
