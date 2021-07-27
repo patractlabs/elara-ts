@@ -96,19 +96,23 @@ namespace Stat {
     }
 
     export const hProDaily = (chain: string, pid: string, timestamp: number): string => {
-        return `H_${S}_daily_${chain.toLowercase()}_${pid}_${timestamp}`
+        return `H_${S}_daily_${chain.toLowerCase()}_${pid}_${timestamp}`
     }
 
     export const zStatList = (): string => {
         return `Z_${S}_list`
     }
 
+    export const zExpireList = (): string => {
+        return `Z_${S}_expire_timestamp`
+    }
+
     export const zReq = (chain: string, pid: string, timestamp: number): string => {
-        return `Z_${S}_req_${chain.toLowercase()}_${pid}_${timestamp}`
+        return `Z_${S}_req_${chain.toLowerCase()}_${pid}_${timestamp}`
     }
 
     export const zBw = (chain: string, pid: string, timestamp: number): string => {
-        return `Z_${S}_bw_${chain.toLowercase()}_${pid}_${timestamp}`
+        return `Z_${S}_bw_${chain.toLowerCase()}_${pid}_${timestamp}`
     }
 
     export const stat = (chain: string, pid: string, key: string): string => {

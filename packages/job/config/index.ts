@@ -5,7 +5,10 @@ interface Redis {
     port: number,
     db: number,
     password: string,
-    expiration: number, // second
+    expire: number, 
+    statKeep: number,
+    expireFactor: number,
+    expireUnit: string
 }
 
 

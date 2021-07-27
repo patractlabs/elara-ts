@@ -4,6 +4,9 @@
         "port": 6379,
         "db": 0,
         "password": "",
-        "expiration": 2592000
+        "expireDay": 30,
+        "statKeepDay": 2,
+        "expireFactor": 86400,
+        "expireUnit": "day"
     }
 }

@@ -1,39 +1,48 @@
 import Sche from 'node-schedule'
 import Mom from 'moment'
-import { getAppLogger, KEYS } from '@elara/lib'
-import { dailyDashboardReset } from './statistic'
+import { getAppLogger, KEYS, PVoidT } from '@elara/lib'
+import { dailyDashboardReset, dailyStatDump } from './statistic'
 import { Rd } from './redis'
+import { Stat, Statistics, StartT, DurationT } from './interface'
+import { lastTimes } from './util'
+import Conf from '../config'
 
+const rconf = Conf.getRedis()
 const KEY = KEYS.Stat
 const log = getAppLogger('service')
 
 const tz = 'Etc/GMT+8'
-const dayRule = '* 0 * * *'
 
-type StartT = Mom.unitOfTime.StartOf
+async function clearExpireStat(time: number) {
+    const expDay = rconf.expire
+    const stamp = Mom(time).subtract(expDay, `${rconf.expireUnit}s` as DurationT).startOf(rconf.expireUnit as StartT)
+    // const stamp = Mom(time).subtract(expDay, 'minutes').startOf('minute')
+    const keys = await Rd.keys(`*${stamp.valueOf()}`)
+    log.debug('expire keys: ', keys)
+    for (let k of keys) {
+        Rd.del(k)
+    }
 
-export function lastTime(time: string, unit: number = 1): number[] {
-    const last = Mom().subtract(unit, `${time}s` as Mom.unitOfTime.DurationConstructor)
-    const start = last.startOf(time as StartT).clone()
-    const end = last.endOf(time as StartT)
-    log.debug(`last start-end of ${unit} ${time}: `, start, end)
-    return [start.valueOf(), end.valueOf()]
+    // Rd.zadd(KEY.zExpireList(), time, time)
+    log.debug('expire end day: ', stamp, stamp.valueOf())
 }
 
-export function lastTimes(time: string, unit: number = 1): number[] {
-    const cur = Mom()
-    const last = cur.clone().subtract(unit, `${time}s` as Mom.unitOfTime.DurationConstructor)
-    const start = last.startOf(time as StartT).clone()
-    const end = cur.startOf(time as StartT)
-    log.debug(`last start-end of ${unit} ${time}s: `, start, end)
-    return [start.valueOf(), end.valueOf()]
+export async function proFetch(key: string): Promise<Stat> {
+    const re = await Rd.get(key)
+    if (re === null) return {} as Stat
+    return JSON.parse(re)
+}
+
+export async function proUpdate(key: string, dat: Stat): PVoidT {
+    Rd.setex(key, rconf.expire * rconf.expireFactor, JSON.stringify(dat))
 }
 
 async function handleExpireStat() {
     // const date = new Date()
     // let [start, end] = lastTimes('day', 1)
-    let [start, end] = lastTimes('minute', 30)      // for test
-    log.debug('start-end: ', start, end)
+    let [start, end] = lastTimes('minute', 1)      // for test
+
+    clearExpireStat(start)
     const zlKey = KEY.zStatList()
     const keys = await Rd.zrangebyscore(zlKey, start, end)
     for (let k of keys) {
@@ -42,6 +51,7 @@ async function handleExpireStat() {
         const re = await Rd.keys(key)
         log.debug('pattern keys: ', re)
         if (re === null || re.length < 1) {
+            log.debug('remove expire statistic list item: ', k)
             Rd.zrem(zlKey, k)
             continue
         }
@@ -50,36 +60,53 @@ async function handleExpireStat() {
         const chain = kp[1]
         const pid = kp[2]
         log.debug('chain-pid: ', chain, pid)
-        
+        // wrap statistic by chain pid
+        const stat = await Rd.get(skey)
+        if (stat === null) {
+            log.error('get statistic error')
+            Rd.zrem(zlKey, k)
+            Rd.del(skey)
+            continue
+        }
+        const req = JSON.parse(stat) as Statistics
+        dailyStatDump(req, KEY.hProDaily(chain, pid, start))
+        // score rank
+        if (req.req === undefined || req.req.method === undefined) {
+            Rd.zrem(zlKey, k)
+            Rd.del(skey)
+            continue
+        }
+        const method: string = req.req.method
+        if (req.proto === 'http') {
+            Rd.zincrby(KEY.zReq(chain, pid, start), 1, method)
+            Rd.zincrby(KEY.zBw(chain, pid, start), req.bw ?? 0, method)
+        }
+        // TODO websocket statis
+        Rd.zrem(zlKey, k)
+        Rd.del(skey)
     }
 }
 
-const dailyJob = Sche.scheduleJob(
-    {
-        rule: dayRule,
-        tz
-    },
-    () => {
-        log.debug('daily schedule: ')
-    })
+async function accountStatUpdate() {
+    log.debug('TODO: update account status')
+}
 
+namespace Service {
+    export async function init(rule: string) {
+        const job = Sche.scheduleJob({ rule, tz }, () => {
+            dailyDashboardReset()
+            handleExpireStat()
+            accountStatUpdate()
+        })
 
-dailyJob.on('canceled', () => {
-    log.debug('daily job cancel')
-})
+        job.on('error', (err) => {
+            log.error('job error: ', err)
+        })
 
-dailyJob.on('error', () => {
-    log.debug('daily job error')
-})
+        job.on('canceled', (reason) => {
+            log.debug('job canceled ', reason)
+        })
+    }
+}
 
-
-const minJob = Sche.scheduleJob({rule: '*/1 * * * * *', tz}, () => {
-    log.debug('minute job run')
-    dailyDashboardReset()
-
-    handleExpireStat()
-})
-
-minJob.on('error', (err) => {
-    log.error('minute job error: ', err)
-})
+export default Service

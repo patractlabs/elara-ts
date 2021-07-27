@@ -1,36 +1,12 @@
-import Http from 'http'
 import geo from 'geoip-country'
-import { getAppLogger, md5, KEYS, PVoidT, IDT } from '@elara/lib'
-import Conf from '../config'
+import { getAppLogger, md5, KEYS, PVoidT } from '@elara/lib'
 import { Rd } from './redis'
+import { Statistics, Stat } from './interface'
+import Conf from '../config'
 
 const log = getAppLogger('statistic')
 const KEY = KEYS.Stat
-const redis = Conf.getRedis()
-
-interface ReqDataT {
-    id: IDT,
-    jsonrpc: string,
-    method: string,
-    params?: any[]
-}
-
-interface Statistics {
-    proto: string,   // http ws
-    chain: string,
-    pid: string,
-    method: string,
-    req: ReqDataT,
-    reqtime: number,     // request start time
-    code: number,        // 200 400 500
-    header?: Http.IncomingHttpHeaders,
-    start: number,
-    type?: string,       // noder kv cacher recorder
-    delay?: number,      // ms
-    bw?: number,         // bytes
-    timeout?: boolean,   // timeout threshold 1s
-    reqCnt?: number,     // for subscribe
-}
+const rconf = Conf.getRedis()
 
 function accAverage(num: number, av: number, val: number, fixed: number = 2): string {
     return (av / (num + 1) * num + val / (num + 1)).toFixed(fixed)
@@ -44,46 +20,96 @@ function ip2county(ip: string): string {
     return 'unknow'
 }
 
-async function dailyDashboardDump(req: Statistics): PVoidT {
-    const dayKey = KEY.hDaily()
-    const curNum: number = parseInt(await Rd.hget(dayKey, `${req.proto}ReqNum`) ?? '0')
-    const curDelay: number = parseInt(await Rd.hget(dayKey, `${req.proto}Delay`) ?? '0')
+type FechT = (key: string) => Promise<Stat>
+type UpdateT = (key: string, data: Stat) => PVoidT
+
+function out(val: string | number): number {
+    if (val === undefined) return 0
+    const v = parseInt(val as string) ?? 0
+    log.debug('out value: ', val, v)
+    return v
+}
+
+export async function dailyStatDumps(req: Statistics, key: string, fetchOld: FechT, update: UpdateT): PVoidT {
+    const dat = await fetchOld(key)
+    const { curNum, curDelay } = dat
+    // const dat = newStat()
+
+    const acdely = accAverage(curNum as number ?? 0, curDelay as number ?? 0, req.delay ?? 0)
     if (req.timeout) {
-        Rd.hincrby(dayKey, `${req.proto}TimeoutCnt`, 1)
-        Rd.hset(dayKey, `${req.proto}Timeout`, accAverage(curNum, curDelay, req.delay ?? 0))
+        dat[`${req.proto}TimeoutCnt`] = out(dat[`${req.proto}TimeoutCnt`]) + 1
+        dat[`${req.proto}Timeout`] = acdely
     } else {
-        Rd.hset(dayKey, `${req.proto}Delay`, accAverage(curNum, curDelay, req.delay ?? 0))
+        dat[`${req.proto}Delay`] = acdely
     }
     let reqCnt = 1
     if (req.proto === 'ws') {
         reqCnt = req.reqCnt ?? 0
     }
-    Rd.hincrby(dayKey, `${req.proto}ReqNum`, reqCnt)
+    dat[`${req.proto}ReqNum`] = out(dat[`${req.proto}ReqNum`]) + reqCnt
     // ws connection cnt
     if (req.type === 'conn') {
-        Rd.hincrby(dayKey, 'wsConn', 1)
+        dat.wsConn = out(dat.wsConn) + 1
+        // Rd.hincrby(key, 'wsConn', 1)
     }
     if (req.bw !== undefined) {
-        Rd.hincrby(dayKey, `${req.proto}Bw`, req.bw)
+        dat[`${req.proto}Bw`] = out(dat[`${req.proto}Bw`]) + req.bw
+        // Rd.hincrby(key, `${req.proto}Bw`, req.bw)
     }
     if (req.code !== 200) {
-        Rd.hincrby(dayKey, `${req.proto}InReqNum`, 1)
+        dat[`${req.proto}InReqNum`] = out(dat[`${req.proto}InReqNum`]) + 1
     }
 
     // country access
     if (req.header !== undefined && req.header.host) {
         const c = ip2county(req.header.host)
-        const ac: Record<string, number> = JSON.parse(await Rd.hget(dayKey, `${req.proto}Ct`) ?? '{}')
+        const ac: Record<string, number> = JSON.parse(await Rd.hget(key, `${req.proto}Ct`) ?? '{}')
         log.debug('country parse: ', c, ac)
         ac[c] = (ac[c] ?? 0) + 1
-        Rd.hset(dayKey, `${req.proto}Ct`, JSON.stringify(ac))
+        dat[`${req.proto}Ct`] = JSON.stringify(ac)
+    }
+    update(key, dat)
+}
+
+export async function dailyStatDump(req: Statistics, key: string): PVoidT {
+    const curNum: number = parseInt(await Rd.hget(key, `${req.proto}ReqNum`) ?? '0')
+    const curDelay: number = parseInt(await Rd.hget(key, `${req.proto}Delay`) ?? '0')
+    if (req.timeout) {
+        Rd.hincrby(key, `${req.proto}TimeoutCnt`, 1)
+        Rd.hset(key, `${req.proto}Timeout`, accAverage(curNum, curDelay, req.delay ?? 0))
+    } else {
+        Rd.hset(key, `${req.proto}Delay`, accAverage(curNum, curDelay, req.delay ?? 0))
+    }
+    let reqCnt = 1
+    if (req.proto === 'ws') {
+        reqCnt = req.reqCnt ?? 0
+    }
+    Rd.hincrby(key, `${req.proto}ReqNum`, reqCnt)
+    // ws connection cnt
+    if (req.type === 'conn') {
+        Rd.hincrby(key, 'wsConn', 1)
+    }
+    if (req.bw !== undefined) {
+        Rd.hincrby(key, `${req.proto}Bw`, req.bw)
+    }
+    if (req.code !== 200) {
+        Rd.hincrby(key, `${req.proto}InReqNum`, 1)
+    }
+
+    // country access
+    if (req.header !== undefined && req.header.host) {
+        const c = ip2county(req.header.host)
+        const ac: Record<string, number> = JSON.parse(await Rd.hget(key, `${req.proto}Ct`) ?? '{}')
+        log.debug('country parse: ', c, ac)
+        ac[c] = (ac[c] ?? 0) + 1
+        Rd.hset(key, `${req.proto}Ct`, JSON.stringify(ac))
     }
 }
 
 export async function dailyDashboardReset(): PVoidT {
-    const dayKey = KEY.hDaily()
-    // Rd.del(dayKey)
-    Rd.hmset(dayKey, {
+    const key = KEY.hDaily()
+    // Rd.del(key)
+    Rd.hmset(key, {
         wsReqNum: 0,
         wsConn: 0,
         wsCt: '{}',
@@ -104,35 +130,28 @@ export async function dailyDashboardReset(): PVoidT {
     log.debug('reset daily statistic')
 }
 
-async function dumpStatistic(stream: string): PVoidT {
-    const req = JSON.parse(stream) as Statistics
-    const key = md5(stream)
-    log.debug('dump request statistic: ', key, req.reqtime)
-    try {
-        // request record
-        Rd.setex(KEY.stat(req.chain, req.pid, key), redis.expiration, stream)
-        Rd.zadd(KEY.zStatList(), req.reqtime, key)
+export async function dailyFetch(key: string): Promise<Stat> {
+    return await Rd.hgetall(key) as Stat
+}
 
-        // daily statistic
-        dailyDashboardDump(req)
-
-    } catch (err) {
-        log.error(`dump request statistic [${req.chain}-${req.pid}] error: `, err)
-    }
+export async function dailyUpdate(key: string, dat: Stat) {
+    Rd.hmset(key, dat)
 }
 
 export async function handleStat(stream: string[]): PVoidT {
-    const req = JSON.parse(stream[1][1]) as Statistics
-    log.debug('get new statistic: ', stream, req.code, req.header.host)
-    const key = md5(stream)
-    log.debug('dump request statistic: ', key, req.reqtime)
+    const dat = stream[1][1]
+    const req = JSON.parse(dat) as Statistics
+    const key = md5(dat)
+    log.debug('dump new request statistic: ', key, dat)
     try {
         // request record
-        Rd.setex(KEY.stat(req.chain, req.pid, key), redis.expiration, stream)
+        Rd.setex(KEY.stat(req.chain, req.pid, key), rconf.statKeep * rconf.expireFactor, dat)
+        // Rd.setex(KEY.stat(req.chain, req.pid, key), 120, dat)    // for test
         Rd.zadd(KEY.zStatList(), req.reqtime, key)
 
         // daily statistic
-        dailyDashboardDump(req)
+        dailyStatDump(req, KEY.hTotal())
+        dailyStatDump(req, KEY.hDaily())
 
     } catch (err) {
         log.error(`dump request statistic [${req.chain}-${req.pid}] error: `, err)
