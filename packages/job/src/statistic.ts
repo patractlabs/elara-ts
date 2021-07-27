@@ -147,7 +147,7 @@ export async function handleStat(stream: string[]): PVoidT {
         // request record
         Rd.setex(KEY.stat(req.chain, req.pid, key), rconf.statKeep * rconf.expireFactor, dat)
         // Rd.setex(KEY.stat(req.chain, req.pid, key), 120, dat)    // for test
-        Rd.zadd(KEY.zStatList(), req.reqtime, key)
+        Rd.zadd(KEY.zStatList(), req.reqtime, `${req.chain}_${req.pid}_${key}`)
 
         // daily statistic
         dailyStatDump(req, KEY.hTotal())

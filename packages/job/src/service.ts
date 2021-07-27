@@ -46,16 +46,7 @@ async function handleExpireStat() {
     const zlKey = KEY.zStatList()
     const keys = await Rd.zrangebyscore(zlKey, start, end)
     for (let k of keys) {
-        const key = KEY.patStat(undefined, undefined, k)
-        log.debug('statistic key: ', k, key)
-        const re = await Rd.keys(key)
-        log.debug('pattern keys: ', re)
-        if (re === null || re.length < 1) {
-            log.debug('remove expire statistic list item: ', k)
-            Rd.zrem(zlKey, k)
-            continue
-        }
-        const skey = re[0]  // real stat key
+        const skey = `Stat_${k}`
         const kp = skey.split('_')
         const chain = kp[1]
         const pid = kp[2]

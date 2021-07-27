@@ -1,11 +1,18 @@
-import { getAppLogger, IDT } from '@elara/lib'
+import { getAppLogger, IDT, KEYS } from '@elara/lib'
+import Http from 'http'
+import geo from 'geoip-country'
 import { now, formateDate } from '../lib/date'
 import KEY from '../lib/KEY'
 import Conf from '../../config'
 import { statRd } from '../dao/redis'
+import { StatT, Stats } from '../interface'
+import Mom from 'moment'
 
+const sKEY = KEYS.Stat
 const limitConf = Conf.getLimit()
-const logger = getAppLogger('stat')
+const log = getAppLogger('stat')
+
+type PStatT = Promise<StatT>
 
 const safeParseInt = (val: string | null): number => {
     if (val !== null) {
@@ -34,7 +41,6 @@ export interface StatProtocol {
  */
 class Stat {
 
-    
     static async request(info: any) {
 
         let protocol = info.protocol
@@ -59,7 +65,7 @@ class Stat {
         await Stat._header(header, pid)//请求头分析统计
         await Stat._chain(chain) //链的总请求数统计
 
-        logger.info('pid=', pid, ',protocol=', protocol, ',chain=', chain, ',method=', method, ',code=', code, ',bandwidth=', bandwidth, ',delay=', delay)
+        log.info('pid=', pid, ',protocol=', protocol, ',chain=', chain, ',method=', method, ',code=', code, ',bandwidth=', bandwidth, ',delay=', delay)
     }
 
     static async _request_response(info: any) {
@@ -67,7 +73,7 @@ class Stat {
         await statRd.lpush(KEY.REQUEST_RESPONSE(), JSON.stringify(info))
         await statRd.ltrim(KEY.REQUEST_RESPONSE(), 0, limitConf.maxReqKeep)
     }
-    
+
     static async _timeout(pid: any, delay: number) {
         let date = formateDate(new Date())
 
@@ -210,7 +216,7 @@ class Stat {
                 }
             }
         } catch (e) {
-            logger.error('request_response Parse Error!', e)
+            log.error('request_response Parse Error!', e)
         }
 
         return requests
@@ -218,21 +224,185 @@ class Stat {
 
 }
 
-namespace Stat {
-    export const dashboard = async () => {
-        let dashboard = {}
-        try {
-            let dashVal = await statRd.get(KEY.DASHBOARD())
-            if (dashVal === null) {
-                logger.error('Redis get dashboard failed')
-            } else {
-                dashboard = JSON.parse(dashVal)
-            }
-        } catch (e) {
-            logger.error('Dashboard Parse Error!')
-        }
-        return dashboard
+//////////////////////////////////////////////////////////
+function newStats(): Stats {
+    return {
+        wsReqNum: 0,
+        wsConn: 0,
+        wsCt: '{}',
+        wsBw: 0,
+        wsDelay: 0,
+        wsInReqNum: 0,
+        wsTimeout: 0,
+        wsTimeoutCnt: 0,
+
+        httpReqNum: 0,
+        httpCt: '{}',
+        httpBw: 0,
+        httpDelay: 0,
+        httpInReqNum: 0,
+        httpTimeout: 0,
+        httpTimeoutCnt: 0
     }
+}
+
+type MomUnit = 'day' | 'hour' | 'minute' | 'second'
+
+export function startStamp(unit: MomUnit): number {
+    return Mom().startOf(unit as Mom.unitOfTime.StartOf).valueOf()
+}
+
+interface ReqDataT {
+    id: IDT,
+    jsonrpc: string,
+    method: string,
+    params?: any[]
+}
+
+interface Statistics {
+    proto: string,   // http ws
+    chain: string,
+    pid: string,
+    method: string,
+    req: ReqDataT,
+    reqtime: number,     // request start time
+    code: number,        // 200 400 500
+    header?: Http.IncomingHttpHeaders,
+    start: number,
+    type?: string,       // noder kv cacher recorder
+    delay?: number,      // ms
+    bw?: number,         // bytes
+    timeout?: boolean,   // timeout threshold 1s
+    reqCnt?: number,     // for subscribe
+}
+
+function accAverage(num: number, av: number, val: number, fixed: number = 2): string {
+    return (av / (num + 1) * num + val / (num + 1)).toFixed(fixed)
+}
+
+function ip2county(ip: string): string {
+    const dat = geo.lookup(ip)
+    if (dat) {
+        return dat.country
+    }
+    return 'unknow'
+}
+
+function out(val: string | number): number {
+    if (val === undefined) return 0
+    const v = parseInt(val as string) ?? 0
+    log.debug('out value: ', val, v)
+    return v
+}
+
+export async function dailyStatDumps(req: Statistics, dat: Stats): Promise<Stats> {
+    // const dat = await fetchOld(key)
+    const { curNum, curDelay } = dat
+    // const dat = newStat()
+
+    const acdely = accAverage(curNum as number ?? 0, curDelay as number ?? 0, req.delay ?? 0)
+    if (req.timeout) {
+        dat[`${req.proto}TimeoutCnt`] = out(dat[`${req.proto}TimeoutCnt`]) + 1
+        dat[`${req.proto}Timeout`] = acdely
+    } else {
+        dat[`${req.proto}Delay`] = acdely
+    }
+    let reqCnt = 1
+    if (req.proto === 'ws') {
+        reqCnt = req.reqCnt ?? 0
+    }
+    dat[`${req.proto}ReqNum`] = out(dat[`${req.proto}ReqNum`]) + reqCnt
+    // ws connection cnt
+    if (req.type === 'conn') {
+        dat.wsConn = out(dat.wsConn) + 1
+        // Rd.hincrby(key, 'wsConn', 1)
+    }
+    if (req.bw !== undefined) {
+        dat[`${req.proto}Bw`] = out(dat[`${req.proto}Bw`]) + req.bw
+        // Rd.hincrby(key, `${req.proto}Bw`, req.bw)
+    }
+    if (req.code !== 200) {
+        dat[`${req.proto}InReqNum`] = out(dat[`${req.proto}InReqNum`]) + 1
+    }
+
+    // country access
+    if (req.header !== undefined && req.header.host) {
+        const c = ip2county(req.header.host)
+        const ac: Record<string, number> = JSON.parse((dat[`${req.proto}Ct`] as string) ?? '{}')
+        log.debug('country parse: ', c, ac)
+        ac[c] = (ac[c] ?? 0) + 1
+        dat[`${req.proto}Ct`] = JSON.stringify(ac)
+    }
+    return dat
+}
+
+namespace Stat {
+    // elara statistic
+    export async function total(): PStatT {
+        return await statRd.hgetall(sKEY.hTotal()) as unknown as StatT
+    }
+
+    export const daily = async (): PStatT => {
+        let res = newStats()
+        try {
+            const re = await statRd.hgetall(sKEY.hDaily())
+            if (re === null) {
+                log.error('Redis get daily statistic failed')
+            }
+            res = re
+        } catch (e) {
+            log.error('Dashboard Parse Error!')
+        }
+        return res as unknown as StatT
+    }
+
+    export const latestReq = async(num: number): Promise<Statistics[]> => {
+        const keys = await statRd.zrevrange(sKEY.zStatList(), -num, -1)
+        const res: Statistics[] = []
+        for (let k of keys) {
+            // const key = `Stat_${k}`
+            const re = await statRd.get(`Stat_${k}`)
+            if (re === null) {
+                statRd.zrem(sKEY.zStatList(), k)
+                continue
+            }
+            res.push(JSON.parse(re))
+        }
+        return res
+    }
+
+    export async function lastDays(day: number): PStatT {
+        log.debug('last days: ', day)
+        let res = newStats()
+
+
+        return res as unknown as StatT
+    }
+
+    export async function lastHours(hour: number): PStatT {
+        log.debug('last hours: ', hour)
+        let res = newStats()
+
+
+        return res as unknown as StatT
+    }
+
+    // project statistic
+    export const proDaily = async(pid: string): PStatT => {
+        // const stamp = startStamp('day')
+        let stat = newStats()
+        const keys = await statRd.keys(`Stat_*_${pid}_*`)
+        log.debug('project daily keys: ', keys, pid)
+        for (let k of keys) {
+            log.debug('update stat: ', stat)
+            const s = await statRd.get(k)
+            if (s === null) { continue }
+            const stmp = JSON.parse(s) as Statistics
+            stat = await dailyStatDumps(stmp, stat)
+        }
+        return stat as unknown as StatT
+    }
+
 }
 
 export default Stat
