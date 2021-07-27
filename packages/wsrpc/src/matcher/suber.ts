@@ -143,7 +143,7 @@ type DParT = {
 
 function updateStatistic(req: ReqT, data: string, isSub: boolean = false): void {
     const stat = req.stat
-    const bytes = Util.strBytes(data)  
+    const bytes = Util.strBytes(data)
     if (isSub) {
         stat.reqCnt! += 1
         stat.bw! += bytes
@@ -195,7 +195,7 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
 
     if (isSecondResp(dat.params)) {
         const dats = JSON.stringify(dat)
-        updateStatistic(req, dats, true)     
+        updateStatistic(req, dats, true)
         return Ok({ req, data: dats })
     }
 
@@ -210,7 +210,7 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
     } else {
         updateStatistic(req, data.toString())
     }
-    
+
     const dres = dat.result
     const isClose = isUnsubOnClose(dat, isSubscribeID(dat.id))
     dat.id = req.originId
@@ -533,7 +533,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
 function geneUrl(conf: ChainConfig): string[] {
     let res = [`ws://${conf.baseUrl}:${conf.wsPort}`]
 
-    if (conf.kvEnable.toString() === 'true') {
+    if (conf.kvEnable && conf.kvEnable.toString() === 'true') {
         let url = conf.kvBaseUrl!
         let port = conf.kvPort!
         res.push(`ws://${url}:${port}`)

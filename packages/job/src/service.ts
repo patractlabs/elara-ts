@@ -11,8 +11,6 @@ const rconf = Conf.getRedis()
 const KEY = KEYS.Stat
 const log = getAppLogger('service')
 
-const tz = 'Etc/GMT+8'
-
 async function clearExpireStat(time: number) {
     const expDay = rconf.expire
     const stamp = Mom(time).subtract(expDay, `${rconf.expireUnit}s` as DurationT).startOf(rconf.expireUnit as StartT)
@@ -84,7 +82,7 @@ async function accountStatUpdate() {
 
 namespace Service {
     export async function init(rule: string) {
-        const job = Sche.scheduleJob({ rule, tz }, () => {
+        const job = Sche.scheduleJob(rule, () => {
             dailyDashboardReset()
             handleExpireStat()
             accountStatUpdate()
