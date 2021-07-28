@@ -55,7 +55,28 @@ const lastHours = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
+const mostResourceLastDays = async (ctx: KCtxT, next: NextT) => {
+    const {count, days} = JSON.parse(ctx.request.body)
+    const { type } = ctx.request.params
+    console.log('type: ', type)
+    if (type !== 'bandwidth' && type !== 'request') {
+        throw Resp.Fail(400, 'invalid resource type' as Msg)
+    }
+    if (!Number.isInteger(days) || !Number.isInteger(count)) {
+        throw Resp.Fail(400, 'params must be integer' as Msg)
+    }
+    const re = await Stat.mostResourceLastDays(count, days, type)
+    ctx.body = Resp.Ok(re)
+    return next()
+}
+
 // chain statistic
+const chainTotal = async (ctx: KCtxT, next: NextT) => {
+    const { chain } = ctx.request.params
+    const re = await Stat.chain(chain)
+    ctx.body = Resp.Ok(re)
+    return next()
+}
 
 // project statistic
 const proDaily = async (ctx: KCtxT, next: NextT) => {
@@ -88,13 +109,19 @@ const proLastHours = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-//
+// elara
 R.get('/total', total)
 R.get('/daily', daily)
 R.post('/latest', latestReq)
 R.post('/days', lastDays)
 R.post('/hours', lastHours)
+// R.post('/most/request', mostReqDays)
+R.post('/most/:type', mostResourceLastDays) // type request , bandwidth
 
+// chain
+R.get('/total/:chain', chainTotal)
+
+// project
 R.post('/project/daily', proDaily)
 R.post('/project/days', proLastDays)
 R.post('/project/hours', proLastHours)

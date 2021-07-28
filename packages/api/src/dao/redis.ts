@@ -14,7 +14,7 @@ export const projRd = new Redis(DBT.Project).getClient()
 export const actRd = new Redis(DBT.Account).getClient()
 
 const chainClient = new Redis(DBT.Chain)
-const chainRd = chainClient.getClient()
+export const chainRd = chainClient.getClient()
 
 chainClient.onConnect(() => {
     log.info(`redis db chain connection open`)

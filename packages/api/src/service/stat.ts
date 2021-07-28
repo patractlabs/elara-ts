@@ -1,214 +1,15 @@
-import { getAppLogger, KEYS } from '@elara/lib'
+import { getAppLogger, KEYS, randomId } from '@elara/lib'
 import geo from 'geoip-country'
-import { now, formateDate } from '../lib/date'
-import KEY from '../lib/KEY'
-import Conf from '../../config'
 import { statRd } from '../dao/redis'
 import { StatT, Stats, Statistics } from '../interface'
 import Mom from 'moment'
 import { lastTime } from '../util'
 
 const sKEY = KEYS.Stat
-const limitConf = Conf.getLimit()
 const log = getAppLogger('stat')
 
 type PStatT = Promise<StatT>
 
-const safeParseInt = (val: string | null): number => {
-    if (val !== null) {
-        return parseInt(val)
-    }
-    return 0
-}
-/**
- *  统计
- */
-class Stat {
-
-    static async request(info: any) {
-
-        let protocol = info.protocol
-        let header = info.header/*请求头 */
-        let chain = info.chain
-        let pid = info.pid
-        let method = info.method
-        // let req = info.req/*请求体 */
-        // let resp = info.resp/*响应体 */
-        let code = info.code
-        let bandwidth = info.bandwidth/*响应带宽*/
-        let start = parseInt(info.start)
-        let end = parseInt(info.end)
-        let delay = ((end - start) > limitConf.timeout) ? limitConf.timeout : (end - start)
-
-        await Stat._request_response(info)//最新1000个请求记录
-        await Stat._timeout(pid, parseInt(delay.toString()))//
-        await Stat._today_request(pid)　//今日请求数统计
-        await Stat._method(pid, method) //每日调用方法分类统计
-        await Stat._bandwidth(pid, bandwidth)//每日带宽统计
-        await Stat._code(pid, code)//每日调用响应码分类统计
-        await Stat._header(header, pid)//请求头分析统计
-        await Stat._chain(chain) //链的总请求数统计
-
-        log.info('pid=', pid, ',protocol=', protocol, ',chain=', chain, ',method=', method, ',code=', code, ',bandwidth=', bandwidth, ',delay=', delay)
-    }
-
-    static async _request_response(info: any) {
-        // 最新的1000条请求记录
-        await statRd.lpush(KEY.REQUEST_RESPONSE(), JSON.stringify(info))
-        await statRd.ltrim(KEY.REQUEST_RESPONSE(), 0, limitConf.maxReqKeep)
-    }
-
-    static async _timeout(pid: any, delay: number) {
-        let date = formateDate(new Date())
-
-        if (delay >= limitConf.timeout) {
-            await statRd.incr(KEY.TIMEOUT(pid, date))
-        }
-
-        let average: number | string = safeParseInt(await statRd.get(KEY.DELAY(pid, date)))
-        if (average) {//算平均
-
-            let requests = safeParseInt(await statRd.get(KEY.REQUEST(pid, date)))
-            average = ((requests * average + delay) / (requests + 1)).toFixed(2)
-            await statRd.set(KEY.DELAY(pid, date), average)
-        }
-        else {
-            await statRd.set(KEY.DELAY(pid, date), delay)
-        }
-    }
-
-    static async _today_request(pid: string) {
-        let timestamp = now()
-        let date = formateDate(new Date())
-
-        await statRd.incr(KEY.REQUEST(pid, date))
-        await statRd.set(KEY.REQUEST_UPDATETIME(pid, date), timestamp)
-    }
-    static async _method(pid: string, method: string) {
-        let date = formateDate(new Date())
-        let key_method = KEY.METHOD(pid, date)
-        await statRd.hincrby(key_method, method, 1);
-    }
-    static async _chain(chain: string) {
-        await statRd.incr(KEY.TOTAL(chain))
-    }
-    static async _bandwidth(pid: string, bandwidth: string) {
-        let date = formateDate(new Date())
-        await statRd.incrby(KEY.BANDWIDTH(pid, date), parseInt(bandwidth))
-    }
-    static async _code(pid: string, code: string) {
-        let date = formateDate(new Date())
-        let key_code = KEY.CODE(pid, date)
-        await statRd.hincrby(key_code, code, 1);
-    }
-    static async _header(header: any, pid: string) {
-        let agent = header['user-agent'] ? header['user-agent'] : 'null'
-        let origin = header['origin'] ? header['origin'] : 'null'
-        // let ip = (header['x-forwarded-for'] ? header['x-forwarded-for'].split(/\s*,\s/[0]) : null)  || ''
-
-        Stat._agent(pid, agent)
-        Stat._origin(pid, origin)
-    }
-    static async _agent(pid: string, agent: string) {
-        let date = formateDate(new Date())
-        let key_agent = KEY.AGENT(pid, date)
-        await statRd.hincrby(key_agent, agent, 1)
-    }
-    static async _origin(pid: string, origin: string) {
-        let date = formateDate(new Date())
-        let key_origin = KEY.ORIGIN(pid, date)
-        await statRd.hincrby(key_origin, origin, 1)
-    }
-
-    //链的总请求数
-    static async getChain() {
-        let total: any = {}
-        // TODO chain config
-        let chains = ['polkadot', 'westend']
-
-        for (let chain in chains) {
-            let count = await statRd.get(KEY.TOTAL(chain))
-            total[chain] = count ? count : "0"
-        }
-        return total
-    }
-
-    //项目的某日统计信息
-    static async day(pid: string, date: string) {
-        if (!date) {
-            date = formateDate(new Date())
-        }
-        let today: any = {}
-
-        let pid_request = await statRd.get(KEY.REQUEST(pid, date))
-        today.request = pid_request ? pid_request : '0'
-
-        let request_updatetime = await statRd.get(KEY.REQUEST_UPDATETIME(pid, date))
-        today.updatetime = request_updatetime ? request_updatetime : '0'
-
-        let method = await statRd.hgetall(KEY.METHOD(pid, date))
-        today.method = method ? method : {}
-
-        let bandwidth = await statRd.get(KEY.BANDWIDTH(pid, date))
-        today.bandwidth = bandwidth ? bandwidth : '0'
-
-        let code = await statRd.hgetall(KEY.CODE(pid, date))
-        today.code = code ? code : {}
-
-        let agent = await statRd.hgetall(KEY.AGENT(pid, date))
-        today.agent = agent ? agent : {}
-
-        let origin = await statRd.hgetall(KEY.ORIGIN(pid, date))
-        today.origin = origin ? origin : {}
-
-        let timeout = await statRd.get(KEY.TIMEOUT(pid, date))
-        today.timeout = timeout ? timeout : 0
-
-        let delay = await statRd.get(KEY.DELAY(pid, date))
-        today.delay = delay ? delay : '0'
-
-        return today
-    }
-    //项目的周统计信息
-    static async days(pid: string, days: number) {
-        let oneday = 24 * 60 * 60 * 1000
-        let today = (new Date()).getTime()
-
-        let data: any = {}
-        for (var i = 0; i < parseInt(days.toString()); i++) {
-            let date: string = formateDate(new Date(today - i * oneday))
-            data[date] = await Stat.day(pid, date)
-        }
-
-        return data
-    }
-    static async requests(size: number) {
-        let requests: any = []
-
-        try {
-            let list = await statRd.lrange(KEY.REQUEST_RESPONSE(), 0, size)
-            for (var i = 0; i < list.length; i++) {
-                requests[i] = JSON.parse(list[i])
-                requests[i].pid = requests[i].pid.replace(/(.){16}$/, '******')
-                if (requests[i].ip && Array.isArray(requests[i].ip) && requests[i].ip.length) {
-                    for (var j = 0; j < requests[i].ip.length; j++) {
-                        requests[i].ip[j] = requests[i].ip[j].replace(/^(\d*)\.(\d*)/, '***.***')
-                    }
-                }
-                else if (requests[i].ip) {
-                    requests[i].ip = requests[i].ip.replace(/^(\d*)\.(\d*)/, '***.***')
-                }
-            }
-        } catch (e) {
-            log.error('request_response Parse Error!', e)
-        }
-
-        return requests
-    }
-
-}
-
-//////////////////////////////////////////////////////////
 function newStats(): Stats {
     return {
         wsReqNum: 0,
@@ -232,7 +33,7 @@ function newStats(): Stats {
 
 type MomUnit = 'day' | 'hour' | 'minute' | 'second'
 
-export function startStamp(off: number, unit: MomUnit): number {
+function startStamp(off: number, unit: MomUnit): number {
     return Mom().subtract(off, `${unit}s`).startOf(unit as Mom.unitOfTime.StartOf).valueOf()
 }
 
@@ -255,7 +56,7 @@ function out(val: string | number): number {
     return v
 }
 
-export async function dailyStatDumps(req: Statistics, dat: Stats): Promise<Stats> {
+async function dailyStatistic(req: Statistics, dat: Stats): Promise<Stats> {
     // const dat = await fetchOld(key)
     const { curNum, curDelay } = dat
     // const dat = newStat()
@@ -294,6 +95,15 @@ export async function dailyStatDumps(req: Statistics, dat: Stats): Promise<Stats
         dat[`${req.proto}Ct`] = JSON.stringify(ac)
     }
     return dat
+}
+
+async function handleScore(res: Record<string, number>, key: string): Promise<Record<string, number>> {
+    const lis = await statRd.zrange(key, 0, -1, 'WITHSCORES')
+    const len = lis.length
+    for (let i = 0; i < len; i += 2) {
+        res[lis[i]] = (res[lis[i]] ?? 0) + parseInt(lis[i + 1])
+    }
+    return res
 }
 
 // function statMerge(l: string, r: string): string {
@@ -407,14 +217,68 @@ namespace Stat {
                     statRd.zrem(sKEY.zStatList(), k)
                     continue
                 }
-                stat = await dailyStatDumps(JSON.parse(tmp) as Statistics, stat)
+                stat = await dailyStatistic(JSON.parse(tmp) as Statistics, stat)
             }
             res.push(stat as unknown as StatT)
         }
         return res
     }
 
-    // export const mostReq
+    export const mostReqLastDays = async (num: number, day: number): Promise<string[]> => {
+        log.debug('most request: ', num, day)
+        if (day < 2) {
+            return statRd.zrevrange(sKEY.zDailyReq(), 0, num - 1, 'WITHSCORES')
+        }
+        let res = await handleScore({}, sKEY.zDailyReq())
+        for (let i = 1; i < day; i++) {
+            const stamp = startStamp(i, 'day')
+            const keys = await statRd.keys(sKEY.zReq('*', '*', stamp))
+            for (let k of keys) {
+                res = await handleScore(res, k)
+            }
+        }
+        const skey = `Z_Score_req_${randomId()}`
+        for (let m in res) {
+            statRd.zadd(skey, res[m], m)
+        }
+        const re = await statRd.zrevrange(skey, 0, num - 1, 'WITHSCORES')
+        statRd.del(skey)
+        log.debug('score rank reulst: ', re)
+        return re
+    }
+
+    export const mostResourceLastDays = async (num: number, day: number, typ: string) => {
+        log.debug(`most ${typ} request: `, num, day)
+        let key = sKEY.zDailyReq()
+        if (typ === 'bandwidth') {
+            key = sKEY.zDailyBw()
+        }
+        if (num < 1) { num = 1 }
+        if (day < 2) {
+            return statRd.zrevrange(key, 0, num - 1, 'WITHSCORES')
+        }
+        let res = await handleScore({}, key)
+        for (let i = 1; i < day; i++) {
+            const stamp = startStamp(i, 'day')
+            const keys = await statRd.keys(typ === 'req' ? sKEY.zReq('*', '*', stamp) : sKEY.zBw('*', '*', stamp))
+            for (let k of keys) {
+                res = await handleScore(res, k)
+            }
+        }
+        const skey = `Z_Score_${typ}_${randomId()}`
+        for (let m in res) {
+            statRd.zadd(skey, res[m], m)
+        }
+        const re = await statRd.zrevrange(skey, 0, num - 1, 'WITHSCORES')
+        statRd.del(skey)
+        log.debug(`${typ} score rank reulst: `, re)
+        return re
+    }
+
+    // chain statistic
+    export const chain = async (chain: string): PStatT => {
+        return await statRd.hgetall(sKEY.hChainTotal(chain)) as unknown as StatT
+    }
 
     // project statistic
     export const proDaily = async (pid: string): PStatT => {
@@ -426,7 +290,7 @@ namespace Stat {
             const s = await statRd.get(k)
             if (s === null) { continue }
             const stmp = JSON.parse(s) as Statistics
-            stat = await dailyStatDumps(stmp, stat)
+            stat = await dailyStatistic(stmp, stat)
         }
         return stat as unknown as StatT
     }

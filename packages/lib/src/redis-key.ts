@@ -91,6 +91,10 @@ namespace Stat {
         return `H_${S}_total`
     }
 
+    export const hChainTotal = (chain: string): string => {
+        return `H_${S}_${chain.toLowerCase()}`
+    }
+
     export const hDaily = (): string => {
         return `H_${S}_daily`
     }
@@ -105,6 +109,14 @@ namespace Stat {
 
     export const zExpireList = (): string => {
         return `Z_${S}_expire_timestamp`
+    }
+
+    export const zDailyReq = (): string => {
+        return `Z_${S}_req_daily`
+    }
+
+    export const zDailyBw = (): string => {
+        return `Z_${S}_bw_daily`
     }
 
     export const zReq = (chain: string, pid: string, timestamp: number): string => {

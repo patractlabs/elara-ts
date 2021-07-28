@@ -1,7 +1,7 @@
 import Sche from 'node-schedule'
 import Mom from 'moment'
 import { getAppLogger, KEYS, PVoidT } from '@elara/lib'
-import { dailyDashboardReset, dailyStatDump } from './statistic'
+import { dailyStatDump } from './statistic'
 import { Rd } from './redis'
 import { Stat, Statistics, StartT, DurationT } from './interface'
 import { lastTimes } from './util'
@@ -80,10 +80,40 @@ async function accountStatUpdate() {
     log.debug('TODO: update account status')
 }
 
+async function dailyDashboardReset(): PVoidT {
+    const key = KEY.hDaily()
+    // Rd.del(key)
+    Rd.hmset(key, {
+        wsReqNum: 0,
+        wsConn: 0,
+        wsCt: '{}',
+        wsBw: 0,
+        wsDelay: 0,
+        wsInReqNum: 0,
+        wsTimeout: 0,
+        wsTimeoutCnt: 0,
+
+        httpReqNum: 0,
+        httpCt: '{}',
+        httpBw: 0,
+        httpDelay: 0,
+        httpInReqNum: 0,
+        httpTimeout: 0,
+        httpTimeoutCnt: 0
+    })
+    log.debug('reset daily statistic')
+}
+
+async function dailRankReset(): PVoidT {
+    Rd.del(KEY.zDailyReq())
+    Rd.del(KEY.zDailyBw())
+}
+
 namespace Service {
     export async function init(rule: string) {
         const job = Sche.scheduleJob(rule, () => {
             dailyDashboardReset()
+            dailRankReset()
             handleExpireStat()
             accountStatUpdate()
         })
