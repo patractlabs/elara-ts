@@ -1,12 +1,12 @@
 import { getAppLogger, IDT, KEYS } from '@elara/lib'
-import Http from 'http'
 import geo from 'geoip-country'
 import { now, formateDate } from '../lib/date'
 import KEY from '../lib/KEY'
 import Conf from '../../config'
 import { statRd } from '../dao/redis'
-import { StatT, Stats } from '../interface'
+import { StatT, Stats, Statistics } from '../interface'
 import Mom from 'moment'
+import { lastTime } from '../util'
 
 const sKEY = KEYS.Stat
 const limitConf = Conf.getLimit()
@@ -252,30 +252,6 @@ export function startStamp(off: number, unit: MomUnit): number {
     return Mom().subtract(off, `${unit}s`).startOf(unit as Mom.unitOfTime.StartOf).valueOf()
 }
 
-interface ReqDataT {
-    id: IDT,
-    jsonrpc: string,
-    method: string,
-    params?: any[]
-}
-
-interface Statistics {
-    proto: string,   // http ws
-    chain: string,
-    pid: string,
-    method: string,
-    req: ReqDataT,
-    reqtime: number,     // request start time
-    code: number,        // 200 400 500
-    header?: Http.IncomingHttpHeaders,
-    start: number,
-    type?: string,       // noder kv cacher recorder
-    delay?: number,      // ms
-    bw?: number,         // bytes
-    timeout?: boolean,   // timeout threshold 1s
-    reqCnt?: number,     // for subscribe
-}
-
 function accAverage(num: number, av: number, val: number, fixed: number = 2): string {
     return (av / (num + 1) * num + val / (num + 1)).toFixed(fixed)
 }
@@ -326,8 +302,8 @@ export async function dailyStatDumps(req: Statistics, dat: Stats): Promise<Stats
     }
 
     // country access
-    if (req.header !== undefined && req.header.host) {
-        const c = ip2county(req.header.host)
+    if (req.header !== undefined && req.header.ip) {
+        const c = ip2county(req.header.ip.split(':')[0])
         const ac: Record<string, number> = JSON.parse((dat[`${req.proto}Ct`] as string) ?? '{}')
         log.debug('country parse: ', c, ac)
         ac[c] = (ac[c] ?? 0) + 1
@@ -336,39 +312,39 @@ export async function dailyStatDumps(req: Statistics, dat: Stats): Promise<Stats
     return dat
 }
 
-function statMerge(l: string, r: string): string {
-    const lct = JSON.parse(l)
-    const rct = JSON.parse(r)
-    Object.keys(rct).forEach(k => {
-        if (Object.keys(lct).includes(k)) {
-            lct[k] += rct[k]
-        } else {
-            lct[k] = rct[k]
-        }
-    })
-    return JSON.stringify(lct)
-}
+// function statMerge(l: string, r: string): string {
+//     const lct = JSON.parse(l)
+//     const rct = JSON.parse(r)
+//     Object.keys(rct).forEach(k => {
+//         if (Object.keys(lct).includes(k)) {
+//             lct[k] += rct[k]
+//         } else {
+//             lct[k] = rct[k]
+//         }
+//     })
+//     return JSON.stringify(lct)
+// }
 
-function statAdd(l: StatT, r: StatT): StatT {
-    l.wsConn += r.wsConn
-    l.wsReqNum += r.wsReqNum
-    l.wsInReqNum += r.wsInReqNum
-    l.wsBw += r.wsBw
-    l.wsDelay += r.wsDelay
-    l.wsTimeout += r.wsTimeout
-    l.wsTimeoutCnt += r.wsTimeoutCnt
-    l.wsCt = statMerge(l.wsCt, r.wsCt)
+// function statAdd(l: StatT, r: StatT): StatT {
+//     l.wsConn += r.wsConn
+//     l.wsReqNum += r.wsReqNum
+//     l.wsInReqNum += r.wsInReqNum
+//     l.wsBw += r.wsBw
+//     l.wsDelay += r.wsDelay
+//     l.wsTimeout += r.wsTimeout
+//     l.wsTimeoutCnt += r.wsTimeoutCnt
+//     l.wsCt = statMerge(l.wsCt, r.wsCt)
 
-    l.httpReqNum += r.httpReqNum
-    l.httpInReqNum += r.httpInReqNum
-    l.httpBw += r.httpBw
-    l.httpDelay += r.httpDelay
-    l.httpTimeout += r.httpTimeout
-    l.httpTimeoutCnt += r.httpTimeoutCnt
-    l.httpCt = statMerge(l.httpCt, r.httpCt)
+//     l.httpReqNum += r.httpReqNum
+//     l.httpInReqNum += r.httpInReqNum
+//     l.httpBw += r.httpBw
+//     l.httpDelay += r.httpDelay
+//     l.httpTimeout += r.httpTimeout
+//     l.httpTimeoutCnt += r.httpTimeoutCnt
+//     l.httpCt = statMerge(l.httpCt, r.httpCt)
 
-    return l
-}
+//     return l
+// }
 
 namespace Stat {
     // elara statistic
@@ -400,14 +376,19 @@ namespace Stat {
                 statRd.zrem(sKEY.zStatList(), k)
                 continue
             }
-            res.push(JSON.parse(re))
+            const stat = JSON.parse(re) as Statistics
+            if (stat.header.ip !== 'localhost') {
+                stat.header.ip.replace(/^(\d*)\.(\d*)/, '***.***')
+            }
+            res.push(stat)
         }
         return res
     }
 
-    export async function lastDays(day: number, pid?: string): PStatT {
+    export async function lastDays(day: number, pid?: string): Promise<StatT[]> {
         log.debug(`last days pid[${pid}]: `, day)
-        let stat = pid !== undefined ? await proDaily(pid) : await daily()
+        let stat: StatT[] = [pid !== undefined ? await proDaily(pid) : await daily()]
+        // let stat = pid !== undefined ? await proDaily(pid) : await daily()
         if (day < 2) {
             return stat
         }
@@ -417,30 +398,36 @@ namespace Stat {
             const keys = await statRd.keys(sKEY.hProDaily('*', pid ?? '*', stamp))
             for (let k of keys) {
                 const tmp = await statRd.hgetall(k)
-                stat = statAdd(stat, tmp as unknown as StatT)
+                stat.push(tmp as unknown as StatT)
+                // stat = statAdd(stat, tmp as unknown as StatT)
             }
         }
         return stat
     }
 
-    export async function lastHours(hour: number, pid?: string): PStatT {
+    export async function lastHours(hour: number, pid?: string): Promise<StatT[]> {
         log.debug(`last hours pid[${pid}]: `, hour)
 
-        let stat = newStats()
+        let res: StatT[] = []
         if (hour < 1) { hour = 1 }
-        const start = startStamp(hour, 'hour')
-        const keys = await statRd.zrangebyscore(sKEY.zStatList(), start, 'inf')
-        log.debug('hour keys: ', keys, start)
-        for (let k of keys) {
-            if (pid && !k.includes(pid)) { continue }
-            const tmp = await statRd.get(`Stat_${k}`)
-            if (tmp === null) {
-                statRd.zrem(sKEY.zStatList(), k)
-                continue
+        for (let h = 0; h < hour; h++) {
+            let stat = newStats()
+            const [start, end] = lastTime('hour', h)
+            // const start = startStamp(hour, 'hour')
+            const keys = await statRd.zrangebyscore(sKEY.zStatList(), start, end)
+            log.debug('hour keys: ', keys, start, end)
+            for (let k of keys) {
+                if (pid && !k.includes(pid)) { continue }
+                const tmp = await statRd.get(`Stat_${k}`)
+                if (tmp === null) {
+                    statRd.zrem(sKEY.zStatList(), k)
+                    continue
+                }
+                stat = await dailyStatDumps(JSON.parse(tmp) as Statistics, stat)
             }
-            stat = await dailyStatDumps(JSON.parse(tmp) as Statistics, stat)
+            res.push(stat as unknown as StatT)
         }
-        return stat as unknown as StatT
+        return res
     }
 
     // export const mostReq

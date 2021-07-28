@@ -44,9 +44,9 @@ function dataCheck(data: string): ResultT<ReqDataT> {
 }
 
 function initStatistic(proto: string, method: string, header: Http.IncomingHttpHeaders): Statistics {
-    let ip = header.host?.split(':')[0]
+    let ip = header.host
     if (header['x-forwarded-for']) {
-        ip = (header['x-forwarded-for'] as string).split(':')[0]
+        ip = header['x-forwarded-for'] as string
     }
     const head = {origin: header.origin ?? '', agent: header['user-agent'] ?? '', ip}
     return {
