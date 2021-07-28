@@ -44,10 +44,15 @@ function dataCheck(data: string): ResultT<ReqDataT> {
 }
 
 function initStatistic(proto: string, method: string, header: Http.IncomingHttpHeaders): Statistics {
+    let ip = header.host?.split(':')[0]
+    if (header['x-forwarded-for']) {
+        ip = (header['x-forwarded-for'] as string).split(':')[0]
+    }
+    const head = {origin: header.origin ?? '', agent: header['user-agent'] ?? '', ip}
     return {
         proto,
         method,
-        header,
+        header: head,
         start: Util.traceStart(),
         reqtime: Date.now()
     } as Statistics
@@ -165,6 +170,7 @@ wss.on('connection', async (ws, req: any) => {
         reqStatis.code = 400
         reqStatis.chain = chain
         reqStatis.pid = pid
+        reqStatis.header = stat.header
 
         try {
             let re = dataCheck(data.toString())

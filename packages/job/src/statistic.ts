@@ -61,8 +61,8 @@ export async function dailyStatDumps(req: Statistics, key: string, fetchOld: Fec
     }
 
     // country access
-    if (req.header !== undefined && req.header.host) {
-        const c = ip2county(req.header.host)
+    if (req.header !== undefined && req.header.ip) {
+        const c = ip2county(req.header.ip)
         const ac: Record<string, number> = JSON.parse(await Rd.hget(key, `${req.proto}Ct`) ?? '{}')
         log.debug('country parse: ', c, ac)
         ac[c] = (ac[c] ?? 0) + 1
@@ -97,8 +97,8 @@ export async function dailyStatDump(req: Statistics, key: string): PVoidT {
     }
 
     // country access
-    if (req.header !== undefined && req.header.host) {
-        const c = ip2county(req.header.host)
+    if (req.header !== undefined && req.header.ip) {
+        const c = ip2county(req.header.ip)
         const ac: Record<string, number> = JSON.parse(await Rd.hget(key, `${req.proto}Ct`) ?? '{}')
         log.debug('country parse: ', c, ac)
         ac[c] = (ac[c] ?? 0) + 1

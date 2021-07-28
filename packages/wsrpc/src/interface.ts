@@ -1,4 +1,3 @@
-import Http from 'http'
 import { IDT } from '@elara/lib'
 import Suber, { SuberTyp } from './matcher/suber'
 
@@ -73,6 +72,12 @@ export enum CloseReason {
     SuberUnavail = 'suber unavailable'
 }
 
+interface Header {
+    origin: string,
+    agent: string,
+    ip: string,
+}
+
 export interface Statistics {
     proto: string,   // http ws
     chain: string,
@@ -81,7 +86,7 @@ export interface Statistics {
     req: ReqDataT,
     reqtime: number,     // request start time
     code: number,        // 200 400 500
-    header?: Http.IncomingHttpHeaders,
+    header?: Header,
     start: number,
     type?: string,       // noder kv cacher recorder
     delay?: number,      // ms
