@@ -1,4 +1,4 @@
-import { getAppLogger, IDT, KEYS } from '@elara/lib'
+import { getAppLogger, KEYS } from '@elara/lib'
 import geo from 'geoip-country'
 import { now, formateDate } from '../lib/date'
 import KEY from '../lib/KEY'
@@ -20,22 +20,6 @@ const safeParseInt = (val: string | null): number => {
     }
     return 0
 }
-
-export interface StatProtocol {
-    protocol: string,    // websocket, http/https
-    header: any,        // ctx.request.header same as http.Incomingmessage.headers
-    ip: string,
-    chain: string,      // lowercase
-    pid: IDT,
-    method: string,      //  rpc-method { method: 'system_peers' }
-    req: string,        // rpc req body
-    resp: any,          // reseved
-    craeteTime: string,
-    bandwidth: string | number,     // response package size
-    respTime: number | string,      // rpc request response time, ws default 0
-    ext?: any                        // extention    reserved
-}
-
 /**
  *  统计
  */

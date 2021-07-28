@@ -1,8 +1,8 @@
 {
     "redis": {
-        "expire": 3,
+        "expire": 30,
         "statKeep": 2,
-        "expireFactor": 60,
-        "expireUnit": "minute"
+        "expireFactor": 86400,
+        "expireUnit": "day"
     }
 }
