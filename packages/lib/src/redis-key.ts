@@ -21,13 +21,17 @@ namespace Chain {
 namespace Project {
     const P = 'Project'
 
-    export const projectNum = (uid?: IDT) => {
+    export const hProjecConf = (): string => {
+        return `H_${P}_config`
+    }
+
+    export const projectNum = (uid?: IDT): string => {
         let UID = `${uid}`
         if (isEmpty(uid?.toString())) { UID = '*' }
         return `${P}_Num_${UID}`
     }
 
-    export const hProject = (chain?: string, pid?: IDT) => {
+    export const hProject = (chain?: string, pid?: IDT): string => {
         let com = `H_${P}_`
         let CHAIN = '*_'
         let PID = `${pid}`
@@ -79,7 +83,7 @@ namespace Project {
 namespace Cache {
     const C = 'Cache'
 
-    export const hCache = (chain: string, method: string) => {
+    export const hCache = (chain: string, method: string): string => {
         return `H_${C}_${chain.toLowerCase()}_${method}`
     }
 }

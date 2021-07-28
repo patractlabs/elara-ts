@@ -1,7 +1,7 @@
 import Http from 'http'
 import Net from 'net'
 import WebSocket from 'ws'
-import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT, unexpectListener } from '@elara/lib'
+import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT, unexpectListener, PBoolT } from '@elara/lib'
 import Util from './src/util'
 import { ChainPidT, ReqDataT, CloseReason, Statistics } from './src/interface'
 import Conf, { UnsafeMethods } from './config'
@@ -21,6 +21,14 @@ async function pathOk(url: string, host: string): PResultT<ChainPidT> {
     let path = nurl.pathname
     // chain pid valid check
     return Util.urlParse(path)
+}
+
+async function resourceCheck(pid: string): PBoolT {
+    if (pid === '00000000000000000000000000000000') {
+        return true
+    }
+    // check request limit & bandwidth limit
+    return false
 }
 
 function isPostMethod(method: string): boolean {
@@ -68,12 +76,16 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
     }
 
     // path check
-    let re = await pathOk(req.url!, req.headers.host!)
+    const re = await pathOk(req.url!, req.headers.host!)
     if (isErr(re)) {
         log.error(`request path check fail: ${re.value}`)
         return Response.Fail(res, re.value, 400, reqStatis)
     }
     const cp = re.value as ChainPidT
+    const ok = await resourceCheck(cp.pid as string)
+    if (!ok) {
+        return Response.Fail(res, 'resource out of limit', 400, reqStatis)
+    }
     let data = ''
     let dstart = 0
     reqStatis.chain = cp.chain
@@ -120,13 +132,17 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
         reqStatis.code = 400
         // publish statistics
         Stat.publish(reqStatis)
-        log.debug('request statistics: ', reqStatis)
         await socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
         socket.emit('close', true)
         return
     }
-
     const { chain, pid } = re.value
+    const ok = await resourceCheck(pid as string)
+    if (!ok) {
+        Stat.publish(reqStatis)
+        socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
+        return
+    }
 
     reqStatis.chain = chain
     reqStatis.pid = pid as string
@@ -172,6 +188,12 @@ wss.on('connection', async (ws, req: any) => {
         reqStatis.pid = pid
         reqStatis.header = stat.header
 
+        const ok = await resourceCheck(pid)
+        if (!ok) {
+            log.error(`${chain} pid[${pid}] resource check failed`)
+            Stat.publish(reqStatis)
+            return puber.ws.send('resource out of limit')
+        }
         try {
             let re = dataCheck(data.toString())
             if (isErr(re)) {

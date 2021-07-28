@@ -1,5 +1,4 @@
-import { Redis, DBT } from '@elara/lib'
-import { getAppLogger, KEYS } from '@elara/lib'
+import { Redis, DBT, getAppLogger, KEYS } from '@elara/lib'
 import Conf from '../../config'
 
 const KCache = KEYS.Cache
