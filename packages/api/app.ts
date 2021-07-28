@@ -1,10 +1,8 @@
-import path from 'path'
 import Koa from 'koa'
 import KoaBody from 'koa-body'
-import Kstatic from 'koa-static'
 import Session from 'koa-session'
 import { accessLogger, getAppLogger, dotenvInit, unexpectListener } from '@elara/lib'
-import { accessControl, authCheck, dashboard, errHanldle, responseTime } from './src/middleware'
+import { accessControl, authCheck, errHanldle, responseTime } from './src/middleware'
 import Passport from './src/lib/passport'
 import Router from 'koa-router'
 import limitRouter from './src/routers/limit'
@@ -36,8 +34,6 @@ const session = {
 
 app
     .use(accessLogger(true))
-    .use(dashboard)
-    .use(Kstatic(path.join(__dirname, './static/html')))
     .use(Session(session, app))
     .use(KoaBody({ multipart: true }))
     .use(Passport.initialize())

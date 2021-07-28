@@ -22,7 +22,6 @@
     "koa-passport": "^4.1.4",
     "koa-router": "^10.0.0",
     "koa-session": "^6.2.0",
-    "koa-static": "^5.0.0",
     "passport-github2": "^0.1.12"
   },
   "devDependencies": {
@@ -32,7 +31,6 @@
     "@types/koa-passport": "^4.0.2",
     "@types/koa-router": "^7.4.2",
     "@types/koa-session": "^5.10.3",
-    "@types/koa-static": "^4.0.2",
     "@types/passport-github2": "^1.2.5"
   }
 }

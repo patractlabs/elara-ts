@@ -2,13 +2,6 @@ import { getAppLogger, Resp, Code, Msg, NextT, KCtxT } from '@elara/lib'
 
 const log = getAppLogger('midware', true)
 
-export const dashboard = async (ctx: KCtxT, next: NextT) => {
-    if ('/dashboard' == ctx.path) {
-        ctx.path = '/dashboard.html'
-    }
-    return next()
-}
-
 export const responseTime = async (ctx: KCtxT, next: NextT) => {
     const startT = Symbol('request-received.startTime') as any
     // const endT = Symbol.for('request-received.startTime')
