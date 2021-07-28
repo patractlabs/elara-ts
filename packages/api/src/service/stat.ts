@@ -391,10 +391,10 @@ namespace Stat {
     }
 
     export const latestReq = async (num: number): Promise<Statistics[]> => {
+        log.debug('latest request: ', num)
         const keys = await statRd.zrevrange(sKEY.zStatList(), -num, -1)
         const res: Statistics[] = []
         for (let k of keys) {
-            // const key = `Stat_${k}`
             const re = await statRd.get(`Stat_${k}`)
             if (re === null) {
                 statRd.zrem(sKEY.zStatList(), k)
@@ -405,15 +405,16 @@ namespace Stat {
         return res
     }
 
-    export async function lastDays(day: number): PStatT {
-        log.debug('last days: ', day)
+    export async function lastDays(day: number, pid?: string): PStatT {
+        log.debug(`last days pid[${pid}]: `, day)
+        let stat = pid !== undefined ? await proDaily(pid) : await daily()
         if (day < 2) {
-            return daily()
+            return stat
         }
-        let stat = await daily()
+        // let stat = await daily()
         for (let i = 1; i < day; i++) {
             const stamp = startStamp(i, 'day')
-            const keys = await statRd.keys(sKEY.hProDaily('*', '*', stamp))
+            const keys = await statRd.keys(sKEY.hProDaily('*', pid ?? '*', stamp))
             for (let k of keys) {
                 const tmp = await statRd.hgetall(k)
                 stat = statAdd(stat, tmp as unknown as StatT)
@@ -422,14 +423,16 @@ namespace Stat {
         return stat
     }
 
-    export async function lastHours(hour: number): PStatT {
-        log.debug('last hours: ', hour)
+    export async function lastHours(hour: number, pid?: string): PStatT {
+        log.debug(`last hours pid[${pid}]: `, hour)
+
         let stat = newStats()
         if (hour < 1) { hour = 1 }
         const start = startStamp(hour, 'hour')
         const keys = await statRd.zrangebyscore(sKEY.zStatList(), start, 'inf')
         log.debug('hour keys: ', keys, start)
         for (let k of keys) {
+            if (pid && !k.includes(pid)) { continue }
             const tmp = await statRd.get(`Stat_${k}`)
             if (tmp === null) {
                 statRd.zrem(sKEY.zStatList(), k)
@@ -440,9 +443,10 @@ namespace Stat {
         return stat as unknown as StatT
     }
 
+    // export const mostReq
+
     // project statistic
     export const proDaily = async (pid: string): PStatT => {
-        // const stamp = startStamp('day')
         let stat = newStats()
         const keys = await statRd.keys(`Stat_*_${pid}_*`)
         log.debug('project daily keys: ', keys, pid)
@@ -455,7 +459,6 @@ namespace Stat {
         }
         return stat as unknown as StatT
     }
-
 }
 
 export default Stat

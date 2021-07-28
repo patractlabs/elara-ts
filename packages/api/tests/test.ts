@@ -1,7 +1,7 @@
 import geo from 'geoip-country'
 const log = console
 
-const ip = geo.lookup('172.30.175.255')
+const ip = geo.lookup('86.49.252.33')
 log.info('ip: ', ip)
 
 type T = Record<string, number>

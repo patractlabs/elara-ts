@@ -14,6 +14,7 @@ const subhttp = new Subscriber(DBT.Pubsub, { host: redis.host });
 
 (function main() {
     Service.init(dayRule)
+    Service.init('*/1 * * * *') // for test
     subws.subscribe('statistic-ws', handleStat, 0)
     subhttp.subscribe('statistic-http', handleStat, 0)
     log.info('Job server run: ', process.env.NODE_ENV)
