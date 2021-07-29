@@ -51,7 +51,7 @@ async function checkProjectLimit(uid: string): PVoidT {
 async function createProeject(ctx: KCtxT, next: NextT) {
     let uid = ctx.state.user
     log.debug('create project request: ', uid, ctx.request.body)
-    const { chain, name, team } = JSON.parse(ctx.request.body)
+    const { chain, name, team } = ctx.request.body
 
     checkName(name)
     const exist = await Project.isExist(uid, chain, name)
@@ -124,7 +124,7 @@ async function projectListByChain(ctx: KCtxT, next: NextT) {
 }
 
 async function updateStatus(ctx: KCtxT, next: NextT) {
-    const { chain, pid, status } = JSON.parse(ctx.request.body)
+    const { chain, pid, status } = ctx.request.body
     log.debug(`update ${chain} pid[${pid}] status: `, status)
     checkChainPid(chain, pid)
     checkStatus(status)
@@ -137,7 +137,7 @@ async function updateStatus(ctx: KCtxT, next: NextT) {
 }
 
 async function updateLimit(ctx: KCtxT, next: NextT) {
-    const { chain, pid, reqSecLimit, bwDayLimit } = JSON.parse(ctx.request.body)
+    const { chain, pid, reqSecLimit, bwDayLimit } = ctx.request.body
     checkChainPid(chain, pid)
 
     const re = await Project.updateLimit(chain, pid, reqSecLimit, bwDayLimit)
@@ -150,7 +150,7 @@ async function updateLimit(ctx: KCtxT, next: NextT) {
 
 async function updateName(ctx: KCtxT, next: NextT) {
     const uid = ctx.state.user
-    const { chain, pid, name } = JSON.parse(ctx.request.body)
+    const { chain, pid, name } = ctx.request.body
     checkChainPid(chain, pid)
     checkName(name)
     const re = await Project.changeName(chain, uid, pid, name)
@@ -163,7 +163,7 @@ async function updateName(ctx: KCtxT, next: NextT) {
 
 async function deleteProject(ctx: KCtxT, next: NextT) {
     const uid = ctx.state.user
-    const { chain, pid } = JSON.parse(ctx.request.body)
+    const { chain, pid } = ctx.request.body
     log.debug(`delet project: ${chain} ${pid}`)
     checkChainPid(chain, pid)
     const re = await Project.delete(chain, uid, pid)

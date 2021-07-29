@@ -1,7 +1,8 @@
-import { PResultT, Ok, Err, IDT, getAppLogger } from '@elara/lib'
+import { PResultT, Ok, Err, IDT, getAppLogger, PBoolT } from '@elara/lib'
 import { now } from '../lib/date'
 import Dao from '../dao'
 import Project from './project'
+import Stat from './stat'
 
 const log = getAppLogger('account-pro', true)
 
@@ -72,6 +73,24 @@ class Account {
         let projects = await Project.countByUser(uid)
         reply
         projects
+    }
+
+    static async checkLimit(chain: string, pid: string): PBoolT {
+        log.debug(`check limit status of ${chain} pid[${pid}]`)
+        const re = await Stat.proDaily(chain, pid)
+        const bw = re.httpBw + re.wsBw
+        // project limit
+        const pstat = await Dao.getProjectLimit(chain, pid)
+        if (pstat.uid === '') {
+            return false
+        }
+        // account limit
+        const astat = await Dao.getAccountDetail(pstat.uid as string)
+        log.debug('account status: ', astat)
+        if (re.httpReqNum > 100 || bw > 10000) {
+            return true
+        }
+        return false
     }
 }
 

@@ -4,6 +4,8 @@ import Passport from '../lib/passport'
 import Account from '../service/account'
 import Conf from '../../config'
 
+
+const R = new Router()
 const log = getAppLogger('account')
 const accountConf = Conf.getAccount()
 
@@ -81,6 +83,15 @@ async function detail(ctx: KCtxT, next: NextT) {
     return next()
 }
 
+async function checkLimit(ctx: KCtxT, next: NextT) {
+    log.debug('check body: ', ctx.request.body)
+    const {chain, pid} = ctx.request.body
+    log.debug('new limit check: ', chain, pid)
+    const re = await Account.checkLimit(chain, pid)
+    ctx.body = Resp.Ok(re)
+    return next()
+}
+
 
 /// for local test
 async function home(ctx: KCtxT, next: NextT) {
@@ -115,7 +126,6 @@ const html_login_success = `
 
 
 
-const R = new Router()
 
 R.get('/login', login)
 R.get('/github', github)
@@ -124,5 +134,7 @@ R.get('/logout', logout)
 R.get('/github/home', home)
 R.post('/status', updateStatus)
 R.post('/info', detail)
+
+R.post('/islimit', checkLimit)
 
 export default R.routes()

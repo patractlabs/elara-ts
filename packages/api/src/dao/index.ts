@@ -54,6 +54,17 @@ namespace Dao {
     export const publishTopic = async (topic: Topic, data: string): Promise<number> => {
         return Rd.publishTopic(topic, data)
     }
+
+    // project
+
+    export const getProjectLimit = async (chain: string, pid: string): Promise<Record<string, number|string>> => {
+        const re = await Rd.hgetProject(chain, pid)
+        return {
+            uid: re[2] ?? '',
+            bwDayLimit: parseInt(re[0] ?? '0'),
+            reqDayLimit: parseInt(re[1] ?? '0')
+        }
+    }
 }
 
 export default Dao

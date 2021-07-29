@@ -32,17 +32,18 @@ const daily = async (ctx: KCtxT, next: NextT) => {
 }
 
 const latestReq = async (ctx: KCtxT, next: NextT) => {
-    const count = JSON.parse(ctx.request.body).count as number ?? 20
+    let { count } = ctx.request.body
     if (!Number.isInteger(count)) {
         throw Resp.Fail(400, 'count must be integer' as Msg)
     }
+    if (count < 1) { count = 1}
     const re = await Stat.latestReq(count)
     ctx.body = Resp.Ok(re)
     return next()
 }
 
 const lastDays = async (ctx: KCtxT, next: NextT) => {
-    const days = JSON.parse(ctx.request.body).days
+    const { days } = ctx.request.body
     if (!Number.isInteger(days)) {
         throw Resp.Fail(400, 'days must be integer' as Msg)
     }
@@ -52,7 +53,7 @@ const lastDays = async (ctx: KCtxT, next: NextT) => {
 }
 
 const lastHours = async (ctx: KCtxT, next: NextT) => {
-    const hours = JSON.parse(ctx.request.body).hours
+    const { hours } = ctx.request.body
     if (!Number.isInteger(hours)) {
         throw Resp.Fail(400, 'hours must be integer' as Msg)
     }
@@ -62,7 +63,7 @@ const lastHours = async (ctx: KCtxT, next: NextT) => {
 }
 
 const mostResourceLastDays = async (ctx: KCtxT, next: NextT) => {
-    const {count, days} = JSON.parse(ctx.request.body)
+    const { count, days } = ctx.request.body
     const { type } = ctx.request.params
     console.log('type: ', type)
     if (type !== 'bandwidth' && type !== 'request') {
@@ -87,7 +88,7 @@ const chainTotal = async (ctx: KCtxT, next: NextT) => {
 
 // project statistic
 const proDaily = async (ctx: KCtxT, next: NextT) => {
-    const {chain, pid} = JSON.parse(ctx.request.body)
+    const { chain, pid } = ctx.request.body
     checkChain(chain)
     checkPid(pid)
     const re = await Stat.proDaily(chain, pid)
@@ -108,7 +109,7 @@ const proLastDays = async (ctx: KCtxT, next: NextT) => {
 }
 
 const proLastHours = async (ctx: KCtxT, next: NextT) => {
-    const { pid, hours } = JSON.parse(ctx.request.body)
+    const { pid, hours } = ctx.request.body
     checkPid(pid)
     if (!Number.isInteger(hours)) {
         throw Resp.Fail(400, 'hours must be integer' as Msg)
@@ -124,7 +125,6 @@ R.get('/daily', daily)
 R.post('/latest', latestReq)
 R.post('/days', lastDays)
 R.post('/hours', lastHours)
-// R.post('/most/request', mostReqDays)
 R.post('/most/:type', mostResourceLastDays) // type request , bandwidth
 
 // chain

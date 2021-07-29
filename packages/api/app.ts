@@ -35,7 +35,7 @@ const session = {
 app
     .use(accessLogger(true))
     .use(Session(session, app))
-    .use(KoaBody({ multipart: true }))
+    .use(KoaBody({json: true}))
     .use(Passport.initialize())
     .use(Passport.session())
     .use(responseTime)

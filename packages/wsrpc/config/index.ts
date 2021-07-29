@@ -6,7 +6,9 @@ interface ServerConf {
     id: number,
     port: number,
     maxWsConn: number,
-    maxReConn: number
+    maxReConn: number,
+    apiHost: string,
+    apiPort: number
 }
 
 interface RedisConf {

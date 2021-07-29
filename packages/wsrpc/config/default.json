@@ -3,7 +3,9 @@
         "id": 0,
         "port": 7001,
         "maxWsConn": 10,
-        "maxReConn": 300
+        "maxReConn": 300,
+        "apiHost": "127.0.0.1",
+        "apiPort": 7000
     },
     "redis": {
         "host": "114.55.36.248",

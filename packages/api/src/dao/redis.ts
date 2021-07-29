@@ -6,6 +6,7 @@ const log = getAppLogger('redis')
 
 const actKEY = KEYS.Account
 const chainKEY = KEYS.Chain
+const proKEY = KEYS.Project
 
 export const statRd = new Redis(DBT.Stat).getClient()
 
@@ -77,6 +78,11 @@ namespace Rd {
 
     export const publishTopic = async (topic: Topic, chain: string) => {
         return chainRd.publish(topic, chain)
+    }
+
+    // project
+    export const hgetProject = async (chain: string, pid: string) => {
+        return projRd.hmget(proKEY.hProject(chain, pid), 'uid', 'bwDayLimit', 'reqDayLimit')
     }
 }
 

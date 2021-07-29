@@ -12,6 +12,7 @@ import Puber from './src/puber'
 import Response from './src/resp'
 import { Stat } from './src/statistic'
 
+const conf = Conf.getServer()
 const log = getAppLogger('app')
 const Server = Http.createServer()
 const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
@@ -23,12 +24,46 @@ async function pathOk(url: string, host: string): PResultT<ChainPidT> {
     return Util.urlParse(path)
 }
 
-async function resourceCheck(pid: string): PBoolT {
+function post(url: string, body: ChainPidT): Promise<any> {
+    const start = Util.traceStart()
+    return new Promise((resolve, reject) => {
+        let data = ''
+        const req = Http.request(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json; charset=UTF-8'
+            }
+        }, (res: Http.IncomingMessage) => {
+            res.on('data', (chunk) => {
+                data += chunk
+            })
+            res.on('end', () => {
+                log.debug('response: ', data)
+                resolve(data)
+                const time = Util.traceEnd(start)
+                log.debug(`new node rpc response time[${time}]`)
+            })
+        })
+        req.on('error', (err: Error) => {
+            log.error('post noder rpc request error: ', err)
+            reject({code: 500, msg: err, data: false})
+        })
+        req.write(JSON.stringify(body))
+        req.end()
+    })
+    
+}
+
+async function resourceLimit(chain: string, pid: string): PBoolT {
     if (pid === '00000000000000000000000000000000') {
-        return true
+        return false
     }
     // check request limit & bandwidth limit
-    return false
+    const res = await post(`http://${conf.apiHost}:${conf.apiPort}/auth/islimit`, {chain, pid})
+    log.debug(`${chain} pid[${pid}] limit check result: `, res, chain, pid)
+    const ok = JSON.parse(res).data as boolean ?? true
+    return ok
 }
 
 function isPostMethod(method: string): boolean {
@@ -82,8 +117,8 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         return Response.Fail(res, re.value, 400, reqStatis)
     }
     const cp = re.value as ChainPidT
-    const ok = await resourceCheck(cp.pid as string)
-    if (!ok) {
+    const isLimit = await resourceLimit(cp.chain, cp.pid as string)
+    if (isLimit) {
         return Response.Fail(res, 'resource out of limit', 400, reqStatis)
     }
     let data = ''
@@ -137,13 +172,6 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
         return
     }
     const { chain, pid } = re.value
-    const ok = await resourceCheck(pid as string)
-    if (!ok) {
-        Stat.publish(reqStatis)
-        socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
-        return
-    }
-
     reqStatis.chain = chain
     reqStatis.pid = pid as string
 
@@ -188,8 +216,8 @@ wss.on('connection', async (ws, req: any) => {
         reqStatis.pid = pid
         reqStatis.header = stat.header
 
-        const ok = await resourceCheck(pid)
-        if (!ok) {
+        const isLimit = await resourceLimit(chain, pid)
+        if (isLimit) {
             log.error(`${chain} pid[${pid}] resource check failed`)
             Stat.publish(reqStatis)
             return puber.ws.send('resource out of limit')
@@ -231,7 +259,6 @@ wss.on('connection', async (ws, req: any) => {
 async function run(): PVoidT {
     unexpectListener()
 
-    const conf = Conf.getServer()
     await Service.init()
     Server.listen(conf.port, () => {
         log.info('Elara server listen on port: ', conf.port)
