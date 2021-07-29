@@ -1,11 +1,13 @@
 import { IDT } from "@elara/lib";
 import Mom from 'moment'
 
-export type Stat = Record<string, string|number>
+export type Stats = Record<string, string | number>
 export interface StatT {
     wsReqNum: number,
     wsConn: number,
-    wsCt: string,   
+    wsCt: string,
+    wsSubNum: number,
+    wsSubResNum: number,
     wsBw: number,
     wsDelay: number,
     wsInReqNum: number,

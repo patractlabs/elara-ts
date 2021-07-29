@@ -1,8 +1,8 @@
 import Sche from 'node-schedule'
 import { getAppLogger, KEYS, PVoidT } from '@elara/lib'
-import { dailyStatDump } from './statistic'
+import { statDump } from './statistic'
 import { Rd } from './redis'
-import { Stat, Statistics } from './interface'
+import { Stats, Statistics } from './interface'
 import { lastTime, todayStamp, startStamp } from './util'
 import Conf from '../config'
 
@@ -19,13 +19,13 @@ async function clearDayExpire() {
     }
 }
 
-export async function proFetch(key: string): Promise<Stat> {
+export async function proFetch(key: string): Promise<Stats> {
     const re = await Rd.get(key)
-    if (re === null) return {} as Stat
+    if (re === null) return {} as Stats
     return JSON.parse(re)
 }
 
-export async function proUpdate(key: string, dat: Stat): PVoidT {
+export async function proUpdate(key: string, dat: Stats): PVoidT {
     Rd.setex(key, rconf.expire * rconf.expireFactor, JSON.stringify(dat))
 }
 
@@ -67,6 +67,7 @@ async function clearHourExpire(): PVoidT {
     const zlKey = KEY.zStatList()
     const keys = await Rd.zrangebyscore(zlKey, start, end)
     for (let k of keys) {
+        log.debug('remove expire statistic: ', k)
         Rd.zrem(zlKey, k)
     }
 }
@@ -92,7 +93,7 @@ async function handleHourStatistic(): PVoidT {
             continue
         }
         const req = JSON.parse(stat) as Statistics
-        dailyStatDump(req, KEY.hProDaily(chain, pid, today))
+        statDump(req, KEY.hProDaily(chain, pid, today))
 
         if (req.proto === 'http') {
             // method of request count & bandwidth rank
