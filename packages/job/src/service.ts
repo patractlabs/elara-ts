@@ -38,7 +38,7 @@ export async function proUpdate(key: string, dat: Stat): PVoidT {
 async function handleExpireStat() {
     // const date = new Date()
     // let [start, end] = lastTimes('day', 1)
-    let [start, end] = lastTimes('minute', 1)      // for test
+    let [start, end] = lastTimes(rconf.expireUnit, 1)      // for test
 
     clearExpireStat(start)
     const zlKey = KEY.zStatList()

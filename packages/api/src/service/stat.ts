@@ -10,11 +10,11 @@ const log = getAppLogger('stat')
 
 type PStatT = Promise<StatT>
 
-function newStats(): Stats {
+function newStats(): StatT {
     return {
         wsReqNum: 0,
         wsConn: 0,
-        wsCt: '{}',
+        wsCt: {},
         wsBw: 0,
         wsDelay: 0,
         wsInReqNum: 0,
@@ -22,7 +22,7 @@ function newStats(): Stats {
         wsTimeoutCnt: 0,
 
         httpReqNum: 0,
-        httpCt: '{}',
+        httpCt: {},
         httpBw: 0,
         httpDelay: 0,
         httpInReqNum: 0,
@@ -37,8 +37,8 @@ function startStamp(off: number, unit: MomUnit): number {
     return Mom().subtract(off, `${unit}s`).startOf(unit as Mom.unitOfTime.StartOf).valueOf()
 }
 
-function accAverage(num: number, av: number, val: number, fixed: number = 2): string {
-    return (av / (num + 1) * num + val / (num + 1)).toFixed(fixed)
+function accAverage(num: number, av: number, val: number, fixed: number = 2): number {
+    return parseFloat((av / (num + 1) * num + val / (num + 1)).toFixed(fixed))
 }
 
 function ip2county(ip: string): string {
@@ -49,11 +49,8 @@ function ip2county(ip: string): string {
     return 'unknow'
 }
 
-function out(val: string | number): number {
-    if (val === undefined) return 0
-    const v = parseInt(val as string) ?? 0
-    log.debug('out value: ', val, v)
-    return v
+function asNum(val: number | Record<string, number>): number {
+    return (val as number) ?? 0
 }
 
 async function dailyStatistic(req: Statistics, dat: Stats): Promise<Stats> {
@@ -63,7 +60,7 @@ async function dailyStatistic(req: Statistics, dat: Stats): Promise<Stats> {
 
     const acdely = accAverage(curNum as number ?? 0, curDelay as number ?? 0, req.delay ?? 0)
     if (req.timeout) {
-        dat[`${req.proto}TimeoutCnt`] = out(dat[`${req.proto}TimeoutCnt`]) + 1
+        dat[`${req.proto}TimeoutCnt`] = asNum(dat[`${req.proto}TimeoutCnt`]) + 1
         dat[`${req.proto}Timeout`] = acdely
     } else {
         dat[`${req.proto}Delay`] = acdely
@@ -72,27 +69,27 @@ async function dailyStatistic(req: Statistics, dat: Stats): Promise<Stats> {
     if (req.proto === 'ws') {
         reqCnt = req.reqCnt ?? 0
     }
-    dat[`${req.proto}ReqNum`] = out(dat[`${req.proto}ReqNum`]) + reqCnt
+    dat[`${req.proto}ReqNum`] = asNum(dat[`${req.proto}ReqNum`]) + reqCnt
     // ws connection cnt
     if (req.type === 'conn') {
-        dat.wsConn = out(dat.wsConn) + 1
+        dat.wsConn = asNum(dat.wsConn) + 1
         // Rd.hincrby(key, 'wsConn', 1)
     }
     if (req.bw !== undefined) {
-        dat[`${req.proto}Bw`] = out(dat[`${req.proto}Bw`]) + req.bw
+        dat[`${req.proto}Bw`] = asNum(dat[`${req.proto}Bw`]) + req.bw
         // Rd.hincrby(key, `${req.proto}Bw`, req.bw)
     }
     if (req.code !== 200) {
-        dat[`${req.proto}InReqNum`] = out(dat[`${req.proto}InReqNum`]) + 1
+        dat[`${req.proto}InReqNum`] = asNum(dat[`${req.proto}InReqNum`]) + 1
     }
 
     // country access
     if (req.header !== undefined && req.header.ip) {
         const c = ip2county(req.header.ip.split(':')[0])
-        const ac: Record<string, number> = JSON.parse((dat[`${req.proto}Ct`] as string) ?? '{}')
+        const ac: Record<string, number> = dat[`${req.proto}Ct`] as Record<string, number>
         log.debug('country parse: ', c, ac)
         ac[c] = (ac[c] ?? 0) + 1
-        dat[`${req.proto}Ct`] = JSON.stringify(ac)
+        dat[`${req.proto}Ct`] = ac
     }
     return dat
 }
@@ -106,39 +103,58 @@ async function handleScore(res: Record<string, number>, key: string): Promise<Re
     return res
 }
 
-// function statMerge(l: string, r: string): string {
-//     const lct = JSON.parse(l)
-//     const rct = JSON.parse(r)
-//     Object.keys(rct).forEach(k => {
-//         if (Object.keys(lct).includes(k)) {
-//             lct[k] += rct[k]
-//         } else {
-//             lct[k] = rct[k]
-//         }
-//     })
-//     return JSON.stringify(lct)
-// }
+function statMerge(lct: Record<string, number>, rct: Record<string, number>): Record<string, number> {
+    Object.keys(rct).forEach(k => {
+        if (Object.keys(lct).includes(k)) {
+            lct[k] += rct[k]
+        } else {
+            lct[k] = rct[k]
+        }
+    })
+    return lct
+}
 
-// function statAdd(l: StatT, r: StatT): StatT {
-//     l.wsConn += r.wsConn
-//     l.wsReqNum += r.wsReqNum
-//     l.wsInReqNum += r.wsInReqNum
-//     l.wsBw += r.wsBw
-//     l.wsDelay += r.wsDelay
-//     l.wsTimeout += r.wsTimeout
-//     l.wsTimeoutCnt += r.wsTimeoutCnt
-//     l.wsCt = statMerge(l.wsCt, r.wsCt)
+function statAdd(l: StatT, r: StatT): StatT {
+    l.wsConn += r.wsConn
+    l.wsReqNum += r.wsReqNum
+    l.wsInReqNum += r.wsInReqNum
+    l.wsBw += r.wsBw
+    l.wsDelay += r.wsDelay
+    l.wsTimeout += r.wsTimeout
+    l.wsTimeoutCnt += r.wsTimeoutCnt
+    l.wsCt = statMerge(l.wsCt ?? {}, r.wsCt ?? {})
 
-//     l.httpReqNum += r.httpReqNum
-//     l.httpInReqNum += r.httpInReqNum
-//     l.httpBw += r.httpBw
-//     l.httpDelay += r.httpDelay
-//     l.httpTimeout += r.httpTimeout
-//     l.httpTimeoutCnt += r.httpTimeoutCnt
-//     l.httpCt = statMerge(l.httpCt, r.httpCt)
+    l.httpReqNum += r.httpReqNum
+    l.httpInReqNum += r.httpInReqNum
+    l.httpBw += r.httpBw
+    l.httpDelay += r.httpDelay
+    l.httpTimeout += r.httpTimeout
+    l.httpTimeoutCnt += r.httpTimeoutCnt
+    l.httpCt = statMerge(l.httpCt ?? {}, r.httpCt ?? {})
 
-//     return l
-// }
+    return l
+}
+
+function parseStatRecord(stat: Record<string, string>): StatT {
+    return {
+        wsReqNum: parseInt(stat.wsReqNum ?? '0'),
+        wsConn: parseInt(stat.wsConn ?? '0'),
+        wsCt: JSON.parse(stat.wsCt ?? '{}'),
+        wsBw: parseInt(stat.wsBw ?? '0'),
+        wsDelay: parseFloat(stat.wsDelay ?? '0.0'),
+        wsInReqNum: parseInt(stat.wsInReqNum ?? '0'),
+        wsTimeout: parseFloat(stat.wsTimeout ?? '0'),
+        wsTimeoutCnt: parseInt(stat.wsTimeoutCnt ?? '0'),
+
+        httpReqNum: parseInt(stat.httpReqNum ?? '0'),
+        httpCt: JSON.parse(stat.httpCt ?? '{}'),
+        httpBw: parseInt(stat.httpBw ?? '0'),
+        httpDelay: parseFloat(stat.httpDelay ?? '0'),
+        httpInReqNum: parseInt(stat.httpInReqNum ?? '0'),
+        httpTimeout: parseFloat(stat.httpTimeout ?? '0'),
+        httpTimeoutCnt: parseInt(stat.httpTimeoutCnt ?? '0')
+    }
+}
 
 namespace Stat {
     // elara statistic
@@ -147,13 +163,13 @@ namespace Stat {
     }
 
     export const daily = async (): PStatT => {
-        let res = newStats()
+        let res = newStats() as StatT
         try {
             const re = await statRd.hgetall(sKEY.hDaily())
             if (re === null) {
                 log.error('Redis get daily statistic failed')
             }
-            res = re
+            res = parseStatRecord(re)
         } catch (e) {
             log.error('Dashboard Parse Error!')
         }
@@ -190,10 +206,23 @@ namespace Stat {
         for (let i = 1; i < day; i++) {
             const stamp = startStamp(i, 'day')
             const keys = await statRd.keys(sKEY.hProDaily('*', pid ?? '*', stamp))
+            log.debug('last days keys: ', i, keys)
+            let tstat = newStats() as unknown as StatT
             for (let k of keys) {
                 const tmp = await statRd.hgetall(k)
-                stat.push(tmp as unknown as StatT)
-                // stat = statAdd(stat, tmp as unknown as StatT)
+                if (pid === undefined) {
+                    tstat = statAdd(tstat, parseStatRecord(tmp))
+
+                } else {
+                    stat.push(parseStatRecord(tmp))
+                }
+            }
+            if (pid === undefined) {
+                stat.push(tstat)
+            } else {
+                if (keys.length === 0) {
+                    stat.push(tstat)
+                }
             }
         }
         return stat
@@ -205,7 +234,7 @@ namespace Stat {
         let res: StatT[] = []
         if (hour < 1) { hour = 1 }
         for (let h = 0; h < hour; h++) {
-            let stat = newStats()
+            let stat = newStats() as unknown as Stats
             const [start, end] = lastTime('hour', h)
             // const start = startStamp(hour, 'hour')
             const keys = await statRd.zrangebyscore(sKEY.zStatList(), start, end)
@@ -282,7 +311,7 @@ namespace Stat {
 
     // project statistic
     export const proDaily = async (pid: string): PStatT => {
-        let stat = newStats()
+        let stat = newStats() as unknown as Stats
         const keys = await statRd.keys(`Stat_*_${pid}_*`)
         log.debug('project daily keys: ', keys, pid)
         for (let k of keys) {
