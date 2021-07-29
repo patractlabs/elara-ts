@@ -253,29 +253,6 @@ namespace Stat {
         return res
     }
 
-    export const mostReqLastDays = async (num: number, day: number): Promise<string[]> => {
-        log.debug('most request: ', num, day)
-        if (day < 2) {
-            return statRd.zrevrange(sKEY.zDailyReq(), 0, num - 1, 'WITHSCORES')
-        }
-        let res = await handleScore({}, sKEY.zDailyReq())
-        for (let i = 1; i < day; i++) {
-            const stamp = startStamp(i, 'day')
-            const keys = await statRd.keys(sKEY.zReq('*', '*', stamp))
-            for (let k of keys) {
-                res = await handleScore(res, k)
-            }
-        }
-        const skey = `Z_Score_req_${randomId()}`
-        for (let m in res) {
-            statRd.zadd(skey, res[m], m)
-        }
-        const re = await statRd.zrevrange(skey, 0, num - 1, 'WITHSCORES')
-        statRd.del(skey)
-        log.debug('score rank reulst: ', re)
-        return re
-    }
-
     export const mostResourceLastDays = async (num: number, day: number, typ: string) => {
         log.debug(`most ${typ} request: `, num, day)
         let key = sKEY.zDailyReq()

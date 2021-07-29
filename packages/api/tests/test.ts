@@ -1,4 +1,5 @@
 import geo from 'geoip-country'
+import Mom from 'moment'
 const log = console
 
 const ip = geo.lookup('86.49.252.33')
@@ -34,3 +35,5 @@ const N: T = {
 
 const l = statMerge(JSON.stringify(M), JSON.stringify(N))
 log.info('new stat: ', l)
+
+log.info('now hour', Mom().hour())

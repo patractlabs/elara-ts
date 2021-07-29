@@ -1,28 +1,22 @@
 import Sche from 'node-schedule'
-import Mom from 'moment'
 import { getAppLogger, KEYS, PVoidT } from '@elara/lib'
 import { dailyStatDump } from './statistic'
 import { Rd } from './redis'
-import { Stat, Statistics, StartT, DurationT } from './interface'
-import { lastTimes } from './util'
+import { Stat, Statistics } from './interface'
+import { lastTime, todayStamp, startStamp } from './util'
 import Conf from '../config'
 
 const rconf = Conf.getRedis()
 const KEY = KEYS.Stat
 const log = getAppLogger('service')
 
-async function clearExpireStat(time: number) {
-    const expDay = rconf.expire
-    const stamp = Mom(time).subtract(expDay, `${rconf.expireUnit}s` as DurationT).startOf(rconf.expireUnit as StartT)
-    // const stamp = Mom(time).subtract(expDay, 'minutes').startOf('minute')
-    const keys = await Rd.keys(`*${stamp.valueOf()}`)
+async function clearDayExpire() {
+    const dayStamp = startStamp('day', rconf.expire)
+    const keys = await Rd.keys(`*${dayStamp}`)
     log.debug('expire keys: ', keys)
     for (let k of keys) {
         Rd.del(k)
     }
-
-    // Rd.zadd(KEY.zExpireList(), time, time)
-    log.debug('expire end day: ', stamp, stamp.valueOf())
 }
 
 export async function proFetch(key: string): Promise<Stat> {
@@ -33,47 +27,6 @@ export async function proFetch(key: string): Promise<Stat> {
 
 export async function proUpdate(key: string, dat: Stat): PVoidT {
     Rd.setex(key, rconf.expire * rconf.expireFactor, JSON.stringify(dat))
-}
-
-async function handleExpireStat() {
-    // const date = new Date()
-    // let [start, end] = lastTimes('day', 1)
-    let [start, end] = lastTimes(rconf.expireUnit, 1)      // for test
-
-    clearExpireStat(start)
-    const zlKey = KEY.zStatList()
-    const keys = await Rd.zrangebyscore(zlKey, start, end)
-    for (let k of keys) {
-        const skey = `Stat_${k}`
-        const kp = skey.split('_')
-        const chain = kp[1]
-        const pid = kp[2]
-        log.debug('chain-pid: ', chain, pid)
-        // wrap statistic by chain pid
-        const stat = await Rd.get(skey)
-        if (stat === null) {
-            log.error('get statistic error')
-            Rd.zrem(zlKey, k)
-            Rd.del(skey)
-            continue
-        }
-        const req = JSON.parse(stat) as Statistics
-        dailyStatDump(req, KEY.hProDaily(chain, pid, start))
-        // score rank
-        if (req.req === undefined || req.req.method === undefined) {
-            Rd.zrem(zlKey, k)
-            Rd.del(skey)
-            continue
-        }
-        const method: string = req.req.method
-        if (req.proto === 'http') {
-            Rd.zincrby(KEY.zReq(chain, pid, start), 1, method)
-            Rd.zincrby(KEY.zBw(chain, pid, start), req.bw ?? 0, method)
-        }
-        // TODO websocket statis
-        Rd.zrem(zlKey, k)
-        Rd.del(skey)
-    }
 }
 
 async function accountStatUpdate() {
@@ -109,21 +62,79 @@ async function dailRankReset(): PVoidT {
     Rd.del(KEY.zDailyBw())
 }
 
+async function clearHourExpire(): PVoidT {
+    const [start, end] = lastTime('hour', 24)
+    const zlKey = KEY.zStatList()
+    const keys = await Rd.zrangebyscore(zlKey, start, end)
+    for (let k of keys) {
+        Rd.zrem(zlKey, k)
+    }
+}
+
+async function handleHourStatistic(): PVoidT {
+    const [start, end] = lastTime('hour')
+    const today = todayStamp()
+    const zlKey = KEY.zStatList()
+
+    clearHourExpire()
+
+    const keys = await Rd.zrangebyscore(zlKey, start, end)
+    for (let k of keys) {
+        const skey = `Stat_${k}`
+        const kp = skey.split('_')
+        const chain = kp[1]
+        const pid = kp[2]
+
+        const stat = await Rd.get(skey)
+        if (stat === null) {
+            log.error(`get statistic [${skey}] error`)
+            Rd.zrem(zlKey, k)
+            continue
+        }
+        const req = JSON.parse(stat) as Statistics
+        dailyStatDump(req, KEY.hProDaily(chain, pid, today))
+
+        if (req.proto === 'http') {
+            // method of request count & bandwidth rank
+            if (req.req === undefined || req.req.method === undefined) {
+                continue
+            }
+            const method: string = req.req.method
+            Rd.zincrby(KEY.zReq(chain, pid, today), 1, method)
+            Rd.zincrby(KEY.zBw(chain, pid, today), req.bw ?? 0, method)
+        }
+    }
+}
+
 namespace Service {
-    export async function init(rule: string) {
-        const job = Sche.scheduleJob(rule, () => {
+    export async function init() {
+        // hourly job
+        const hourJob = Sche.scheduleJob('0 */1 * * *', () => {
+            log.debug('hourly job start')
+            handleHourStatistic()
+        })
+
+        hourJob.on('error', (err) => {
+            log.error('hourly job error: ', err)
+        })
+
+        hourJob.on('canceled', (reason) => {
+            log.debug('hourly job canceled ', reason)
+        })
+
+        const dayJob = Sche.scheduleJob('0 0 */1 * *', () => {
             dailyDashboardReset()
             dailRankReset()
-            handleExpireStat()
+            clearDayExpire()
             accountStatUpdate()
         })
 
-        job.on('error', (err) => {
-            log.error('job error: ', err)
+        dayJob.on('error', (err) => {
+            log.error('daily job error: ', err)
         })
 
-        job.on('canceled', (reason) => {
-            log.debug('job canceled ', reason)
+        dayJob.on('canceled', (reason) => {
+            log.debug('daily job canceled ', reason)
         })
     }
 }

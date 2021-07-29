@@ -1,22 +1,34 @@
 import Mom from 'moment'
 import { getAppLogger } from '@elara/lib'
-import { StartT, DurationT } from './interface'
+import { StartT, DurationT, MomUnit } from './interface'
 
 const log = getAppLogger('util')
 
-export function lastTime(time: string, unit: number = 1): number[] {
-    const last = Mom().subtract(unit, `${time}s` as DurationT)
-    const start = last.startOf(time as StartT).clone()
-    const end = last.endOf(time as StartT)
-    log.debug(`last start-end of ${unit} ${time}: `, start, end)
+export function lastTime(unit: MomUnit, off: number = 1): number[] {
+    const last = Mom().subtract(off, `${unit}s` as DurationT)
+    const start = last.startOf(unit as StartT).clone()
+    const end = last.endOf(unit as StartT)
+    log.debug(`last start-end of ${off} ${unit}: `, start, end)
     return [start.valueOf(), end.valueOf()]
 }
 
-export function lastTimes(time: string, unit: number = 1): number[] {
+export function tillTime(unit: MomUnit, off: number = 1): number[] {
     const cur = Mom()
-    const last = cur.clone().subtract(unit, `${time}s` as DurationT)
-    const start = last.startOf(time as StartT).clone()
-    const end = cur.startOf(time as StartT)
-    log.debug(`last start-end of ${unit} ${time}s: `, start, end, start.valueOf(), end.valueOf())
+    const last = cur.clone().subtract(off, `${unit}s` as DurationT)
+    const start = last.startOf(unit as StartT).clone()
+    const end = cur.startOf(unit as StartT)
+    log.debug(`last start-end of ${off} ${unit}s: `, start, end, start.valueOf(), end.valueOf())
     return [start.valueOf(), end.valueOf()]
+}
+
+export function startStamp(unit: MomUnit, off: number = 1): number {
+    const time = Mom().subtract(off, `${unit}s`).startOf(unit as StartT)
+    log.debug('start time: ', time)
+    return time.valueOf()
+}
+
+export function todayStamp(): number {
+    const today = Mom().startOf('day')
+    log.debug('today is: ', today)
+    return today.valueOf()
 }
