@@ -3,7 +3,7 @@ import geo from 'geoip-country'
 import { statRd } from '../dao/redis'
 import { StatT, Stats, Statistics } from '../interface'
 import Mom from 'moment'
-import { lastTime } from '../util'
+import { lastTime, todayStamp } from '../util'
 
 const sKEY = KEYS.Stat
 const log = getAppLogger('stat')
@@ -14,6 +14,8 @@ function newStats(): StatT {
     return {
         wsReqNum: 0,
         wsConn: 0,
+        wsSubNum: 0,
+        wsSubResNum: 0,
         wsCt: {},
         wsBw: 0,
         wsDelay: 0,
@@ -54,10 +56,7 @@ function asNum(val: number | Record<string, number>): number {
 }
 
 async function dailyStatistic(req: Statistics, dat: Stats): Promise<Stats> {
-    // const dat = await fetchOld(key)
     const { curNum, curDelay } = dat
-    // const dat = newStat()
-
     const acdely = accAverage(curNum as number ?? 0, curDelay as number ?? 0, req.delay ?? 0)
     if (req.timeout) {
         dat[`${req.proto}TimeoutCnt`] = asNum(dat[`${req.proto}TimeoutCnt`]) + 1
@@ -65,19 +64,17 @@ async function dailyStatistic(req: Statistics, dat: Stats): Promise<Stats> {
     } else {
         dat[`${req.proto}Delay`] = acdely
     }
-    let reqCnt = 1
-    if (req.proto === 'ws') {
-        reqCnt = req.reqCnt ?? 0
+    if (req.proto === 'ws' && req.reqCnt) {
+        dat['wsSubNum'] = asNum(dat['wsSubNum']) + 1
+        dat['wsSubResNum'] = asNum(dat['wsSubResNum']) + req.reqCnt
     }
-    dat[`${req.proto}ReqNum`] = asNum(dat[`${req.proto}ReqNum`]) + reqCnt
+    dat[`${req.proto}ReqNum`] = asNum(dat[`${req.proto}ReqNum`]) + 1
     // ws connection cnt
     if (req.type === 'conn') {
         dat.wsConn = asNum(dat.wsConn) + 1
-        // Rd.hincrby(key, 'wsConn', 1)
     }
     if (req.bw !== undefined) {
         dat[`${req.proto}Bw`] = asNum(dat[`${req.proto}Bw`]) + req.bw
-        // Rd.hincrby(key, `${req.proto}Bw`, req.bw)
     }
     if (req.code !== 200) {
         dat[`${req.proto}InReqNum`] = asNum(dat[`${req.proto}InReqNum`]) + 1
@@ -117,6 +114,8 @@ function statMerge(lct: Record<string, number>, rct: Record<string, number>): Re
 function statAdd(l: StatT, r: StatT): StatT {
     l.wsConn += r.wsConn
     l.wsReqNum += r.wsReqNum
+    l.wsSubNum += r.wsSubNum
+    l.wsSubResNum += r.wsSubResNum
     l.wsInReqNum += r.wsInReqNum
     l.wsBw += r.wsBw
     l.wsDelay += r.wsDelay
@@ -139,6 +138,8 @@ function parseStatRecord(stat: Record<string, string>): StatT {
     return {
         wsReqNum: parseInt(stat.wsReqNum ?? '0'),
         wsConn: parseInt(stat.wsConn ?? '0'),
+        wsSubNum: parseInt(stat.wsSubNum ?? '0'),
+        wsSubResNum: parseInt(stat.wsSubResNum ?? '0'),
         wsCt: JSON.parse(stat.wsCt ?? '{}'),
         wsBw: parseInt(stat.wsBw ?? '0'),
         wsDelay: parseFloat(stat.wsDelay ?? '0.0'),
@@ -159,7 +160,7 @@ function parseStatRecord(stat: Record<string, string>): StatT {
 namespace Stat {
     // elara statistic
     export async function total(): PStatT {
-        return await statRd.hgetall(sKEY.hTotal()) as unknown as StatT
+        return parseStatRecord(await statRd.hgetall(sKEY.hTotal()))
     }
 
     export const daily = async (): PStatT => {
@@ -177,8 +178,8 @@ namespace Stat {
     }
 
     export const latestReq = async (num: number): Promise<Statistics[]> => {
-        log.debug('latest request: ', num)
-        const keys = await statRd.zrevrange(sKEY.zStatList(), -num, -1)
+        const keys = await statRd.zrevrange(sKEY.zStatList(), 0, num - 1)
+        log.debug('latest request: ', num, keys)
         const res: Statistics[] = []
         for (let k of keys) {
             const re = await statRd.get(`Stat_${k}`)
@@ -195,9 +196,9 @@ namespace Stat {
         return res
     }
 
-    export async function lastDays(day: number, pid?: string): Promise<StatT[]> {
+    export async function lastDays(day: number, chain?: string, pid?: string): Promise<StatT[]> {
         log.debug(`last days pid[${pid}]: `, day)
-        let stat: StatT[] = [pid !== undefined ? await proDaily(pid) : await daily()]
+        let stat: StatT[] = [pid !== undefined ? await proDaily(chain!, pid) : await daily()]
         // let stat = pid !== undefined ? await proDaily(pid) : await daily()
         if (day < 2) {
             return stat
@@ -205,25 +206,20 @@ namespace Stat {
         // let stat = await daily()
         for (let i = 1; i < day; i++) {
             const stamp = startStamp(i, 'day')
-            const keys = await statRd.keys(sKEY.hProDaily('*', pid ?? '*', stamp))
+            if (pid !== undefined) {
+                const re = await statRd.hgetall(sKEY.hProDaily(chain!, pid, stamp))
+                stat.push(parseStatRecord(re))
+                continue
+            }
+
+            const keys = await statRd.keys(sKEY.hProDaily('*', '*', stamp))
             log.debug('last days keys: ', i, keys)
             let tstat = newStats() as unknown as StatT
             for (let k of keys) {
                 const tmp = await statRd.hgetall(k)
-                if (pid === undefined) {
-                    tstat = statAdd(tstat, parseStatRecord(tmp))
-
-                } else {
-                    stat.push(parseStatRecord(tmp))
-                }
+                tstat = statAdd(tstat, parseStatRecord(tmp))
             }
-            if (pid === undefined) {
-                stat.push(tstat)
-            } else {
-                if (keys.length === 0) {
-                    stat.push(tstat)
-                }
-            }
+            stat.push(tstat)
         }
         return stat
     }
@@ -283,19 +279,24 @@ namespace Stat {
 
     // chain statistic
     export const chain = async (chain: string): PStatT => {
-        return await statRd.hgetall(sKEY.hChainTotal(chain)) as unknown as StatT
+        return parseStatRecord(await statRd.hgetall(sKEY.hChainTotal(chain)))
     }
 
     // project statistic
-    export const proDaily = async (pid: string): PStatT => {
-        let stat = newStats() as unknown as Stats
-        const keys = await statRd.keys(`Stat_*_${pid}_*`)
-        log.debug('project daily keys: ', keys, pid)
+    export const proDaily = async (chain: string, pid: string): PStatT => {
+        const re = await statRd.hgetall(sKEY.hProDaily(chain, pid, todayStamp()))
+        log.debug(`get ${chain} project[${pid}] day statistic: `, re)
+        let stat = parseStatRecord(re) as unknown as Stats
+
+        const [start, end] = lastTime('hour', 0)
+        const keys = await statRd.zrangebyscore(sKEY.zStatList(), start, end)
+        log.debug('project daily last hour keys: ', keys)
         for (let k of keys) {
-            log.debug('update stat: ', stat)
-            const s = await statRd.get(k)
-            if (s === null) { continue }
-            const stmp = JSON.parse(s) as Statistics
+            if (!k.includes(pid)) { continue }
+            const key = `Stat_${k}`
+            const re = await statRd.get(key)
+            if (re === null) { continue }
+            const stmp = JSON.parse(re) as Statistics
             stat = await dailyStatistic(stmp, stat)
         }
         return stat as unknown as StatT

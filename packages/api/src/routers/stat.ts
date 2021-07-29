@@ -6,6 +6,12 @@ const R = new Router()
 
 type PNextT = Promise<NextT>
 
+function checkChain(chain: string) {
+    if (isEmpty(chain)) {
+        throw Resp.Fail(400, 'invalid chain' as Msg)
+    }
+}
+
 function checkPid(pid: string) {
     if (isEmpty(pid) || pid.length !== 32) {
         throw Resp.Fail(400, 'invalid project id' as Msg)
@@ -73,6 +79,7 @@ const mostResourceLastDays = async (ctx: KCtxT, next: NextT) => {
 // chain statistic
 const chainTotal = async (ctx: KCtxT, next: NextT) => {
     const { chain } = ctx.request.params
+    checkChain(chain)
     const re = await Stat.chain(chain)
     ctx.body = Resp.Ok(re)
     return next()
@@ -80,20 +87,22 @@ const chainTotal = async (ctx: KCtxT, next: NextT) => {
 
 // project statistic
 const proDaily = async (ctx: KCtxT, next: NextT) => {
-    const pid = JSON.parse(ctx.request.body).pid
+    const {chain, pid} = JSON.parse(ctx.request.body)
+    checkChain(chain)
     checkPid(pid)
-    const re = await Stat.proDaily(pid)
+    const re = await Stat.proDaily(chain, pid)
     ctx.body = Resp.Ok(re)
     return next()
 }
 
 const proLastDays = async (ctx: KCtxT, next: NextT) => {
-    const { pid, days }: { pid: string, days: number } = JSON.parse(ctx.request.body)
+    const { chain, pid, days }: { chain: string, pid: string, days: number } = JSON.parse(ctx.request.body)
+    checkChain(chain)
     checkPid(pid)
     if (!Number.isInteger(days)) {
         throw Resp.Fail(400, 'days must be integer' as Msg)
     }
-    const re = await Stat.lastDays(days, pid)
+    const re = await Stat.lastDays(days, chain, pid)
     ctx.body = Resp.Ok(re)
     return next()
 }

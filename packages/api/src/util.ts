@@ -1,13 +1,19 @@
 import Mom from 'moment'
 import { getAppLogger } from '@elara/lib'
-import { StartT, DurationT } from './interface'
+import { StartT, DurationT, MomUnit } from './interface'
 
 const log = getAppLogger('util')
 
-export function lastTime(time: string, unit: number = 1): number[] {
-    const last = Mom().subtract(unit, `${time}s` as DurationT)
-    const start = last.startOf(time as StartT).clone()
-    const end = last.endOf(time as StartT)
-    log.debug(`last start-end of ${unit} ${time}: `, start, end)
+export function lastTime(unit: MomUnit, off: number = 1): number[] {
+    const last = Mom().subtract(off, `${unit}s` as DurationT)
+    const start = last.startOf(unit as StartT).clone()
+    const end = last.endOf(unit as StartT)
+    log.debug(`last start-end of ${off} ${unit}: `, start, end)
     return [start.valueOf(), end.valueOf()]
+}
+
+export function todayStamp(): number {
+    const today = Mom().startOf('day')
+    log.debug('today is: ', today)
+    return today.valueOf()
 }

@@ -29,11 +29,11 @@ export async function dailyStatDump(req: Statistics, key: string): PVoidT {
     } else {
         Rd.hset(key, `${req.proto}Delay`, accAverage(curNum, curDelay, req.delay ?? 0))
     }
-    let reqCnt = 1
-    if (req.proto === 'ws') {
-        reqCnt = req.reqCnt ?? 0
+    if (req.proto === 'ws' && req.reqCnt) {
+        Rd.hincrby(key, `wsSubNum`, 1)
+        Rd.hincrby(key, `wsSubResNum`, req.reqCnt)
     }
-    Rd.hincrby(key, `${req.proto}ReqNum`, reqCnt)
+    Rd.hincrby(key, `${req.proto}ReqNum`, 1)
     // ws connection cnt
     if (req.type === 'conn') {
         Rd.hincrby(key, 'wsConn', 1)

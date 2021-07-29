@@ -6,6 +6,8 @@ export interface StatT {
     wsReqNum: number,
     wsConn: number,
     wsCt: Record<string, number>,
+    wsSubNum: number,
+    wsSubResNum: number,
     wsBw: number,
     wsDelay: number,
     wsInReqNum: number,
@@ -53,3 +55,4 @@ export interface Statistics {
 
 export type StartT = Mom.unitOfTime.StartOf
 export type DurationT = Mom.unitOfTime.DurationConstructor
+export type MomUnit = 'day' | 'hour' | 'minute' | 'second'

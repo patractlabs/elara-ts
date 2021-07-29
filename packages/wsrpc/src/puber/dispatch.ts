@@ -87,7 +87,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
                     const ress = JSON.stringify(res)
                     stat.delay = Util.traceDelay(stat.start)
                     stat.bw = Util.strBytes(ress)
-                    // publish statistics
+                    stat.reqCnt = 1
                     Stat.publish(stat)
                     return puber.ws.send(ress)
                 }
