@@ -128,11 +128,16 @@ export async function handleStat(stream: string[]): PVoidT {
     const key = md5(dat)
     log.debug('dump new request statistic: ', key, dat)
     try {
-        // request record
-        Rd.setex(KEY.stat(req.chain, req.pid, key), rconf.expireFactor + 3600, dat)
-
-        // Rd.setex(KEY.stat(req.chain, req.pid, key), 120, dat)    // for test
-        Rd.zadd(KEY.zStatList(), req.reqtime, `${req.chain}_${req.pid}_${key}`)
+        if (req.code === 200) {
+            // request record
+            Rd.setex(KEY.stat(req.chain, req.pid, key), rconf.expireFactor + 3600, dat)
+            // Rd.setex(KEY.stat(req.chain, req.pid, key), 120, dat)    // for test
+            Rd.zadd(KEY.zStatList(), req.reqtime, `${req.chain}_${req.pid}_${key}`)
+        } else {
+            // keep one day error record
+            Rd.setex(KEY.errStat(req.chain, req.pid, key), 3600 * 24, dat)
+            Rd.zadd(KEY.zErrStatList(), req.reqtime, `${req.chain}_${req.pid}_${key}`)
+        }
 
         // daily statistic
         // dailyStatDump(req, KEY.hTotal())

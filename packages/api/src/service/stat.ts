@@ -178,6 +178,7 @@ namespace Stat {
     }
 
     export const latestReq = async (num: number): Promise<Statistics[]> => {
+        if (num < 1) { num = 1 }
         const keys = await statRd.zrevrange(sKEY.zStatList(), 0, num - 1)
         log.debug('latest request: ', num, keys)
         const res: Statistics[] = []
@@ -275,6 +276,25 @@ namespace Stat {
         statRd.del(skey)
         log.debug(`${typ} score rank reulst: `, re)
         return re
+    }
+
+    export const recentError = async (num: number): Promise<Statistics[]> => {
+        if (num < 1) { num = 1 }
+        const keys = await statRd.zrevrange(sKEY.zErrStatList(), 0, num - 1)
+        const res: Statistics[] = []
+        for (let k of keys) {
+            const re = await statRd.get(`Stat_Err_${k}`)
+            if (re === null) {
+                statRd.zrem(sKEY.zErrStatList(), k)
+                continue
+            }
+            const stat = JSON.parse(re) as Statistics
+            if (stat.header.ip !== 'localhost') {
+                stat.header.ip.replace(/^(\d*)\.(\d*)/, '***.***')
+            }
+            res.push(stat)
+        }
+        return res
     }
 
     // chain statistic

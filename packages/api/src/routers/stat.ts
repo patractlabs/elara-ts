@@ -42,6 +42,17 @@ const latestReq = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
+const latestErrReq = async (ctx: KCtxT, next: NextT) => {
+    let { count } = ctx.request.body
+    if (!Number.isInteger(count)) {
+        throw Resp.Fail(400, 'count must be integer' as Msg)
+    }
+    if (count < 1) { count = 1}
+    const re = await Stat.recentError(count)
+    ctx.body = Resp.Ok(re)
+    return next()
+}
+
 const lastDays = async (ctx: KCtxT, next: NextT) => {
     const { days } = ctx.request.body
     if (!Number.isInteger(days)) {
@@ -97,7 +108,7 @@ const proDaily = async (ctx: KCtxT, next: NextT) => {
 }
 
 const proLastDays = async (ctx: KCtxT, next: NextT) => {
-    const { chain, pid, days }: { chain: string, pid: string, days: number } = JSON.parse(ctx.request.body)
+    const { chain, pid, days }: { chain: string, pid: string, days: number } = ctx.request.body
     checkChain(chain)
     checkPid(pid)
     if (!Number.isInteger(days)) {
@@ -126,7 +137,7 @@ R.post('/latest', latestReq)
 R.post('/days', lastDays)
 R.post('/hours', lastHours)
 R.post('/most/:type', mostResourceLastDays) // type request , bandwidth
-
+R.post('/latest/error', latestErrReq)
 // chain
 R.get('/total/:chain', chainTotal)
 

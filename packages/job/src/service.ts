@@ -70,6 +70,13 @@ async function clearHourExpire(): PVoidT {
         log.debug('remove expire statistic: ', k)
         Rd.zrem(zlKey, k)
     }
+    
+    const zelKey = KEY.zErrStatList()
+    const ekeys = await Rd.zrangebyscore(zelKey, start, end)
+    for (let k of ekeys) {
+        log.debug('remove expire error statistic: ', k)
+        Rd.zrem(zelKey, k)
+    }
 }
 
 async function handleHourStatistic(): PVoidT {

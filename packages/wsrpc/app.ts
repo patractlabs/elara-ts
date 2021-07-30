@@ -47,12 +47,12 @@ function post(url: string, body: ChainPidT): Promise<any> {
         })
         req.on('error', (err: Error) => {
             log.error('post noder rpc request error: ', err)
-            reject({code: 500, msg: err, data: false})
+            reject({ code: 500, msg: err, data: false })
         })
         req.write(JSON.stringify(body))
         req.end()
     })
-    
+
 }
 
 async function resourceLimit(chain: string, pid: string): PBoolT {
@@ -60,7 +60,7 @@ async function resourceLimit(chain: string, pid: string): PBoolT {
         return false
     }
     // check request limit & bandwidth limit
-    const res = await post(`http://${conf.apiHost}:${conf.apiPort}/auth/islimit`, {chain, pid})
+    const res = await post(`http://${conf.apiHost}:${conf.apiPort}/auth/islimit`, { chain, pid })
     log.debug(`${chain} pid[${pid}] limit check result: `, res, chain, pid)
     const ok = JSON.parse(res).data as boolean ?? true
     return ok
@@ -91,7 +91,7 @@ function initStatistic(proto: string, method: string, header: Http.IncomingHttpH
     if (header['x-forwarded-for']) {
         ip = header['x-forwarded-for'] as string
     }
-    const head = {origin: header.origin ?? '', agent: header['user-agent'] ?? '', ip}
+    const head = { origin: header.origin ?? '', agent: header['user-agent'] ?? '', ip }
     return {
         proto,
         method,
@@ -117,10 +117,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         return Response.Fail(res, re.value, 400, reqStatis)
     }
     const cp = re.value as ChainPidT
-    const isLimit = await resourceLimit(cp.chain, cp.pid as string)
-    if (isLimit) {
-        return Response.Fail(res, 'resource out of limit', 400, reqStatis)
-    }
+
     let data = ''
     let dstart = 0
     reqStatis.chain = cp.chain
@@ -145,6 +142,10 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
             }
             dat = re.value
             reqStatis.req = dat
+            const isLimit = await resourceLimit(cp.chain, cp.pid as string)
+            if (isLimit) {
+                return Response.Fail(res, 'resource out of limit', 419, reqStatis)
+            }
         } catch (err) {
             log.error(`rpc request catch error: `, err)
             return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400, reqStatis)
@@ -216,25 +217,29 @@ wss.on('connection', async (ws, req: any) => {
         reqStatis.pid = pid
         reqStatis.header = stat.header
 
-        const isLimit = await resourceLimit(chain, pid)
-        if (isLimit) {
-            log.error(`${chain} pid[${pid}] resource check failed`)
-            Stat.publish(reqStatis)
-            return puber.ws.send('resource out of limit')
-        }
+
         try {
             let re = dataCheck(data.toString())
             if (isErr(re)) {
                 log.error(`${re.value}`)
-                // publis statistics
+                reqStatis.delay = Util.traceDelay(reqStatis.start)
                 Stat.publish(reqStatis)
                 return puber.ws.send(re.value)
             }
             dat = re.value
             reqStatis.req = dat
+            const isLimit = await resourceLimit(chain, pid)
+            if (isLimit) {
+                log.error(`${chain} pid[${pid}] resource check failed`)
+                reqStatis.code = 419    // rate limit
+                reqStatis.delay = Util.traceDelay(reqStatis.start)
+                Stat.publish(reqStatis)
+                return puber.ws.send('resource out of limit')
+            }
         } catch (err) {
             log.error('Parse request to JSON error')
             // publis statistics
+            reqStatis.delay = Util.traceDelay(reqStatis.start)
             Stat.publish(reqStatis)
             return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }

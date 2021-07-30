@@ -93,7 +93,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
                 }
                 res.error = { code: 500, message: 'error cache response' }
                 stat.code = 500
-                // publish statistics
+                stat.delay = Util.traceDelay(stat.start)
                 Stat.publish(stat)
                 return puber.ws.send(JSON.stringify(res))
             }

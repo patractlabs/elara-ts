@@ -111,6 +111,10 @@ namespace Stat {
         return `Z_${S}_list`
     }
 
+    export const zErrStatList = (): string => {
+        return `Z_${S}_Err_list`
+    }
+
     export const zExpireList = (): string => {
         return `Z_${S}_expire_timestamp`
     }
@@ -133,6 +137,10 @@ namespace Stat {
 
     export const stat = (chain: string, pid: string, key: string): string => {
         return `${S}_${chain.toLowerCase()}_${pid}_${key}`
+    }
+
+    export const errStat = (chain: string, pid: string, key: string): string => {
+        return `${S}_Err_${chain.toLowerCase()}_${pid}_${key}`
     }
 
     export const patStat = (chain?: string, pid?: string, key?: string): string => {
