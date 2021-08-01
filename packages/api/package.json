@@ -22,7 +22,10 @@
     "koa-passport": "^4.1.4",
     "koa-router": "^10.0.0",
     "koa-session": "^6.2.0",
-    "passport-github2": "^0.1.12"
+    "passport-github2": "^0.1.12",
+    "reflect-metadata": "^0.1.13",
+    "sequelize": "^6.6.5",
+    "sequelize-typescript": "^2.1.0"
   },
   "devDependencies": {
     "@types/geoip-country": "^4.0.0",
@@ -31,6 +34,10 @@
     "@types/koa-passport": "^4.0.2",
     "@types/koa-router": "^7.4.2",
     "@types/koa-session": "^5.10.3",
-    "@types/passport-github2": "^1.2.5"
+    "@types/node": "^16.4.7",
+    "@types/passport-github2": "^1.2.5",
+    "@types/validator": "^13.6.3",
+    "pg": "^8.7.1",
+    "pg-hstore": "^2.3.4"
   }
 }

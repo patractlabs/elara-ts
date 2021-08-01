@@ -26,14 +26,14 @@
         "maxReqKeep": 100
     },
 
-    "account":{
+    "user":{
         "loginUrl": "http://47.111.179.222:8000/account/auth/github/home",
         "github": {
             "clientID": "d67ed989933a697a9f9e",
             "clientSecret": "7dadbfa07c43571d9bfedbcca0fe9d59ccc6cf92",
             "callbackUrl": "http://47.111.179.222:8000/account/auth/github/callback"
         },
-        "defaultLevel": 0,
+        "defaultLevel": "normal",
         "apiKey": "elara"
     }
 }

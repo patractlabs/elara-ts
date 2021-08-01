@@ -1,8 +1,9 @@
 import { IDT, getAppLogger, randomId,Err, isErr, Ok, PResultT, KEYS, isEmpty, Msg } from '@elara/lib'
 import { now } from '../lib/date'
 import { projRd } from '../dao/redis'
-import Dao from '../dao'
-import Conf from '../../config'
+// import Dao from '../dao'
+// import Conf from '../../config'
+import ProjectModel, { ProAttr } from '../model/project'
 
 const KEY = KEYS.Project
 
@@ -43,30 +44,30 @@ interface Project {
 type SNU = string | null | undefined
 
 // depends on the db strategy
-const dumpProject = async (project: Project): PResultT<"OK"> => {
-    const { id, chain, name, uid, createTime } = project
+// const dumpProject = async (project: Project): PResultT<"OK"> => {
+//     const { id, chain, name, uid, createTime } = project
 
-    const timestr = createTime.toString()
-    try {
-        await Promise.all([
-            projRd.hmset(KEY.hProject(chain, id), project as any),
-            projRd.zadd(KEY.zProjectList(uid, chain), timestr, id),
-            projRd.zadd(KEY.zProjectNames(uid, chain), timestr, name),
-            projRd.incr(KEY.projectNum(uid))
-        ])
-    } catch (e) {
-        log.error('Dump project error: ', e)
-        return Err(e)
-    }
-    return Ok("OK")
-}
+//     const timestr = createTime.toString()
+//     try {
+//         await Promise.all([
+//             projRd.hmset(KEY.hProject(chain, id), project as any),
+//             projRd.zadd(KEY.zProjectList(uid, chain), timestr, id),
+//             projRd.zadd(KEY.zProjectNames(uid, chain), timestr, name),
+//             projRd.incr(KEY.projectNum(uid))
+//         ])
+//     } catch (e) {
+//         log.error('Dump project error: ', e)
+//         return Err(e)
+//     }
+//     return Ok("OK")
+// }
 
-async function chainValid(chain: string): Promise<boolean> {
-    const chains = await Dao.getChainList()
-    log.debug('valid chains: ', chains)
-    if (chains.includes(chain.toLowerCase())) { return true }
-    return false
-}
+// async function chainValid(chain: string): Promise<boolean> {
+//     const chains = await Dao.getChainList()
+//     log.debug('valid chains: ', chains)
+//     if (chains.includes(chain.toLowerCase())) { return true }
+//     return false
+// }
 
 async function keyExist(key: string): Promise<boolean> {
     const re = await projRd.exists(key)
@@ -76,32 +77,46 @@ async function keyExist(key: string): Promise<boolean> {
 
 class Project {
 
-    static async create(uid: string, chain: string, name: string, team: string): PResultT<Project> {
-        const isOk = await chainValid(chain)
-        log.debug('projec create: ', uid, chain, name, isOk)
-        if (!isOk) { return Err('invalid chain') }
-
-        const timestamp = now()     // now second 
-        const conf = Conf.getLimit()
-
-        let project = {
-            id: randomId(),
-            name,
-            uid,
+    static async create(uid: string, chain: string, name: string, team: string): PResultT<ProAttr> {
+        const re = await ProjectModel.create({
+            pid: randomId(),
             chain,
+            name,
             team,
             secret: randomId(),
             status: ProStatus.Active,
-            createTime: timestamp,
-            updateTime: timestamp,
-            reqSecLimit: conf.reqSecLimit,
-            bwDayLimit: conf.bwDayLimit
-        }
-        let re = await dumpProject(project)
-        if (isErr(re)) {
-            return re
-        }
-        return Ok(project)
+            reqSecLimit: 10,
+            reqDayLimit: 1000,
+            bwDayLimit: 1024,
+            // userId: uid
+        })
+        uid
+        return Ok(re)
+        // const isOk = await chainValid(chain)
+        // log.debug('projec create: ', uid, chain, name, isOk)
+        // if (!isOk) { return Err('invalid chain') }
+
+        // const timestamp = now()     // now second 
+        // const conf = Conf.getLimit()
+
+        // let project = {
+        //     id: randomId(),
+        //     name,
+        //     uid,
+        //     chain,
+        //     team,
+        //     secret: randomId(),
+        //     status: ProStatus.Active,
+        //     createTime: timestamp,
+        //     updateTime: timestamp,
+        //     reqSecLimit: conf.reqSecLimit,
+        //     bwDayLimit: conf.bwDayLimit
+        // }
+        // let re = await dumpProject(project)
+        // if (isErr(re)) {
+        //     return re
+        // }
+        // return Ok(project)
     }
 
     static isActive(project: Project): boolean {

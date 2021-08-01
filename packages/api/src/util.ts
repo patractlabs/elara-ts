@@ -1,5 +1,5 @@
 import Mom from 'moment'
-import { getAppLogger } from '@elara/lib'
+import { getAppLogger, Msg } from '@elara/lib'
 import { StartT, DurationT, MomUnit } from './interface'
 
 const log = getAppLogger('util')
@@ -16,4 +16,8 @@ export function todayStamp(): number {
     const today = Mom().startOf('day')
     log.debug('today is: ', today)
     return today.valueOf()
+}
+
+export function errMsg(err: any, msg: string): Msg {
+    return err.errors[0].message ?? msg
 }

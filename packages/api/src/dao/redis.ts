@@ -1,5 +1,5 @@
 import { Redis, DBT, KEYS, getAppLogger, ChainConfig } from '@elara/lib'
-import Account from '../service/account'
+import { UserAttr } from '../model/user'
 import { Topic } from '../service/chain'
 
 const log = getAppLogger('redis')
@@ -26,8 +26,8 @@ chainClient.onError((err: string) => {
 })
 
 namespace Rd {
-    export async function haddAccount(account: Account): Promise<"OK"> {
-        return actRd.hmset(actKEY.hAccount(account.uid), account as any)
+    export async function haddAccount(account: UserAttr): Promise<"OK"> {
+        return actRd.hmset(actKEY.hAccount(account.githubId), account as any)
     }
 
     export async function hgetDetail(uid: string): Promise<Record<string, string>> {

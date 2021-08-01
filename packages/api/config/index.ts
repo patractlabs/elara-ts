@@ -33,7 +33,7 @@ interface GithubT {
     callbackUrl: string
 }
 
-interface Account {
+interface User {
     loginUrl: string,
     github: GithubT,
     defaultLevel: number,
@@ -53,8 +53,8 @@ namespace Conf {
         return Config.get("limit")
     }
 
-    export function getAccount(): Account {
-        return Config.get("account")
+    export function getUser(): User {
+        return Config.get("user")
     }
 }
 

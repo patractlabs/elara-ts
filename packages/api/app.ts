@@ -9,7 +9,8 @@ import limitRouter from './src/routers/limit'
 import projectRouter from './src/routers/project'
 import statRouter from './src/routers/stat'
 import chainRouter from './src/routers/chain'
-import accountRouter from './src/routers/account'
+import userRouter from './src/routers/user'
+import authRouter from './src/routers/auth'
 import Conf from './config'
 
 dotenvInit()   // init dot env
@@ -17,11 +18,12 @@ const app = new Koa()
 const router = new Router()
 const server = Conf.getServer()
 
+router.use('/auth', authRouter)
 router.use('/limit', authCheck, limitRouter)
 router.use('/project', authCheck, projectRouter)
 router.use('/stat', authCheck, statRouter)
 router.use('/chain', authCheck, chainRouter)
-router.use('/auth', accountRouter)
+router.use('/user', authCheck, userRouter)
 
 export const log = getAppLogger('app')
 

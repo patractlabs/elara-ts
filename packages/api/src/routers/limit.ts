@@ -1,50 +1,69 @@
-import Project from '../service/project'
-import Limit from '../service/limit'
-import { Resp, Code, Msg, NextT, KCtxT, getAppLogger, isOk } from '@elara/lib'
+import { Resp, Msg, NextT, KCtxT, isErr } from '@elara/lib'
 import Router from 'koa-router'
+import Limit from '../service/limit'
+import { LimitAttr } from '../model/limit'
+import { UserLevel } from '../model/user'
 
-const log = getAppLogger('limit')
 const R = new Router()
 
-let checkLimit = async (ctx: KCtxT, next: NextT) => {
-    let chain = ctx.request.params.chain
-    let pid = ctx.request.params.pid
-    log.debug(`new limit check request: ${chain} ${pid}`)
-    if ('00000000000000000000000000000000' == pid) {//不需要check
-        ctx.response.body = JSON.stringify(Resp.Ok())
-        return next()
+async function add(ctx: KCtxT, next: NextT) {
+    const attr = ctx.request.body as LimitAttr
+    const re = await Limit.add(attr)
+    if (isErr(re)) {
+        throw Resp.Fail(400, 'add error' as Msg)
     }
-
-    //检测项目id是否存在
-    let re = await Project.detail(chain, pid)
-    if (isOk(re)) {
-        const project = re.value
-        //检测链是否匹配
-        if (chain.toLowerCase() != project.chain.toLowerCase()) {
-            throw Resp.Fail(Code.Chain_Err, Msg.Chain_Err) // CODE.CHAIN_ERROR
-        }
-        //检测是否运行中
-        if (!Project.isActive(project)) {
-            throw Resp.Fail(Code.Pro_Stat_Err, Msg.Pro_Stat_Err) // CODE.PROJECT_NOT_ACTIVE
-        }
-        let isBlack = await Limit.isBlack(project.uid)
-        if (isBlack) {
-            throw Resp.Fail(Code.Black_UID, Msg.Black_UID) // CODE.BLACK_UID
-        }
-        let isLimit = await Limit.isLimit(project.uid, pid)
-        //检测是否限流
-        if (isLimit) {
-            throw Resp.Fail(Code.Out_Of_Limit, Msg.Out_Of_Limit) // CODE.OUT_OF_LIMIT
-        }
-
-    } else
-        throw Resp.Fail(Code.Pro_Err, Msg.Pro_Err) // CODE.PROJECT_ERROR
-
-    ctx.response.body = Resp.Ok()
-
+    ctx.body = Resp.Ok(re.value)
     return next()
 }
-R.get('/:chain/:pid([a-z0-9]{32})', checkLimit)
+
+async function destroy(ctx: KCtxT, next: NextT) {
+    const { id } = ctx.request.body
+    const re = await Limit.delete(id)
+    if (isErr(re) || !re.value) {
+        throw Resp.Fail(400, 'destroy error' as Msg)
+    }
+    ctx.body = Resp.Ok()
+    return next()
+}
+
+async function update(ctx: KCtxT, next: NextT) {
+    const attr = ctx.request.body as LimitAttr
+    const re = await Limit.update(attr)
+    if (isErr(re)) {
+        throw Resp.Fail(400, re.value as Msg)
+    }
+    ctx.body = Resp.Ok(re.value)
+    return next()
+}
+
+async function findById(ctx: KCtxT, next: NextT) {
+    const { id } = ctx.request.body
+    const re = await Limit.findById(id)
+    if (isErr(re)) {
+        throw Resp.Fail(400, re.value as Msg)
+    }
+    ctx.body = Resp.Ok(re.value)
+    return next()
+}
+
+async function findByLevel(ctx: KCtxT, next: NextT) {
+    const { level } = ctx.request.body
+    if (!Object.values(UserLevel).includes(level)) {
+        throw Resp.Fail(400, 'invalid level' as Msg)
+    }
+    const re = await Limit.findByLevel(level)
+    if (isErr(re)) {
+        throw Resp.Fail(400, re.value as Msg)
+    }
+    ctx.body = Resp.Ok(re.value)
+    return next()
+}
+
+R.post('/add', add)
+R.post('/delete', destroy)
+R.post('/update', update)
+R.post('/id', findById)
+R.post('/level', findByLevel)
 
 export default R.routes()
 

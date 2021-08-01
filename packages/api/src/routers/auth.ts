@@ -1,17 +1,18 @@
-import { Resp, NextT, KCtxT, Code, Msg, isErr, randomId, getAppLogger } from '@elara/lib'
 import Router from 'koa-router'
+import { KCtxT, NextT, getAppLogger, Resp, Code, Msg, randomId, isErr } from '@elara/lib'
+import User from '../service/user'
+import { UserAttr, LoginType} from '../model/user'
 import Passport from '../lib/passport'
-import Account from '../service/account'
 import Conf from '../../config'
 
-
 const R = new Router()
-const log = getAppLogger('account')
-const accountConf = Conf.getAccount()
+const log = getAppLogger('auth')
+
+const accountConf = Conf.getUser()
 
 async function login(ctx: KCtxT, next: NextT) {
     if (ctx.isAuthenticated()) {
-        const account = await Account.detail(ctx.state.user)
+        const account = await User.findUserByGit(ctx.state.user)
         ctx.response.body = Resp.Ok(account.value)
     } else {
         throw Resp.Fail(Code.Auth_Fail, Msg.Auth_Fail)
@@ -20,7 +21,7 @@ async function login(ctx: KCtxT, next: NextT) {
 }
 
 async function github(ctx: KCtxT, next: NextT) {
-    return Passport.authenticate('github', { scope: ['user']})(ctx, next)
+    return Passport.authenticate('github', { scope: ['user'] })(ctx, next)
 }
 
 async function githubCallback(ctx: KCtxT, next: NextT) {
@@ -39,25 +40,24 @@ async function githubCallback(ctx: KCtxT, next: NextT) {
                 return next()
             }
 
-            const uid = user.profile.id
-            const re = await Account.detail(uid)
+            const githubId = user.profile.id
+            const re = await User.findUserByGit(githubId)
             const sid = randomId(24)
 
-            if (isErr(re) || re.value.uid === uid) {
-                const username = user.profile.username
-                let account = await Account.create(
-                    uid,
-                    username,
-                    0,
-                    'github',
-                )
+            if (isErr(re) || re.value.githubId === githubId) {
+                const name = user.profile.username
+                let account = await User.create({
+                    githubId,
+                    name,
+                    loginType: LoginType.Github
+                } as UserAttr)
                 if (isErr(account)) {
                     //新建账户失败，重定向到登陆页
                     ctx.response.redirect(accountConf.loginUrl) //重定向到登陆页
                     return next()
                 }
             }
-            ctx.login(uid) //设置登陆
+            ctx.login(githubId) //设置登陆
             ctx.session['sid'] = sid
 
             ctx.response.type = 'html'
@@ -72,26 +72,6 @@ async function logout(ctx: KCtxT, next: NextT) {
     ctx.response.body = Resp.Ok().toString()
     return next()
 }
-
-async function updateStatus(ctx: KCtxT, next: NextT) {
-    ctx.body = Resp.Ok()
-    return next()
-}
-
-async function detail(ctx: KCtxT, next: NextT) {
-    ctx.body = Resp.Ok()
-    return next()
-}
-
-async function checkLimit(ctx: KCtxT, next: NextT) {
-    log.debug('check body: ', ctx.request.body)
-    const {chain, pid} = ctx.request.body
-    log.debug('new limit check: ', chain, pid)
-    const re = await Account.checkLimit(chain, pid)
-    ctx.body = Resp.Ok(re)
-    return next()
-}
-
 
 /// for local test
 async function home(ctx: KCtxT, next: NextT) {
@@ -125,16 +105,10 @@ const html_login_success = `
 </html>`
 
 
-
-
 R.get('/login', login)
+R.get('/logout', logout)
 R.get('/github', github)
 R.get('/github/callback', githubCallback)
-R.get('/logout', logout)
 R.get('/github/home', home)
-R.post('/status', updateStatus)
-R.post('/info', detail)
-
-R.post('/islimit', checkLimit)
 
 export default R.routes()

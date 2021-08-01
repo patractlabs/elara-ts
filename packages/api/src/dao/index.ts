@@ -1,10 +1,10 @@
 import { PResultT, Ok, Err, ChainConfig, PVoidT } from '@elara/lib'
-import Account from '../service/account'
 import Rd from './redis'
 import { Topic } from '../service/chain'
+import { UserAttr } from '../model/user'
 
 namespace Dao {
-    export const createAccount = async (account: Account): PResultT<void> => {
+    export const createAccount = async (account: UserAttr): PResultT<void> => {
         const re = await Rd.haddAccount(account)
         if (re !== "OK") return Err('create account failed')
         return Ok(void(0))

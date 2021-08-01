@@ -2,7 +2,7 @@ import Passport from 'koa-passport'
 import Pgit from 'passport-github2'
 import Conf from '../../config'
 
-const config = Conf.getAccount()
+const config = Conf.getUser()
 
 const log = console
 

@@ -1,49 +1,90 @@
-import Conf from "../../config"
-import Account from "./account"
-import { formateDate } from "../lib/date"
-import KEY from '../lib/KEY'
-import { isOk } from '@elara/lib'
-import { actRd, statRd } from '../dao/redis'
+import { Err, getAppLogger, Ok, PResultT } from '@elara/lib'
+import { LimitAttr, getModel } from '../model/limit'
+import { Pg } from '../dao/pg'
+import { UserLevel } from '../model/user'
+import { errMsg } from '../util'
 
-const limitConf = Conf.getLimit()
+const lModel = getModel(Pg)
+const log = getAppLogger('limit')
 
 class Limit {
-    constructor(public daily: number, public project: number) {
-        this.daily = daily
-        this.project = project
-    }
-
-    //账户的每日限额
-    static async create(uid: string) {
-        let account = await Account.detail(uid)
-        // let limit: any = new Limit()
-        // limit.daily = config.limit.daily[0]
-
-        let dayl = 0
-        let prol = 0
-        if (isOk(account)) {
-            console.log('Account is vip: ', account.value)
-            // dayl = config.limit.daily[account.value.vip]
-            // prol = config.limit.project[account.value.vip]
-        } else {
-            dayl = limitConf.daily.develop
-            prol = limitConf.project.develop
+    static async add(attr: LimitAttr) {
+        try {
+            const re = await lModel.create(attr)
+            log.debug('create limit result: ', re)
+            return Ok(re)
+        } catch (err) {
+            log.error('add new limit error: ', err)
+            return Err(errMsg(err, 'add fail'))
         }
-        return new Limit(dayl, prol)
     }
-    //是否在黑名单
-    static async isBlack(uid: string) {
-        return await actRd.sismember(KEY.BLACKUID(), uid)
-    }
-    static async isLimit(uid: string, pid: string) {
-        let date = formateDate(new Date())
-        let limit = await Limit.create(uid)
 
-        let today_request: any = await statRd.get(KEY.REQUEST(pid, date))
-        if (parseInt(today_request) > limit.daily) {
-            return true
+    static async update(attr: LimitAttr): PResultT<[number, Limit[]]> {
+        try {
+            if (attr.level) {
+                if (!Object.values(UserLevel).includes(attr.level)) {
+                    return Err('invalid level')
+                }
+            }
+            const re = await lModel.update(attr, {
+                where: {
+                    id: attr.id
+                }
+            })
+            return Ok(re)
+        } catch (err) {
+            log.error('udpate error: ', err)
+            return Err(errMsg(err, 'udpate error'))
         }
-        return false
+    }
+
+    static async findById(id: number): PResultT<LimitAttr> {
+        try {
+            const re = await lModel.findOne({
+                where: {
+                    id
+                }
+            })
+            if (re === null) {
+                return Err('no this item')
+            }
+            return Ok(re)
+        } catch (err) {
+            log.error(`find limit of id ${id} error: `, err)
+            return Err(errMsg(err, 'find error'))
+        }
+    }
+
+    static async findByLevel(level: UserLevel): PResultT<LimitAttr> {
+        try {
+            const re = await lModel.findOne({
+                where: {
+                    level
+                }
+            })
+            if (re === null) {
+                return Err('no this item')
+            }
+            return Ok(re)
+        } catch (err) {
+            log.error(`find limit of level ${level} error: `, err)
+            return Err(errMsg(err, 'find error'))
+        }
+    }
+
+    static async delete(id: number, force: boolean = false): PResultT<boolean> {
+        try {
+            const re = await lModel.destroy({
+                where: {
+                    id
+                },
+                force
+            })
+            return Ok(re === 1)
+        } catch (err) {
+            log.error(`destroy limit of ${id} error: `, err)
+            return Err(errMsg(err, 'destroy error'))
+        }
     }
 
 }
