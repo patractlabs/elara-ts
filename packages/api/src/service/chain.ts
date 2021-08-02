@@ -1,5 +1,6 @@
 import { getAppLogger, PResultT, Ok, ChainConfig, isErr } from '@elara/lib'
 import Dao from '../dao'
+import ChainModel, { ChainAttr } from '../models/chain'
 
 const log = getAppLogger('chain', true)
 
@@ -36,13 +37,13 @@ namespace Chain {
         return Ok(cha)
     }
 
-    export const newChain = async (chain: ChainConfig): PResultT<string | number> => {
-        let re = await Dao.updateChain(chain)
+    export const newChain = async (chain: ChainAttr): PResultT<ChainAttr> => {
+        let re = await ChainModel.create(chain)
         log.info('add chain result: ', re)
 
         // publish newchain event
         Dao.publishTopic(Topic.ChainAdd, chain.name)
-        return re
+        return Ok(re)
     }
 
     export const deleteChain = async (chain: string): PResultT<void> => {

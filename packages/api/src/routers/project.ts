@@ -1,4 +1,5 @@
-import Project, { ProStatus } from '../service/project'
+import Project from '../service/project'
+import { ProAttr, ProStatus } from '../models/project'
 import { KCtxT, NextT, getAppLogger, Code, Resp, Msg, PVoidT } from '@elara/lib'
 import { isErr, isEmpty } from '@elara/lib'
 import { lengthOk } from '../lib'
@@ -48,39 +49,44 @@ async function checkProjectLimit(uid: string): PVoidT {
 }
 
 //验证登录态，新建项目
-async function createProeject(ctx: KCtxT, next: NextT) {
+async function create(ctx: KCtxT, next: NextT) {
     let uid = ctx.state.user
     log.debug('create project request: ', uid, ctx.request.body)
-    const { chain, name, team } = ctx.request.body
+    const pro = ctx.request.body as ProAttr
 
-    checkName(name)
-    const exist = await Project.isExist(uid, chain, name)
-    if (exist) {
-        log.error(`project named [${name}] existed`)
-        throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)
-    }
+    checkName(pro.name)
+
 
     await checkProjectLimit(uid)
 
-    let re = await Project.create(uid, chain, name, team)
+    const re = await Project.create(uid, pro)
+
+    if (isErr(re)) {
+        throw Resp.Fail(Code.Pro_Err, Msg.Pro_Err)
+    }
 
     log.info('create project result: ', re)
 
-    if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Err, re.value as Msg)
-    }
     ctx.body = Resp.Ok(re.value)   // equals to ctx.response.body
     return next()
 }
 
-//验证登录态，获取项目详情
-async function projectDetail(ctx: KCtxT, next: NextT) {
-    // let uid = ctx.state.user
+async function findById(ctx: KCtxT, next: NextT) {
+    const { id } = ctx.request.body
+    const re = await Project.findById(id)
+    if (isErr(re)) {
+        throw Resp.Fail(500, re.value as Msg)
+    }
+    ctx.body = Resp.Ok(re.value)
+    return next()
+}
+
+async function findByChainPid(ctx: KCtxT, next: NextT) {
     const { chain, pid } = ctx.request.params
     log.debug('get project detail: ', chain, pid)
     checkChainPid(chain, pid)
     // check UID or not
-    let project = await Project.detail(chain, pid)
+    let project = await Project.findByChainPid(chain, pid)
     if (isErr(project)) {
         throw Resp.Fail(Code.Pro_Err, project.value as Msg)
     }
@@ -89,9 +95,9 @@ async function projectDetail(ctx: KCtxT, next: NextT) {
 }
 
 // project count list of chain by user
-async function projectCountChainList(ctx: KCtxT, next: NextT) {
-    let uid = ctx.state.user
-    let re = await Project.countOfChainList(uid)
+async function countOfChain(ctx: KCtxT, next: NextT) {
+    const { chain } = ctx.request.body
+    let re = await Project.countOfChain(chain)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
@@ -115,7 +121,7 @@ async function projectListByChain(ctx: KCtxT, next: NextT) {
     const { chain } = ctx.request.params
     let uid = ctx.state.user
     log.debug('get project list: ', uid, chain)
-    let re = await Project.listByChain(uid, chain)
+    let re = await Project.findByChain(chain)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
@@ -124,11 +130,9 @@ async function projectListByChain(ctx: KCtxT, next: NextT) {
 }
 
 async function updateStatus(ctx: KCtxT, next: NextT) {
-    const { chain, pid, status } = ctx.request.body
-    log.debug(`update ${chain} pid[${pid}] status: `, status)
-    checkChainPid(chain, pid)
-    checkStatus(status)
-    const re = await Project.updateStatus(chain, pid, status)
+    const {id, status} = ctx.request.body as ProAttr
+    if (status) {checkStatus(status)}
+    const re = await Project.update({id, status} as ProAttr)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg)
     }
@@ -137,10 +141,13 @@ async function updateStatus(ctx: KCtxT, next: NextT) {
 }
 
 async function updateLimit(ctx: KCtxT, next: NextT) {
-    const { chain, pid, reqSecLimit, bwDayLimit } = ctx.request.body
-    checkChainPid(chain, pid)
+    let { id, reqSecLimit, reqDayLimit, bwDayLimit } = ctx.request.body
+    const pro = { id } as ProAttr
+    if (reqSecLimit) { pro.reqSecLimit = reqSecLimit }
+    if (reqDayLimit) { pro.reqDayLimit = reqDayLimit }
+    if (bwDayLimit) { pro.bwDayLimit = bwDayLimit }
 
-    const re = await Project.updateLimit(chain, pid, reqSecLimit, bwDayLimit)
+    const re = await Project.update(pro)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg)
     }
@@ -149,11 +156,9 @@ async function updateLimit(ctx: KCtxT, next: NextT) {
 }
 
 async function updateName(ctx: KCtxT, next: NextT) {
-    const uid = ctx.state.user
-    const { chain, pid, name } = ctx.request.body
-    checkChainPid(chain, pid)
+    const { id, name } = ctx.request.body
     checkName(name)
-    const re = await Project.changeName(chain, uid, pid, name)
+    const re = await Project.update({id, name} as ProAttr)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg)
     }
@@ -162,11 +167,8 @@ async function updateName(ctx: KCtxT, next: NextT) {
 }
 
 async function deleteProject(ctx: KCtxT, next: NextT) {
-    const uid = ctx.state.user
-    const { chain, pid } = ctx.request.body
-    log.debug(`delet project: ${chain} ${pid}`)
-    checkChainPid(chain, pid)
-    const re = await Project.delete(chain, uid, pid)
+    const { id } = ctx.request.body
+    const re = await Project.delete(id)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
@@ -175,14 +177,15 @@ async function deleteProject(ctx: KCtxT, next: NextT) {
 }
 
 R.get('/:chain/list', projectListByChain)
-R.get('/count/list', projectCountChainList)
+R.post('/count/chain', countOfChain)
 R.get('/count', projectCountByUser)
-R.get('/:chain/:pid([a-z0-9]{32})', projectDetail)
+R.get('/:chain/:pid([a-z0-9]{32})', findByChainPid)
 
+R.post('/detail/id', findById)
 R.post('/name', updateName)
 R.post('/limit', updateLimit)
 R.post('/status', updateStatus)
-R.post('/create', createProeject)
+R.post('/create', create)
 R.post('/delete', deleteProject)
 
 export default R.routes()

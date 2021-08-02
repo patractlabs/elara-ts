@@ -1,5 +1,5 @@
 import { Redis, DBT, KEYS, getAppLogger, ChainConfig } from '@elara/lib'
-import { UserAttr } from '../model/user'
+import { UserAttr } from '../models/user'
 import { Topic } from '../service/chain'
 
 const log = getAppLogger('redis')

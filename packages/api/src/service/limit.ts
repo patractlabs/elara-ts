@@ -1,10 +1,8 @@
 import { Err, getAppLogger, Ok, PResultT } from '@elara/lib'
-import { LimitAttr, getModel } from '../model/limit'
-import { Pg } from '../dao/pg'
-import { UserLevel } from '../model/user'
+import lModel, { LimitAttr } from '../models/limit'
+import { UserLevel } from '../models/user'
 import { errMsg } from '../util'
 
-const lModel = getModel(Pg)
 const log = getAppLogger('limit')
 
 class Limit {

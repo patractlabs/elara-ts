@@ -1,7 +1,7 @@
 import { PResultT, Ok, Err, ChainConfig, PVoidT } from '@elara/lib'
 import Rd from './redis'
 import { Topic } from '../service/chain'
-import { UserAttr } from '../model/user'
+import { UserAttr } from '../models/user'
 
 namespace Dao {
     export const createAccount = async (account: UserAttr): PResultT<void> => {

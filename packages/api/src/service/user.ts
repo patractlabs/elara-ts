@@ -1,12 +1,10 @@
 import { PResultT, Ok, Err, getAppLogger, PBoolT, PVoidT } from '@elara/lib'
 import Dao from '../dao'
 import Stat from './stat'
-import { getModel, UserAttr, UserStat, UserLevel } from '../model/user'
-import { Pg } from '../dao/pg'
+import UserModel, { UserAttr, UserStat, UserLevel } from '../models/user'
+import Project from '../models/project'
 
 const log = getAppLogger('user-service', true)
-
-const UserModel = getModel(Pg)
 
 export default class User {
 
@@ -21,7 +19,7 @@ export default class User {
             level: UserLevel.Normal,
             status: UserStat.Active,
             loginType
-        } as UserAttr
+        } as UserModel
         try {
             const re = await UserModel.create(user)
             log.debug('UserModel create result: ', re)
@@ -44,10 +42,10 @@ export default class User {
     static async updateLevelByGit(githubId: string, level: UserLevel): PVoidT {
         UserModel.update({
             level
-        }, {
+        } as UserModel, {
             where: {
                 githubId,
-            }
+            },
         })
     }
 
@@ -74,6 +72,19 @@ export default class User {
         return Ok(user)
     }
 
+    static async findUserByGitWithProject(githubId: string, paranoid: boolean = true): PResultT<UserAttr> {
+        const user = await UserModel.findOne({
+            where: { githubId },
+            include: Project,
+            paranoid        // if false query logic deleted item
+        })
+        log.debug(`user of githubId[${githubId}] with project: `, user)
+        if (user === null) {
+            return Err('no this user')
+        }
+        return Ok(user)
+    }
+
     static async getStatusByGit(githubId: string): PResultT<UserStat> {
         const re = await UserModel.findOne({
             where: { githubId },
@@ -85,7 +96,7 @@ export default class User {
         return Ok(re.status)
     }
 
-    static async getLevelByGit(githubId: string): PResultT<UserLevel> {
+    static async getLevelByGit(githubId: string): PResultT<string> {
         const re = await UserModel.findOne({
             where: { githubId },
             attributes: ['level']
@@ -100,6 +111,7 @@ export default class User {
         log.debug(`check limit status of ${chain} pid[${pid}]`)
         const re = await Stat.proDaily(chain, pid)
         const bw = re.httpBw + re.wsBw
+        
         // project limit
         const pstat = await Dao.getProjectLimit(chain, pid)
         if (pstat.uid === '') {

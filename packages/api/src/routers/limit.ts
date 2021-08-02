@@ -1,13 +1,16 @@
 import { Resp, Msg, NextT, KCtxT, isErr } from '@elara/lib'
 import Router from 'koa-router'
 import Limit from '../service/limit'
-import { LimitAttr } from '../model/limit'
-import { UserLevel } from '../model/user'
+import { LimitAttr } from '../models/limit'
+import { UserLevel } from '../models/user'
 
 const R = new Router()
 
 async function add(ctx: KCtxT, next: NextT) {
     const attr = ctx.request.body as LimitAttr
+    if (!Object.values(UserLevel).includes(attr.level)) {
+        throw Resp.Fail(400, 'invalid level' as Msg)
+    }
     const re = await Limit.add(attr)
     if (isErr(re)) {
         throw Resp.Fail(400, 'add error' as Msg)

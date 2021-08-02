@@ -1,7 +1,7 @@
 import { Resp, NextT, KCtxT, Msg, isErr, getAppLogger } from '@elara/lib'
 import Router from 'koa-router'
 import User from '../service/user'
-import { UserAttr, UserLevel, UserStat } from '../model/user'
+import { UserAttr, UserLevel, UserStat } from '../models/user'
 
 
 const R = new Router()
@@ -31,6 +31,16 @@ async function updateLevel(ctx: KCtxT, next: NextT) {
 async function detail(ctx: KCtxT, next: NextT) {
     log.debug('context state user: ', ctx.state.user)
     const re = await User.findUserByGit(ctx.state.user)
+    if (isErr(re)) {
+        throw Resp.Fail(400, re.value as Msg)
+    }
+    ctx.body = Resp.Ok(re.value)
+    return next()
+}
+
+async function detailWithProject(ctx: KCtxT, next: NextT) {
+    log.debug('context state user: ', ctx.state.user)
+    const re = await User.findUserByGitWithProject(ctx.state.user)
     if (isErr(re)) {
         throw Resp.Fail(400, re.value as Msg)
     }
@@ -74,6 +84,7 @@ async function newUser(ctx: KCtxT, next: NextT) {
 R.post('/status', updateStatus)
 R.post('/level', updateLevel)
 R.post('/detail', detail)
+R.post('/detailwithproject', detailWithProject)
 R.post('/detail/status', getStatus)
 R.post('/detail/level', getLevel)
 

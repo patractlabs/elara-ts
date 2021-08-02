@@ -1,6 +1,7 @@
-import { isErr, KCtxT, NextT, Resp, RpcStrategy, Code, Msg } from '@elara/lib'
-import { getAppLogger, ChainConfig } from '@elara/lib'
+import { isErr, KCtxT, NextT, Resp, } from '@elara/lib'
+import { getAppLogger } from '@elara/lib'
 import Router from 'koa-router'
+import { ChainAttr } from '../models/chain'
 import Chain from '../service/chain'
 
 const R = new Router()
@@ -26,14 +27,14 @@ const detail = async (ctx: KCtxT, next: NextT) => {
 }
 
 const addChain = async (ctx: KCtxT, next: NextT) => {
-    const req: ChainConfig = JSON.parse(ctx.request.body)
-    log.info('add body: ', req, req.baseUrl)
-    if (await Chain.isExist(req.name)) {
-        throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)
-    }
-    req.baseUrl = '127.0.0.1'
-    req.excludes = JSON.stringify(['system_call'])
-    req.extends = JSON.stringify({ 'system_wtf': RpcStrategy.Abandon })
+    const req: ChainAttr = ctx.request.body
+    log.info('add body: ', req)
+    // if (await Chain.isExist(req.name)) {
+    //     throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)
+    // }
+    // req.baseUrl = '127.0.0.1'
+    // req.excludes = JSON.stringify(['system_call'])
+    // req.extends = JSON.stringify({ 'system_wtf': RpcStrategy.Abandon })
     const re = await Chain.newChain(req)
     if (isErr(re)) {
         throw Resp.Unknown()

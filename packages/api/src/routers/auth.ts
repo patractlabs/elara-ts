@@ -1,7 +1,7 @@
 import Router from 'koa-router'
 import { KCtxT, NextT, getAppLogger, Resp, Code, Msg, randomId, isErr } from '@elara/lib'
 import User from '../service/user'
-import { UserAttr, LoginType} from '../model/user'
+import { UserAttr, LoginType} from '../models/user'
 import Passport from '../lib/passport'
 import Conf from '../../config'
 
