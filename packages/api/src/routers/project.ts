@@ -33,13 +33,14 @@ function checkStatus(status: ProStatus): void {
     }
 }
 
-async function checkProjectLimit(uid: string): PVoidT {
-    let cntRe = await Project.countByUser(uid)
+async function checkProjectLimit(userId: number): PVoidT {
+    let cntRe = await Project.countOfUser(userId)
     if (isErr(cntRe)) {
-        log.error(`fetch uid[${uid}] total created project num error: ${cntRe}`)
+        log.error(`fetch uid[${userId}] total created project num error: ${cntRe}`)
         throw Resp.Fail(Code.Pro_Num_Limit, cntRe.value as Msg)
     }
 
+    // TODO user resource limit
     const conf = Conf.getLimit()
     const cnt = cntRe.value
     if (cnt >= conf.maxProjectNum) {
@@ -50,12 +51,16 @@ async function checkProjectLimit(uid: string): PVoidT {
 
 //验证登录态，新建项目
 async function create(ctx: KCtxT, next: NextT) {
-    let uid = ctx.state.user
+    const uid = ctx.state.user
     log.debug('create project request: ', uid, ctx.request.body)
     const pro = ctx.request.body as ProAttr
 
     checkName(pro.name)
 
+    const isExist = await Project.isExist(uid, pro.chain, pro.name)
+    if (isExist) {
+        throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)
+    }
 
     await checkProjectLimit(uid)
 
@@ -82,10 +87,10 @@ async function findById(ctx: KCtxT, next: NextT) {
 }
 
 async function findByChainPid(ctx: KCtxT, next: NextT) {
-    const { chain, pid } = ctx.request.params
+    const { chain, pid } = ctx.request.body
     log.debug('get project detail: ', chain, pid)
     checkChainPid(chain, pid)
-    // check UID or not
+
     let project = await Project.findByChainPid(chain, pid)
     if (isErr(project)) {
         throw Resp.Fail(Code.Pro_Err, project.value as Msg)
@@ -105,23 +110,22 @@ async function countOfChain(ctx: KCtxT, next: NextT) {
     return next()
 }
 
-async function projectCountByUser(ctx: KCtxT, next: NextT) {
-    const uid = ctx.state.user
-    let cntRe = await Project.countByUser(uid)
+async function countOfUser(ctx: KCtxT, next: NextT) {
+    let { userId, byChain } = ctx.state.user
+    if (byChain !== true) { byChain = false }
+    let cntRe = await Project.countOfUser(userId, byChain)
     if (isErr(cntRe)) {
-        log.error(`fetch uid[${uid}] total created project num error: ${cntRe}`)
+        log.error(`fetch user[${userId}] total created project num error: ${cntRe}`)
         throw Resp.Fail(Code.Pro_Num_Limit, cntRe.value as Msg)
     }
     ctx.body = Resp.Ok(cntRe.value)
     return next()
 }
 
-// project list by chain
-async function projectListByChain(ctx: KCtxT, next: NextT) {
-    const { chain } = ctx.request.params
-    let uid = ctx.state.user
-    log.debug('get project list: ', uid, chain)
-    let re = await Project.findByChain(chain)
+async function list(ctx: KCtxT, next: NextT) {
+    const { userId, chain } = ctx.request.params
+    log.debug('get project list: ', userId, chain)
+    let re = await Project.list(userId, chain)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
@@ -130,9 +134,9 @@ async function projectListByChain(ctx: KCtxT, next: NextT) {
 }
 
 async function updateStatus(ctx: KCtxT, next: NextT) {
-    const {id, status} = ctx.request.body as ProAttr
-    if (status) {checkStatus(status)}
-    const re = await Project.update({id, status} as ProAttr)
+    const { id, status } = ctx.request.body as ProAttr
+    if (status) { checkStatus(status) }
+    const re = await Project.update({ id, status } as ProAttr)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg)
     }
@@ -156,9 +160,13 @@ async function updateLimit(ctx: KCtxT, next: NextT) {
 }
 
 async function updateName(ctx: KCtxT, next: NextT) {
-    const { id, name } = ctx.request.body
+    const { userId, id, chain, name } = ctx.request.body
     checkName(name)
-    const re = await Project.update({id, name} as ProAttr)
+    const isExist = await Project.isExist(userId, chain, name)
+    if (isExist) {
+        throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)
+    }
+    const re = await Project.update({ id, name } as ProAttr)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg)
     }
@@ -167,24 +175,27 @@ async function updateName(ctx: KCtxT, next: NextT) {
 }
 
 async function deleteProject(ctx: KCtxT, next: NextT) {
-    const { id } = ctx.request.body
-    const re = await Project.delete(id)
+    let { id, force } = ctx.request.body
+    if (force !== true) { force = false }
+    const re = await Project.delete(id, force)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
-    ctx.body = Resp.Ok()
+    ctx.body = Resp.Ok(re.value)
     return next()
 }
 
-R.get('/:chain/list', projectListByChain)
+R.post('/list', list)
 R.post('/count/chain', countOfChain)
-R.get('/count', projectCountByUser)
-R.get('/:chain/:pid([a-z0-9]{32})', findByChainPid)
+R.post('/count/user', countOfUser)
 
+R.post('/detail/chainpid', findByChainPid)
 R.post('/detail/id', findById)
-R.post('/name', updateName)
-R.post('/limit', updateLimit)
-R.post('/status', updateStatus)
+
+R.post('/update/name', updateName)
+R.post('/update/limit', updateLimit)
+R.post('/update/status', updateStatus)
+
 R.post('/create', create)
 R.post('/delete', deleteProject)
 

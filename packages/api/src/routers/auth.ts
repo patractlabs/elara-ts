@@ -1,19 +1,19 @@
 import Router from 'koa-router'
 import { KCtxT, NextT, getAppLogger, Resp, Code, Msg, randomId, isErr } from '@elara/lib'
 import User from '../service/user'
-import { UserAttr, LoginType} from '../models/user'
+import { UserAttr, LoginType } from '../models/user'
 import Passport from '../lib/passport'
 import Conf from '../../config'
 
 const R = new Router()
 const log = getAppLogger('auth')
 
-const accountConf = Conf.getUser()
+const userConf = Conf.getUser()
 
 async function login(ctx: KCtxT, next: NextT) {
     if (ctx.isAuthenticated()) {
-        const account = await User.findUserByGit(ctx.state.user)
-        ctx.response.body = Resp.Ok(account.value)
+        const user = await User.findUserByGit(ctx.state.user)
+        ctx.response.body = Resp.Ok(user.value)
     } else {
         throw Resp.Fail(Code.Auth_Fail, Msg.Auth_Fail)
     }
@@ -31,12 +31,12 @@ async function githubCallback(ctx: KCtxT, next: NextT) {
         async (error: Error, user: any) => {
             if (error || user == null) {
                 log.error('github callback error: ', error)
-                ctx.response.redirect(accountConf.loginUrl)
+                ctx.response.redirect(userConf.loginUrl)
                 return next()
             }
 
             if (user.profile == null || user.profile.id == null) {
-                ctx.response.redirect(accountConf.loginUrl)
+                ctx.response.redirect(userConf.loginUrl)
                 return next()
             }
 
@@ -46,14 +46,14 @@ async function githubCallback(ctx: KCtxT, next: NextT) {
 
             if (isErr(re) || re.value.githubId === githubId) {
                 const name = user.profile.username
-                let account = await User.create({
+                let cuser = await User.create({
                     githubId,
                     name,
                     loginType: LoginType.Github
                 } as UserAttr)
-                if (isErr(account)) {
+                if (isErr(cuser)) {
                     //新建账户失败，重定向到登陆页
-                    ctx.response.redirect(accountConf.loginUrl) //重定向到登陆页
+                    ctx.response.redirect(userConf.loginUrl) //重定向到登陆页
                     return next()
                 }
             }
