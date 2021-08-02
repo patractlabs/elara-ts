@@ -12,6 +12,14 @@ interface Redis {
     password: string
 }
 
+interface DB {
+    host: string,
+    port: number,
+    table: string,
+    user: string,
+    password: string
+}
+
 interface LimTypT {
     develop: number,
     team: number
@@ -47,6 +55,10 @@ namespace Conf {
 
     export function getRedis(): Redis {
         return Config.get("redis")
+    }
+
+    export function getDB(): DB {
+        return Config.get("db")
     }
 
     export function getLimit(): Limit {

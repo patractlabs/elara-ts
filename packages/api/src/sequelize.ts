@@ -1,13 +1,13 @@
 import { Sequelize } from "sequelize-typescript"
 import { getAppLogger } from "@elara/lib"
-// import Chain from '../model/chain'
-// import ChainConfig from '../models/chain-config'
+import Conf from '../config'
 
 const log = getAppLogger('sequelize')
+const dconf = Conf.getDB()
 
-const seq =  new Sequelize('elara', 'root', 'root', {
-    host: '127.0.0.1',
-    port: 5432,
+const sequelize =  new Sequelize(dconf.table, dconf.user, dconf.password, {
+    host: dconf.host,
+    port: dconf.port,
     dialect: 'postgres',
     pool: {
         max: 10,
@@ -19,5 +19,4 @@ const seq =  new Sequelize('elara', 'root', 'root', {
     logging: process.env.NODE_ENV === 'dev' ? msg => log.debug(msg) : false
 })
 
-log.debug('dir: ', __dirname)
-export default seq
+export default sequelize

@@ -9,7 +9,13 @@
         "db": 0,
         "password": ""
     },
-    
+    "db": {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "table": "elara",
+        "user": "root",
+        "password": "root"
+    },
     "limit": {
         "requestLimit": {
             "develop": 1000000,

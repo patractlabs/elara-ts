@@ -11,5 +11,12 @@
         },
         "defaultLevel": "normal",
         "apiKey": "elara"
+    },
+    "db": {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "table": "elara",
+        "user": "root",
+        "password": "root"
     }
 }
