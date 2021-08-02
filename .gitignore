@@ -1,6 +1,7 @@
 .vscode
 ./**/dist
 ./**/logs
+./**/packages/api/doc
 ./**/node_modules
 ./**/.vscode
 yarn*.log
