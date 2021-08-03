@@ -8,5 +8,5 @@
         "tests/**/*",
         "src/config/**/*.json",
         "app.ts"
-    ]
+, "../scripts/data.mock.ts"    ]
 }

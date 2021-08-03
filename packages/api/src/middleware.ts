@@ -12,9 +12,14 @@ export const responseTime = async (ctx: KCtxT, next: NextT) => {
 }
 
 export const authCheck = async (ctx: KCtxT, next: NextT) => {
-    log.debug('NO_AUTH env: %o', process.env.NO_AUTH)
+    log.debug('NO_AUTH env: %o, %o', process.env.NO_AUTH, ctx)
     if (process.env.NO_AUTH?.toLowerCase() === 'true') {
         ctx.state.user = 'TestUID'
+        return next()
+    }
+
+    if (ctx.request.header.authorization === process.env.AUTH) {
+        log.debug('auth pass')
         return next()
     }
     const re = ctx.isAuthenticated()
@@ -49,7 +54,7 @@ export const accessControl = (ctx: KCtxT, next: NextT) => {
 export const accessMidware = (ctx: KCtxT, next: NextT) => {
     const ct = ctx as Context
     const ip = ct.request.header['x-forwarded-for'] || ct.request.header.host
-    let astr = `${ct.request.method} ${ct.request.url} ${ct.response.status}, ${ip} ${ct.request.header['user-agent']}`
+    let astr = `${ct.request.method} ${ct.request.url}, ${ip} ${ct.request.header['user-agent']}`
     log.http(astr)
     return next()
 }

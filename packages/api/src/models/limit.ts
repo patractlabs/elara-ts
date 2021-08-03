@@ -24,13 +24,13 @@ export default class Limit extends Model<LimitAttr, LimitCreateOptionAttr>
     @Column(DataType.INTEGER)
     projectNum!: number
 
-    @Column(DataType.INTEGER)
+    @Column(DataType.BIGINT)
     bwDayLimit!: number
 
-    @Column(DataType.INTEGER)
+    @Column(DataType.BIGINT)
     reqDayLimit!: number
 
-    @Column(DataType.INTEGER)
+    @Column(DataType.BIGINT)
     reqSecLimit!: number
 
     @Unique

@@ -1,7 +1,7 @@
 import { PResultT, Ok, Err, getAppLogger, PBoolT, PVoidT, isErr } from '@elara/lib'
 import Stat from './stat'
 import UserModel, { UserAttr, UserStat, UserLevel } from '../models/user'
-import Project, { ProStatus } from '../models/project'
+import Project, { ProAttr, ProStatus } from '../models/project'
 import ProService from '../service/project'
 import Limit from './limit'
 
@@ -119,6 +119,16 @@ export default class User {
         return Ok(re.level)
     }
 
+    static async getAllUser(): PResultT<UserAttr[]> {
+        try {
+            const re = await UserModel.findAll()
+            return Ok(re)
+        } catch(err) {
+            log.error('get all user error: %o', err)
+            return Ok([])
+        }
+    }
+
     static async projectCreateOutLimit(userId: number, curNum: number): PBoolT {
         const level = await this.getLevelById(userId)
         if (isErr(level)) {
@@ -145,9 +155,9 @@ export default class User {
         }
         const pro = proRe.value as Project
 
-        if (pro.status !== ProStatus.Active) {
-            log.warn(`project [${pid}] is inactive`)
-            return Err('inactive project')
+        if (pro.status !== ProStatus.Active || pro.user.status !== UserStat.Active) {
+            log.warn(`user ${pro.user.name} project [${pid}] is inactive: ${pro.user.status} ${pro.status}`)
+            return Err('inactive status')
         }
 
         const stat = await Stat.proDaily(chain, pid)
@@ -169,6 +179,9 @@ export default class User {
         if (reqCnt < reqDayLimit && bw < bwDayLimit) {
             return Ok(true)
         }
+        // update user & project status
+        User.updateStatusByGit(pro.user.githubId!, UserStat.Suspend)
+        ProService.update({id: pro.id, status: ProStatus.Suspend} as ProAttr)
         return Ok(false)
     }
 }

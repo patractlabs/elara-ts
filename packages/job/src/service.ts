@@ -1,19 +1,22 @@
 import Sche from 'node-schedule'
-import { getAppLogger, KEYS, PVoidT } from '@elara/lib'
+import { Code, getAppLogger, KEYS, PVoidT } from '@elara/lib'
 import { statDump } from './statistic'
 import { Rd } from './redis'
 import { Stats, Statistics } from './interface'
 import { lastTime, todayStamp, startStamp } from './util'
 import Conf from '../config'
+import Http from './http'
 
 const rconf = Conf.getRedis()
+const apiconf = Conf.getApiServer()
+
 const KEY = KEYS.Stat
 const log = getAppLogger('service')
 
 async function clearDayExpire() {
     const dayStamp = startStamp('day', rconf.expire)
     const keys = await Rd.keys(`*${dayStamp}`)
-    log.debug('expire keys: %o',keys)
+    log.debug('expire keys: %o', keys)
     for (let k of keys) {
         Rd.del(k)
     }
@@ -29,8 +32,50 @@ export async function proUpdate(key: string, dat: Stats): PVoidT {
     Rd.setex(key, rconf.expire * rconf.expireFactor, JSON.stringify(dat))
 }
 
-async function accountStatUpdate() {
-    log.debug('TODO: update account status')
+async function userStatUpdate(): PVoidT {
+    const url = `http://${apiconf.host}:${apiconf.port}`
+    const re = JSON.parse(await Http.get(url + '/user/list'))
+    if (re.code !== Code.Ok) {
+        log.error('fetch user list error: %o', re.msg)
+        return
+    }
+    re.data.forEach(async (user: any) => {
+        if (user.status === 'suspend') {
+            const re = await Http.post(url + '/user/update/status', {
+                githubId: user.githubId,
+                status: 'active'
+            })
+            const res = JSON.parse(re)
+            if (res.code !== Code.Ok) {
+                log.error(`update user[${user.id}]}] status error: %o`, res.msg)
+            }
+            projectStatUpdate(parseInt(user.id))
+        }
+    })
+}
+
+async function projectStatUpdate(userId: number): PVoidT {
+    log.debug(`ready to update projects status of user[${userId}]`)
+    const url = `http://${apiconf.host}:${apiconf.port}`
+    const re = JSON.parse(await Http.post(url + '/project/list', {
+        userId
+    }))
+    if (re.code !== Code.Ok) {
+        log.error(`fetch project list of user[${userId}] error: %o`, re.msg)
+        return
+    }
+    re.data.forEach(async (pro: any) => {
+        if (pro.status === 'suspend') {
+            const re = await Http.post(url + '/project/update/status', {
+                id: pro.id,
+                status: 'active'
+            })
+            const res = JSON.parse(re)
+            if (res.code !== Code.Ok) {
+                log.error(`update project[${pro.id}]}] status error: %o`, res.msg)
+            }
+        }
+    })
 }
 
 async function dailyDashboardReset(): PVoidT {
@@ -67,14 +112,14 @@ async function clearHourExpire(): PVoidT {
     const zlKey = KEY.zStatList()
     const keys = await Rd.zrangebyscore(zlKey, start, end)
     for (let k of keys) {
-        log.debug('remove expire statistic: %o',k)
+        log.debug('remove expire statistic: %o', k)
         Rd.zrem(zlKey, k)
     }
-    
+
     const zelKey = KEY.zErrStatList()
     const ekeys = await Rd.zrangebyscore(zelKey, start, end)
     for (let k of ekeys) {
-        log.debug('remove expire error statistic: %o',k)
+        log.debug('remove expire error statistic: %o', k)
         Rd.zrem(zelKey, k)
     }
 }
@@ -134,7 +179,7 @@ namespace Service {
             dailyDashboardReset()
             dailRankReset()
             clearDayExpire()
-            accountStatUpdate()
+            userStatUpdate()
         })
 
         dayJob.on('error', (err) => {

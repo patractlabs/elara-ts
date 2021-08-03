@@ -69,6 +69,12 @@ async function newUser(ctx: KCtxT, next: NextT) {
     return next()
 }
 
+async function getAllUser(ctx: KCtxT, next: NextT) {
+    const re = await User.getAllUser()
+    ctx.body = Resp.Ok(re.value)
+    return next()
+}
+
 R.post('/update/status', updateStatus)
 R.post('/update/level', updateLevel)
 
@@ -96,5 +102,7 @@ R.post('/detail/status', getStatus)
 R.post('/detail/level', getLevel)
 
 R.post('/create', newUser)
+
+R.get('/list', getAllUser)
 
 export default R.routes()

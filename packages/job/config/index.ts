@@ -11,10 +11,19 @@ interface Redis {
     expireUnit: string
 }
 
+interface ApiServer {
+    host: string,
+    port: number
+}
+
 
 namespace Conf {
     export function getRedis(): Redis {
         return Config.get("redis")
+    }
+
+    export function getApiServer(): ApiServer {
+        return Config.get("apiServer")
     }
 }
 
