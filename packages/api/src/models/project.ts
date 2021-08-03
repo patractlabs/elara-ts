@@ -4,10 +4,9 @@ import { Model, DataType, Table, Column, PrimaryKey, AutoIncrement, ForeignKey, 
 import User from './user'
 
 export enum ProStatus {
-    Active = 'Active',
-    Stop = 'Stop',
-    Suspend = 'Suspend',
-    Delete = 'Delete'
+    Active = 'active',
+    Stop = 'stop',
+    Suspend = 'suspend'
 }
 
 export interface ProAttr {

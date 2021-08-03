@@ -18,7 +18,6 @@ function checkPid(pid: string) {
     }
 }
 
-// elara statistic
 const total = async (ctx: KCtxT, next: NextT): PNextT => {
     const re = await Stat.total()
     ctx.body = Resp.Ok(re)
@@ -36,7 +35,7 @@ const latestReq = async (ctx: KCtxT, next: NextT) => {
     if (!Number.isInteger(count)) {
         throw Resp.Fail(400, 'count must be integer' as Msg)
     }
-    if (count < 1) { count = 1}
+    if (count < 1) { count = 1 }
     const re = await Stat.latestReq(count)
     ctx.body = Resp.Ok(re)
     return next()
@@ -47,7 +46,7 @@ const latestErrReq = async (ctx: KCtxT, next: NextT) => {
     if (!Number.isInteger(count)) {
         throw Resp.Fail(400, 'count must be integer' as Msg)
     }
-    if (count < 1) { count = 1}
+    if (count < 1) { count = 1 }
     const re = await Stat.recentError(count)
     ctx.body = Resp.Ok(re)
     return next()
@@ -88,7 +87,6 @@ const mostResourceLastDays = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-// chain statistic
 const chainTotal = async (ctx: KCtxT, next: NextT) => {
     const { chain } = ctx.request.params
     checkChain(chain)
@@ -97,7 +95,6 @@ const chainTotal = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-// project statistic
 const proDaily = async (ctx: KCtxT, next: NextT) => {
     const { chain, pid } = ctx.request.body
     checkChain(chain)
@@ -131,18 +128,207 @@ const proLastHours = async (ctx: KCtxT, next: NextT) => {
 }
 
 // elara
+/**
+ *
+ * @api {get} /stat/total totalStatis
+ * @apiDescription total statistic
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ *
+ * @apiSuccess {StatT} Stat total statistic record
+ */
 R.get('/total', total)
+/**
+ *
+ * @api {get} /stat/daily dayilyStatis
+ * @apiDescription today statistic
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ *
+ * @apiSuccess {StatT} Stat totay statistic record
+ * @apiSuccess {Integer} Stat.wsReqNum ws request count
+ * @apiSuccess {Integer} Stat.wsConn ws connection count
+ * @apiSuccess {Integer} Stat.wsSubNum ws subscribe count
+ * @apiSuccess {Integer} Stat.wsSubResNum ws response count in subscription
+ * @apiSuccess {Integer} Stat.wsBw ws bandwidth
+ * @apiSuccess {Integer} Stat.wsDelay ws average delay ms, ignore
+ * @apiSuccess {Integer} Stat.wsInReqNum ws invalid request count
+ * @apiSuccess {Integer} Stat.wsTimeout ws average timeout ms
+ * @apiSuccess {Integer} Stat.wsTimeoutCnt ws timeout count
+ * @apiSuccess {Integer} Stat.wsCt ws request country map {'US': 3, 'CZ': 100 , 'unknow': 1}
+ * @apiSuccess {Integer} Stat.httpReqNum http request count
+ * @apiSuccess {Integer} Stat.httpBw bandwidth bytes
+ * @apiSuccess {Integer} Stat.httpDelay average response time ms
+ * @apiSuccess {Integer} Stat.httpInReqNum invalid request count
+ * @apiSuccess {Integer} Stat.httpTimeout http average timeout ms
+ * @apiSuccess {Integer} Stat.httpTimeoutCnt timeout count
+ * @apiSuccess {Integer} Stat.httpCt request country map
+ */
 R.get('/daily', daily)
+/**
+ *
+ * @api {post} /stat/project/latest latestRequest
+ * @apiDescription latest request of all
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {Integer{>=1}} count latest request count to view
+ *
+ * @apiSuccess {Statistics[]} Stat statistic record list
+ * @apiSuccess {String{'http', 'ws}} Stat.proto  request protocol
+ * @apiSuccess {String} Stat.chain 
+ * @apiSuccess {String} Stat.pid    project pid
+ * @apiSuccess {String{'POST','PUT','GET'}} Stat.method http request method
+ * @apiSuccess {ReqType} Stat.req  jsonrpc request body,{id, jsonrpc, method, params}
+ * @apiSuccess {Number}  Stat.code jsonrpc request result code, 200 success, 419 out of limit
+ * @apiSuccess {Header} Stat.header request header {origin, agent, ip}
+ * @apiSuccess {Number} Stat.start performance trace time, ignore
+ * @apiSuccess {String} Stat.type [noder,kv, cacher, recorder, conn], conn for subscribe connection,ignore
+ * @apiSuccess {Number} Stat.delay response time[ms]
+ * @apiSuccess {Number} [Stat.bw] response package size in bytes
+ * @apiSuccess {Boolean} [Stat.timeout] timeout or not
+ * @apiSuccess {Integer} [Stat.reqCnt] request cnt, for subscribe 
+ * 
+ */
 R.post('/latest', latestReq)
+/**
+ *
+ * @api {post} /stat/days lastDaysOfAll
+ * @apiDescription last days statistic record of all
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {Integer{>=1}} days days to view
+ *
+ * @apiSuccess {StatT} Stat last days statistic record list
+ */
 R.post('/days', lastDays)
+/**
+ *
+ * @api {post} /stat/hours lastHoursOfAll
+ * @apiDescription last hours statistic record of all
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {Integer{>=1,<=24}} hours hours to view
+ *
+ * @apiSuccess {StatT[]} Stat statistic record list
+ */
 R.post('/hours', lastHours)
+/**
+ *
+ * @api {post} /stat/most/:type requestRankByResource
+ * @apiDescription today statistic record of project
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {String{'request','bandwidth'}} type resource type
+ * @apiParam {Integer{>=1,<=30}} days to statistic
+ * @apiParam {Integer{>=1}} count statistic count to view
+ *
+ * @apiSuccess {String[]} Stat resource rank list
+ * @apiSuccessExample SuccessRequest:
+ * {
+ *  code: 0,
+ *  msg: 'ok',
+ *  data: [
+ *      'system_health',
+ *      '10',       // request count
+ *      'system_syncState',
+ *      '8'
+ *  ]
+ * }
+ * @apiSuccessExample SuccessBandwidth:
+ * {
+ *  code: 0,
+ *  msg: 'ok',
+ *  data: [
+ *      'system_health',
+ *      '10240012',     // bytes
+ *      'system_syncState',
+ *      '1278323'
+ *  ]
+ * }
+ */
 R.post('/most/:type', mostResourceLastDays) // type request , bandwidth
+
+/**
+ *
+ * @api {post} /stat/latest/error latestError
+ * @apiDescription latest error record of all
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {Integer{>=1}} count record count to view
+ *
+ * @apiSuccess {Statistics[]} Stat statistic record list, see latestRequest
+ */
 R.post('/latest/error', latestErrReq)
-// chain
+
+/**
+ *
+ * @api {post} /stat/project/daily totalOfChain
+ * @apiDescription total statistic record of chain
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {String} chain chain name
+ *
+ * @apiSuccess {StatT} Stat total statistic record
+ */
 R.get('/total/:chain', chainTotal)
 
-// project
+/**
+ *
+ * @api {post} /stat/project/daily dayilyOfProject
+ * @apiDescription today statistic record of project
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {String} chain chain name
+ * @apiParam {String} pid  project pid
+ *
+ * @apiSuccess {StatT} Stat statistic record
+ */
 R.post('/project/daily', proDaily)
+
+/**
+ *
+ * @api {post} /stat/project/days lastDaysOfProject
+ * @apiDescription last days statistic record of project
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {String} chain chain name
+ * @apiParam {String} pid  project pid
+ * @apiParam {Integer{>=1, <=24}} days  how many hours to view
+ *
+ * @apiSuccess {StatT[]} Stat statistic record list
+ */
 R.post('/project/days', proLastDays)
+
+/**
+ *
+ * @api {post} /stat/project/hours lastHoursOfProject
+ * @apiDescription last hours statistic record of project
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {String} pid  project pid
+ * @apiParam {Integer{>=1, <=24}} hours  how many hours to view
+ *
+ * @apiSuccess {StatT[]} Stat statistic record list
+ */
 R.post('/project/hours', proLastHours)
 export default R.routes()
