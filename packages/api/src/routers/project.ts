@@ -1,188 +1,258 @@
-import Project, { ProStatus } from '../service/project'
-import { KCtxT, NextT, getAppLogger, Code, Resp, Msg, PVoidT } from '@elara/lib'
-import { isErr, isEmpty } from '@elara/lib'
-import { lengthOk } from '../lib'
-import Router from 'koa-router'
-import Conf from '../../config'
+import Project, { ProStatus } from "../service/project";
+import {
+    KCtxT,
+    NextT,
+    getAppLogger,
+    Code,
+    Resp,
+    Msg,
+    PVoidT,
+} from "@elara/lib";
+import { isErr, isEmpty } from "@elara/lib";
+import { lengthOk } from "../lib";
+import Router from "koa-router";
+import Conf from "../../config";
 
-const R = new Router()
-const log = getAppLogger('project', true)
+const R = new Router();
+const log = getAppLogger("project", true);
 
 function checkName(name: string): void {
-    const regOk = /[a-zA-Z0-9]/.test(name)  // not invalid
-    const lenOk = lengthOk(name, 4, 32)
-    log.debug(`name check result: ${regOk} ${lenOk}`)
+    const regOk = /[a-zA-Z0-9]/.test(name); // not invalid
+    const lenOk = lengthOk(name, 4, 32);
+    log.debug(`name check result: ${regOk} ${lenOk}`);
     if (!lenOk || !regOk) {
-        log.error(`Project name invalid or empty, name[${name}]`)
-        throw Resp.Fail(Code.Pro_Name_Err, Msg.Pro_Name_Error)
+        log.error(`Project name invalid or empty, name[${name}]`);
+        throw Resp.Fail(Code.Pro_Name_Err, Msg.Pro_Name_Error);
     }
 }
 
 function checkChainPid(chain: string, pid: string): void {
     if (isEmpty(chain) || isEmpty(pid)) {
-        log.error(`chain and project id cannot be null`)
-        throw Resp.Fail(Code.Pro_Update_Err, 'chain and project id cannot be null' as Msg)
+        log.error(`chain and project id cannot be null`);
+        throw Resp.Fail(
+            Code.Pro_Update_Err,
+            "chain and project id cannot be null" as Msg
+        );
     }
 }
 
 function checkStatus(status: ProStatus): void {
     if (!Object.values(ProStatus).includes(status)) {
-        log.error(`invalid status: ${status}`)
-        throw Resp.Fail(Code.Pro_Update_Err, 'invalid status' as Msg)
+        log.error(`invalid status: ${status}`);
+        throw Resp.Fail(Code.Pro_Update_Err, "invalid status" as Msg);
     }
 }
 
 async function checkProjectLimit(uid: string): PVoidT {
-    let cntRe = await Project.countByUser(uid)
+    let cntRe = await Project.countByUser(uid);
     if (isErr(cntRe)) {
-        log.error(`fetch uid[${uid}] total created project num error: ${cntRe}`)
-        throw Resp.Fail(Code.Pro_Num_Limit, cntRe.value as Msg)
+        log.error(
+            `fetch uid[${uid}] total created project num error: ${cntRe}`
+        );
+        throw Resp.Fail(Code.Pro_Num_Limit, cntRe.value as Msg);
     }
 
-    const conf = Conf.getLimit()
-    const cnt = cntRe.value
+    const conf = Conf.getLimit();
+    const cnt = cntRe.value;
     if (cnt >= conf.maxProjectNum) {
-        log.error('Out of max project create number!')
-        throw Resp.Fail(Code.Pro_Num_Limit, Msg.Pro_Num_Limit)
+        log.error("Out of max project create number!");
+        throw Resp.Fail(Code.Pro_Num_Limit, Msg.Pro_Num_Limit);
     }
 }
 
-//验证登录态，新建项目
+/**
+ *
+ * @api {post} /project/create/ create
+ * @apiName create
+ * @apiDescription 新建项目
+ * @apiGroup project
+ * @apiVersion  0.0.1
+ * @apiParam {String} chain    链的名称
+ * @apiParam {String} pid    项目的ID
+ * @apiParam {String} team    团队名称
+ */
 async function createProeject(ctx: KCtxT, next: NextT) {
-    let uid = ctx.state.user
-    log.debug('create project request: ', uid, ctx.request.body)
-    const { chain, name, team } = ctx.request.body
+    let uid = ctx.state.user;
+    log.debug("create project request: ", uid, ctx.request.body);
+    const { chain, name, team } = ctx.request.body;
 
-    checkName(name)
-    const exist = await Project.isExist(uid, chain, name)
+    checkName(name);
+    const exist = await Project.isExist(uid, chain, name);
     if (exist) {
-        log.error(`project named [${name}] existed`)
-        throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)
+        log.error(`project named [${name}] existed`);
+        throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name);
     }
 
-    await checkProjectLimit(uid)
+    await checkProjectLimit(uid);
 
-    let re = await Project.create(uid, chain, name, team)
+    let re = await Project.create(uid, chain, name, team);
 
-    log.info('create project result: ', re)
+    log.info("create project result: ", re);
 
     if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Err, re.value as Msg)
+        throw Resp.Fail(Code.Pro_Err, re.value as Msg);
     }
-    ctx.body = Resp.Ok(re.value)   // equals to ctx.response.body
-    return next()
+    ctx.body = Resp.Ok(re.value); // equals to ctx.response.body
+    return next();
 }
 
 //验证登录态，获取项目详情
 async function projectDetail(ctx: KCtxT, next: NextT) {
     // let uid = ctx.state.user
-    const { chain, pid } = ctx.request.params
-    log.debug('get project detail: ', chain, pid)
-    checkChainPid(chain, pid)
+    const { chain, pid } = ctx.request.params;
+    log.debug("get project detail: ", chain, pid);
+    checkChainPid(chain, pid);
     // check UID or not
-    let project = await Project.detail(chain, pid)
+    let project = await Project.detail(chain, pid);
     if (isErr(project)) {
-        throw Resp.Fail(Code.Pro_Err, project.value as Msg)
+        throw Resp.Fail(Code.Pro_Err, project.value as Msg);
     }
-    ctx.body = Resp.Ok(project.value)
-    return next()
+    ctx.body = Resp.Ok(project.value);
+    return next();
 }
 
 // project count list of chain by user
 async function projectCountChainList(ctx: KCtxT, next: NextT) {
-    let uid = ctx.state.user
-    let re = await Project.countOfChainList(uid)
+    let uid = ctx.state.user;
+    let re = await Project.countOfChainList(uid);
     if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Err, re.value as Msg)
+        throw Resp.Fail(Code.Pro_Err, re.value as Msg);
     }
-    ctx.body = Resp.Ok(re.value)
-    return next()
+    ctx.body = Resp.Ok(re.value);
+    return next();
 }
 
 async function projectCountByUser(ctx: KCtxT, next: NextT) {
-    const uid = ctx.state.user
-    let cntRe = await Project.countByUser(uid)
+    const uid = ctx.state.user;
+    let cntRe = await Project.countByUser(uid);
     if (isErr(cntRe)) {
-        log.error(`fetch uid[${uid}] total created project num error: ${cntRe}`)
-        throw Resp.Fail(Code.Pro_Num_Limit, cntRe.value as Msg)
+        log.error(
+            `fetch uid[${uid}] total created project num error: ${cntRe}`
+        );
+        throw Resp.Fail(Code.Pro_Num_Limit, cntRe.value as Msg);
     }
-    ctx.body = Resp.Ok(cntRe.value)
-    return next()
+    ctx.body = Resp.Ok(cntRe.value);
+    return next();
 }
 
 // project list by chain
 async function projectListByChain(ctx: KCtxT, next: NextT) {
-    const { chain } = ctx.request.params
-    let uid = ctx.state.user
-    log.debug('get project list: ', uid, chain)
-    let re = await Project.listByChain(uid, chain)
+    const { chain } = ctx.request.params;
+    let uid = ctx.state.user;
+    log.debug("get project list: ", uid, chain);
+    let re = await Project.listByChain(uid, chain);
     if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Err, re.value as Msg)
+        throw Resp.Fail(Code.Pro_Err, re.value as Msg);
     }
-    ctx.body = Resp.Ok(re.value)
-    return next()
+    ctx.body = Resp.Ok(re.value);
+    return next();
 }
 
+/**
+ *
+ * @api {post} /project/status/ status
+ * @apiName status
+ * @apiDescription 更改项目运行状态
+ * @apiGroup project
+ * @apiVersion  0.0.1
+ * @apiParam {String} chain    链的名称
+ * @apiParam {String} pid    项目的ID
+ * @apiParam {String{Active,Stop,Suspend,Delete}} status    项目的状态
+ */
 async function updateStatus(ctx: KCtxT, next: NextT) {
-    const { chain, pid, status } = ctx.request.body
-    log.debug(`update ${chain} pid[${pid}] status: `, status)
-    checkChainPid(chain, pid)
-    checkStatus(status)
-    const re = await Project.updateStatus(chain, pid, status)
+    const { chain, pid, status } = ctx.request.body;
+    log.debug(`update ${chain} pid[${pid}] status: `, status);
+    checkChainPid(chain, pid);
+    checkStatus(status);
+    const re = await Project.updateStatus(chain, pid, status);
     if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg)
+        throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg);
     }
-    ctx.body = Resp.Ok(status)
-    return next()
+    ctx.body = Resp.Ok(status);
+    return next();
 }
 
+/**
+ *
+ * @api {post} /project/limit/ limit
+ * @apiName limit
+ * @apiDescription 更改项目配置
+ * @apiGroup project
+ * @apiVersion  0.0.1
+ * @apiParam {String} chain    链的名称
+ * @apiParam {String} pid    项目的ID
+ * @apiParam {Number} reqSecLimit    请求限制
+ * @apiParam {Number} bwDayLimit    当天请求限制
+ 
+ */
 async function updateLimit(ctx: KCtxT, next: NextT) {
-    const { chain, pid, reqSecLimit, bwDayLimit } = ctx.request.body
-    checkChainPid(chain, pid)
+    const { chain, pid, reqSecLimit, bwDayLimit } = ctx.request.body;
+    checkChainPid(chain, pid);
 
-    const re = await Project.updateLimit(chain, pid, reqSecLimit, bwDayLimit)
+    const re = await Project.updateLimit(chain, pid, reqSecLimit, bwDayLimit);
     if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg)
+        throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg);
     }
-    ctx.body = Resp.Ok()
-    return next()
+    ctx.body = Resp.Ok();
+    return next();
 }
 
+/**
+ *
+ * @api {post} /project/name/ name
+ * @apiName name
+ * @apiDescription 更改项目名称
+ * @apiGroup project
+ * @apiVersion  0.0.1
+ * @apiParam {String} chain    链的名称
+ * @apiParam {String} pid    项目的ID
+ * @apiParam {String} name    项目的名称
+ */
 async function updateName(ctx: KCtxT, next: NextT) {
-    const uid = ctx.state.user
-    const { chain, pid, name } = ctx.request.body
-    checkChainPid(chain, pid)
-    checkName(name)
-    const re = await Project.changeName(chain, uid, pid, name)
+    const uid = ctx.state.user;
+    const { chain, pid, name } = ctx.request.body;
+    checkChainPid(chain, pid);
+    checkName(name);
+    const re = await Project.changeName(chain, uid, pid, name);
     if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg)
+        throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg);
     }
-    ctx.body = Resp.Ok(name)
-    return next()
+    ctx.body = Resp.Ok(name);
+    return next();
 }
 
+/**
+ *
+ * @api {post} /project/delete/ delete
+ * @apiName delete
+ * @apiDescription 删除项目
+ * @apiGroup project
+ * @apiVersion  0.0.1
+ * @apiParam {String} chain    链的名称
+ * @apiParam {String} pid    项目的ID
+ */
 async function deleteProject(ctx: KCtxT, next: NextT) {
-    const uid = ctx.state.user
-    const { chain, pid } = ctx.request.body
-    log.debug(`delet project: ${chain} ${pid}`)
-    checkChainPid(chain, pid)
-    const re = await Project.delete(chain, uid, pid)
+    const uid = ctx.state.user;
+    const { chain, pid } = ctx.request.body;
+    log.debug(`delet project: ${chain} ${pid}`);
+    checkChainPid(chain, pid);
+    const re = await Project.delete(chain, uid, pid);
     if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Err, re.value as Msg)
+        throw Resp.Fail(Code.Pro_Err, re.value as Msg);
     }
-    ctx.body = Resp.Ok()
-    return next()
+    ctx.body = Resp.Ok();
+    return next();
 }
 
-R.get('/:chain/list', projectListByChain)
-R.get('/count/list', projectCountChainList)
-R.get('/count', projectCountByUser)
-R.get('/:chain/:pid([a-z0-9]{32})', projectDetail)
+R.get("/:chain/list", projectListByChain);
+R.get("/count/list", projectCountChainList);
+R.get("/count", projectCountByUser);
+R.get("/:chain/:pid([a-z0-9]{32})", projectDetail);
 
-R.post('/name', updateName)
-R.post('/limit', updateLimit)
-R.post('/status', updateStatus)
-R.post('/create', createProeject)
-R.post('/delete', deleteProject)
+R.post("/name", updateName);
+R.post("/limit", updateLimit);
+R.post("/status", updateStatus);
+R.post("/create", createProeject);
+R.post("/delete", deleteProject);
 
-export default R.routes()
+export default R.routes();
