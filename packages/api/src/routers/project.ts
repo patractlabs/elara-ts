@@ -4,7 +4,7 @@ import { KCtxT, NextT, getAppLogger, Code, Resp, Msg, PVoidT } from '@elara/lib'
 import { isErr, isEmpty } from '@elara/lib'
 import { lengthOk } from '../lib'
 import Router from 'koa-router'
-import Conf from '../../config'
+import User from '../service/user'
 
 const R = new Router()
 const log = getAppLogger('project', true)
@@ -40,34 +40,47 @@ async function checkProjectLimit(userId: number): PVoidT {
         throw Resp.Fail(Code.Pro_Num_Limit, cntRe.value as Msg)
     }
 
-    // TODO user resource limit
-    const conf = Conf.getLimit()
-    const cnt = cntRe.value
-    if (cnt >= conf.maxProjectNum) {
+    const cnt = cntRe.value as number
+    const isOutofLimit = await User.projectCreateOutLimit(userId, cnt)
+    if (isOutofLimit) {
         log.error('Out of max project create number!')
         throw Resp.Fail(Code.Pro_Num_Limit, Msg.Pro_Num_Limit)
     }
 }
 
-//验证登录态，新建项目
 async function create(ctx: KCtxT, next: NextT) {
     const uid = ctx.state.user
     log.debug('create project request: ', uid, ctx.request.body)
-    const pro = ctx.request.body as ProAttr
+    const {userId, name, chain, team, reqDayLimit, reqSecLimit, bwDayLimit} = ctx.request.body
 
-    checkName(pro.name)
+    if (!userId || !chain || !team || !name) {
+        throw Resp.Fail(400, 'invalid params' as Msg)
+    }
 
-    const isExist = await Project.isExist(uid, pro.chain, pro.name)
+    checkName(name)
+
+    const isExist = await Project.isExist(userId, chain, name)
     if (isExist) {
         throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)
     }
 
-    await checkProjectLimit(uid)
+    await checkProjectLimit(userId)
 
-    const re = await Project.create(uid, pro)
+    const attr = {
+        userId,
+        name,
+        chain,
+        team,
+        reqSecLimit: reqSecLimit ?? -1, // project limit up to user level
+        reqDayLimit: reqDayLimit ?? -1,
+        bwDayLimit: bwDayLimit ?? -1
+    } as ProAttr
+    
+    const re = await Project.create(attr)
 
     if (isErr(re)) {
-        throw Resp.Fail(Code.Pro_Err, Msg.Pro_Err)
+        log.debug('create project error: ', re.value)
+        throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
 
     log.info('create project result: ', re)
@@ -78,6 +91,9 @@ async function create(ctx: KCtxT, next: NextT) {
 
 async function findById(ctx: KCtxT, next: NextT) {
     const { id } = ctx.request.body
+    if (!Number.isInteger(id)) {
+        throw Resp.Fail(400, 'must be integer' as Msg)
+    }
     const re = await Project.findById(id)
     if (isErr(re)) {
         throw Resp.Fail(500, re.value as Msg)
@@ -99,6 +115,19 @@ async function findByChainPid(ctx: KCtxT, next: NextT) {
     return next()
 }
 
+async function statusByChainPid(ctx: KCtxT, next: NextT) {
+    let { chain, pid, includeUser } = ctx.request.body
+    log.debug('get project detail: ', chain, pid)
+    checkChainPid(chain, pid)
+    if (includeUser !== true) { includeUser = false}
+    let project = await Project.statusByChainPid(chain, pid, includeUser)
+    if (isErr(project)) {
+        throw Resp.Fail(Code.Pro_Err, project.value as Msg)
+    }
+    ctx.body = Resp.Ok(project.value)
+    return next()
+}
+
 // project count list of chain by user
 async function countOfChain(ctx: KCtxT, next: NextT) {
     const { chain } = ctx.request.body
@@ -111,7 +140,7 @@ async function countOfChain(ctx: KCtxT, next: NextT) {
 }
 
 async function countOfUser(ctx: KCtxT, next: NextT) {
-    let { userId, byChain } = ctx.state.user
+    let { userId, byChain } = ctx.request.body
     if (byChain !== true) { byChain = false }
     let cntRe = await Project.countOfUser(userId, byChain)
     if (isErr(cntRe)) {
@@ -123,7 +152,7 @@ async function countOfUser(ctx: KCtxT, next: NextT) {
 }
 
 async function list(ctx: KCtxT, next: NextT) {
-    const { userId, chain } = ctx.request.params
+    const { userId, chain } = ctx.request.body
     log.debug('get project list: ', userId, chain)
     let re = await Project.list(userId, chain)
     if (isErr(re)) {
@@ -191,6 +220,7 @@ R.post('/count/user', countOfUser)
 
 R.post('/detail/chainpid', findByChainPid)
 R.post('/detail/id', findById)
+R.post('/detail/status', statusByChainPid)
 
 R.post('/update/name', updateName)
 R.post('/update/limit', updateLimit)

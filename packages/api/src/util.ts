@@ -19,5 +19,9 @@ export function todayStamp(): number {
 }
 
 export function errMsg(err: any, msg: string): Msg {
-    return err.errors[0].message ?? msg
+    if (err.errors) {
+        return err.errors[0].message ?? msg
+    } else {
+        return err.original.detail ?? msg
+    }
 }

@@ -1,8 +1,9 @@
-import { PResultT, Ok, Err, getAppLogger, PBoolT, PVoidT } from '@elara/lib'
-import Dao from '../dao'
+import { PResultT, Ok, Err, getAppLogger, PBoolT, PVoidT, isErr } from '@elara/lib'
 import Stat from './stat'
 import UserModel, { UserAttr, UserStat, UserLevel } from '../models/user'
-import Project from '../models/project'
+import Project, { ProStatus } from '../models/project'
+import ProService from '../service/project'
+import Limit from './limit'
 
 const log = getAppLogger('user-service', true)
 
@@ -107,22 +108,67 @@ export default class User {
         return Ok(re.level)
     }
 
-    static async checkLimit(chain: string, pid: string): PBoolT {
-        log.debug(`check limit status of ${chain} pid[${pid}]`)
-        const re = await Stat.proDaily(chain, pid)
-        const bw = re.httpBw + re.wsBw
-        
-        // project limit
-        const pstat = await Dao.getProjectLimit(chain, pid)
-        if (pstat.uid === '') {
-            return false
+    static async getLevelById(id: number): PResultT<string> {
+        const re = await UserModel.findOne({
+            where: { id },
+            attributes: ['level']
+        })
+        if (re === null) {
+            return Err('no this user')
         }
-        // user limit
-        const astat = await Dao.getAccountDetail(pstat.uid as string)
-        log.debug('user status: ', astat)
-        if (re.httpReqNum > 100 || bw > 10000) {
+        return Ok(re.level)
+    }
+
+    static async projectCreateOutLimit(userId: number, curNum: number): PBoolT {
+        const level = await this.getLevelById(userId)
+        if (isErr(level)) {
+            log.error('query user level error: ', level.value)
             return true
         }
-        return false
+        const re = await Limit.findByLevel(level.value as UserLevel)
+        if (isErr(re)) {
+            log.error('query limit resource error: ', re.value)
+            return true
+       }
+        if (re.value.projectNum > curNum) { return false }
+        return true
+    }
+
+    static async projectOk(chain: string, pid: string): PResultT<boolean> {
+        log.debug(`check limit status of ${chain} pid[${pid}]`)
+
+        // project limit
+        const proRe = await ProService.statusByChainPid(chain, pid, true)
+        if (isErr(proRe)) {
+            log.error('query project limit error: ', proRe.value)
+            return Err('query project error')
+        }
+        const pro = proRe.value as Project
+
+        if (pro.status !== ProStatus.Active) {
+            log.warn(`project [${pid}] is inactive`)
+            return Err('inactive project')
+        }
+
+        const stat = await Stat.proDaily(chain, pid)
+        const bw = stat.httpBw + stat.wsBw
+        // invalid request count
+        const reqCnt = stat.httpReqNum + stat.wsReqNum + stat.httpInReqNum + stat.wsInReqNum
+
+        log.debug('project current resource usage: ', bw, reqCnt)
+        // user limit
+        const limitRe = await Limit.findByLevel(pro.user.level)
+        if (isErr(limitRe)) {
+            log.error('query user resource limit error: ', limitRe.value)
+            return Err('query user resource error')
+        }
+        const limit = limitRe.value
+
+        const reqDayLimit = pro.reqDayLimit === -1 ? pro.reqDayLimit : limit.reqDayLimit
+        const bwDayLimit = pro.bwDayLimit === -1 ? pro.bwDayLimit : limit.bwDayLimit
+        if (reqCnt < reqDayLimit && bw < bwDayLimit) {
+            return Ok(true)
+        }
+        return Ok(false)
     }
 }

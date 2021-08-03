@@ -1,26 +1,24 @@
 import { getAppLogger, randomId, Err, Ok, PResultT } from '@elara/lib'
 import ProjectModel, { ProAttr, ProStatus } from '../models/project'
-import User from '../models/user'
 import { errMsg } from '../util'
+// import { Op } from 'sequelize'
 import { Sequelize } from 'sequelize-typescript'
 import { FindOptions } from 'sequelize/types'
+import User from '../models/user'
 
 const log = getAppLogger('project-service')
 
 class Project {
 
-    static async create(githubId: string, pro: ProAttr): PResultT<ProAttr> {
+    static async create(pro: ProAttr): PResultT<ProAttr> {
         try {
-            const user = await User.findOne({ where: { githubId }, attributes: ['id'] })
-            if (user === null) {
-                return Err('invalid user')
-            }
+            log.debug('create new project: ', pro)
+
             const re = await ProjectModel.create({
                 ...pro,
                 pid: randomId(),
                 secret: randomId(),
                 status: ProStatus.Active,
-                userId: user.id
             })
             return Ok(re)
         } catch (err) {
@@ -46,6 +44,7 @@ class Project {
 
     static async update(pro: ProAttr): PResultT<[number, ProjectModel[]]> {
         try {
+            // update limit
             const re = await ProjectModel.update(pro, {
                 where: { id: pro.id }
             })
@@ -74,7 +73,7 @@ class Project {
     static async findByChainPid(chain: string, pid: string): PResultT<ProAttr> {
         try {
             const re = await ProjectModel.findOne({
-                where: { chain, pid }
+                where: { chain, pid },
             })
             if (re === null) {
                 return Err(`no ${chain} project ${pid}`)
@@ -86,11 +85,31 @@ class Project {
         }
     }
 
+    static async statusByChainPid(chain: string, pid: string, includeUser: boolean = false): PResultT<ProAttr> {
+        try {
+            const re = await ProjectModel.findOne({
+                where: { chain, pid },
+                attributes: ['status', 'reqSecLimit', 'reqDayLimit', 'bwDayLimit'],
+                include: includeUser ? [User]: undefined
+            })
+            if (re === null) {
+                return Err(`no ${chain} project ${pid}`)
+            }
+            return Ok(re)
+        } catch (err) {
+            log.error(`query status of ${chain} project ${pid} error: `, err)
+            return Err(errMsg(err, 'find error'))
+        }
+    }
+
     static async list(userId?: number, chain?: string): PResultT<ProAttr[]> {
         try {
-            const re = await ProjectModel.findAll({
-                where: { userId, chain }
-            })
+            const option: FindOptions<ProAttr> = {}
+            // if (userId) { option.where = { [Op.and]: [{ userId }] } }
+            // if (chain) { option.where = { [Op.and]: [{ ...option.where, chain }] } }
+            if (userId) { option.where = { userId } }
+            if (chain) { option.where = { ...option.where, chain } }
+            const re = await ProjectModel.findAll(option)
             return Ok(re)
         } catch (err) {
             log.error(`find projects of user[${userId}] ${chain} error: `, err)
@@ -112,20 +131,23 @@ class Project {
         }
     }
 
-    static async countOfUser(userId: number, byChain: boolean = false): PResultT<number> {
+    static async countOfUser(userId: number, byChain: boolean = false): PResultT<number | ProAttr[]> {
         try {
             const option: FindOptions<ProAttr> = {
                 where: { userId },
                 attributes: [[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']],
             }
             if (byChain) {
+                option.attributes = ['chain', [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']]
                 option.group = Sequelize.col('chain')
             }
             const re = await ProjectModel.findAll(option)
             log.debug(`project count of user ${userId}: `, re)
             // TODO
+            if (byChain) { return Ok(re) }
             return Ok(parseInt((re[0] as any).dataValues.count))
         } catch (err) {
+            log.error('query project count of user error: ', err)
             return Err(errMsg(err, 'query error'))
         }
     }

@@ -63,11 +63,14 @@ async function getLevel(ctx: KCtxT, next: NextT) {
 }
 
 async function checkLimit(ctx: KCtxT, next: NextT) {
-    log.debug('check body: ', ctx.request.body)
     const { chain, pid } = ctx.request.body
     log.debug('new limit check: ', chain, pid)
-    const re = await User.checkLimit(chain, pid)
-    ctx.body = Resp.Ok(re)
+    const re = await User.projectOk(chain, pid)
+    if (isErr(re)) {
+        log.error('check project resource limit error: ', re.value)
+        throw Resp.Fail(400, 'resource invalid' as Msg, false)
+    }
+    ctx.body = Resp.Ok(re.value)
     return next()
 }
 
@@ -81,15 +84,15 @@ async function newUser(ctx: KCtxT, next: NextT) {
     return next()
 }
 
-R.post('/status', updateStatus)
-R.post('/level', updateLevel)
+R.post('/update/status', updateStatus)
+R.post('/update/level', updateLevel)
 R.post('/detail', detail)
-R.post('/detailwithproject', detailWithProject)
+R.post('/detail/withproject', detailWithProject)
 R.post('/detail/status', getStatus)
 R.post('/detail/level', getLevel)
 
 R.post('/islimit', checkLimit)
 
-R.post('/', newUser)
+R.post('/create', newUser)
 
 export default R.routes()

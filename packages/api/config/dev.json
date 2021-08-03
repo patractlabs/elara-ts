@@ -1,6 +1,6 @@
 {
     "limit": {
-        "maxProjectNum": 2
+        "maxProjectNum": 10
     },
     "user":{
         "loginUrl": "http://127.0.0.1:7000/auth/github/home",
