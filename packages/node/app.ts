@@ -10,7 +10,7 @@ import Conf from './config'
 import Matcher from './src/matcher'
 // import { writeHeapSnapshot } from 'v8'
 
-const log = getAppLogger('Node', true)
+const log = getAppLogger('Node')
 const Server =  Http.createServer()
 const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false})
 
@@ -110,7 +110,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         }
         const request = re.value as Http.ClientRequest
         request.on('error', (err: Error) => {
-            log.error('request error: ', err)
+            log.error('request error: %o', err)
             Response.Fail(res, err, 500)
         })
     })
@@ -177,7 +177,7 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('error', (err) => {
-        log.error(`Puber[${puber.id}] Connection error: `, err)
+        log.error(`Puber[${puber.id}] Connection error: %o`, err)
         // ws.close()
     })
     return
@@ -189,10 +189,10 @@ const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2']
 errorTypes.map(type => {
     process.on(type, async (err) => {
         try {
-            log.error(`process on ${type}: `, err)
+            log.error(`process on ${type}: %o`, err)
             process.exit(1)
         } catch (_) {
-            log.error(`process catch ${type}: `, err)
+            log.error(`process catch ${type}: %o`, err)
             process.exit(2)
         }
     })
@@ -201,7 +201,7 @@ errorTypes.map(type => {
 signalTraps.map((type: any) => {
     process.once(type, async (err) => {
         try {
-            log.error(`process on signal event: ${type}: `, err)
+            log.error(`process on signal event: ${type}: %o`, err)
         } finally {
             process.kill(process.pid, type)
         }

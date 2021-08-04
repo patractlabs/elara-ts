@@ -1,17 +1,18 @@
-import { getAppLogger, Resp, Code, Msg, NextT, KCtxT } from '@elara/lib'
+import { accessLogger, Resp, Code, Msg, NextT, KCtxT } from '@elara/lib'
+import { Context } from 'koa'
 
-const log = getAppLogger('midware', true)
+const log = accessLogger()
 
 export const responseTime = async (ctx: KCtxT, next: NextT) => {
     const startT = Symbol('request-received.startTime') as any
     // const endT = Symbol.for('request-received.startTime')
     let start = ctx[startT] ? ctx[startT].getTime() : Date.now()
     await next()
-    log.info(ctx.method, ctx.originalUrl, ctx.request.body, ctx.response.status || 404, ctx.response.length, 'byte', (Date.now() - start), 'ms')
+    log.info(`${ctx.method} ${ctx.originalUrl} %o ${ctx.response.status || 404} ${ctx.response.length} byte ${(Date.now() - start)}ms`, ctx.request.body)
 }
 
 export const authCheck = async (ctx: KCtxT, next: NextT) => {
-    log.info('NO_AUTH env: ', process.env.NO_AUTH)
+    log.debug('NO_AUTH env: ', process.env.NO_AUTH)
     if (process.env.NO_AUTH?.toLowerCase() === 'true') {
         ctx.state.user = 'TestUID'
         return next()
@@ -26,7 +27,7 @@ export const authCheck = async (ctx: KCtxT, next: NextT) => {
 
 export const errHanldle = async (ctx: KCtxT, next: NextT) => {
     return next().catch((error: any) => {
-        log.error('Catch request error: ', error)
+        log.error('Catch request error: %o', error)
         if (error instanceof Resp) {
             ctx.body = error
         } else {
@@ -42,5 +43,13 @@ export const accessControl = (ctx: KCtxT, next: NextT) => {
     ctx.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization')
     ctx.set('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, PATCH, OPTIONS')
     ctx.set('Access-Control-Allow-Credentials', 'true')
+    return next()
+}
+
+export const accessMidware = (ctx: KCtxT, next: NextT) => {
+    const ct = ctx as Context
+    const ip = ct.request.header['x-forwarded-for'] || ct.request.header.host
+    let astr = `${ct.request.method} ${ct.request.url} ${ct.response.status}, ${ip} ${ct.request.header['user-agent']}`
+    log.http(astr)
     return next()
 }

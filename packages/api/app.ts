@@ -1,8 +1,8 @@
 import Koa from 'koa'
 import KoaBody from 'koa-body'
 import Session from 'koa-session'
-import { accessLogger, getAppLogger, dotenvInit, unexpectListener } from '@elara/lib'
-import { accessControl, authCheck, errHanldle, responseTime } from './src/middleware'
+import { getAppLogger, dotenvInit, unexpectListener } from '@elara/lib'
+import { accessControl, accessMidware, authCheck, errHanldle, responseTime } from './src/middleware'
 import Passport from './src/lib/passport'
 import Router from 'koa-router'
 import limitRouter from './src/routers/limit'
@@ -39,24 +39,23 @@ const session = {
 }
 
 app
-    .use(accessLogger(true))
+    .use(accessMidware)
     .use(Session(session, app))
     .use(KoaBody({json: true}))
     .use(Passport.initialize())
     .use(Passport.session())
     .use(responseTime)
     .use(errHanldle)
-    // .use(authCheck)
     .use(accessControl)
     .use(router.routes())
 
 app.on('error', (err) => {
-    log.error('Stat service error: ', err)
+    log.error('Stat service error: %o', err)
 })
 
 app.listen(server.port, async () => {
     await sequelize.sync()
-    log.info('elara api service listen on port 7000: ', process.env.NODE_ENV)
+    log.info('elara api service listen on port 7000: %o', process.env.NODE_ENV)
 })
 
 unexpectListener()

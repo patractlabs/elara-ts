@@ -123,7 +123,7 @@ namespace Service {
         })
 
         hourJob.on('error', (err) => {
-            log.error('hourly job error: ', err)
+            log.error('hourly job error: %o', err)
         })
 
         hourJob.on('canceled', (reason) => {
@@ -138,7 +138,7 @@ namespace Service {
         })
 
         dayJob.on('error', (err) => {
-            log.error('daily job error: ', err)
+            log.error('daily job error: %o', err)
         })
 
         dayJob.on('canceled', (reason) => {

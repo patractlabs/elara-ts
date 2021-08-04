@@ -274,7 +274,7 @@ namespace Stat {
         }
         const re = await statRd.zrevrange(skey, 0, num - 1, 'WITHSCORES')
         statRd.del(skey)
-        log.debug(`${typ} score rank reulst: `, re)
+        log.debug(`${typ} score rank reulst: %o`, re)
         return re
     }
 
@@ -305,7 +305,7 @@ namespace Stat {
     // project statistic
     export const proDaily = async (chain: string, pid: string): PStatT => {
         const re = await statRd.hgetall(sKEY.hProDaily(chain, pid, todayStamp()))
-        log.debug(`get ${chain} project[${pid}] day statistic: `, re)
+        log.debug(`get ${chain} project[${pid}] day statistic: %o`, re)
         let stat = parseStatRecord(re) as unknown as Stats
 
         const [start, end] = lastTime('hour', 0)

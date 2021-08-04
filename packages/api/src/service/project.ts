@@ -22,7 +22,7 @@ class Project {
             })
             return Ok(re)
         } catch (err) {
-            log.error('create project error: ', err)
+            log.error('create project error: %o', err)
             return Err(errMsg(err, 'create error'))
         }
     }
@@ -37,7 +37,7 @@ class Project {
             })
             return Ok(re === 1)
         } catch (err) {
-            log.error(`delete project ${id} error: `, err)
+            log.error(`delete project ${id} error: %o`, err)
             return Err(errMsg(err, 'delete error'))
         }
     }
@@ -50,7 +50,7 @@ class Project {
             })
             return Ok(re)
         } catch (err) {
-            log.error(`update project ${pro.id} error: `, err)
+            log.error(`update project ${pro.id} error: %o`, err)
             return Err(errMsg(err, 'update error'))
         }
     }
@@ -65,7 +65,7 @@ class Project {
             }
             return Ok(re)
         } catch (err) {
-            log.error(`find project ${id} error: `, err)
+            log.error(`find project ${id} error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
     }
@@ -80,7 +80,7 @@ class Project {
             }
             return Ok(re)
         } catch (err) {
-            log.error(`find ${chain} project ${pid} error: `, err)
+            log.error(`find ${chain} project ${pid} error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
     }
@@ -97,7 +97,7 @@ class Project {
             }
             return Ok(re)
         } catch (err) {
-            log.error(`query status of ${chain} project ${pid} error: `, err)
+            log.error(`query status of ${chain} project ${pid} error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
     }
@@ -112,7 +112,7 @@ class Project {
             const re = await ProjectModel.findAll(option)
             return Ok(re)
         } catch (err) {
-            log.error(`find projects of user[${userId}] ${chain} error: `, err)
+            log.error(`find projects of user[${userId}] ${chain} error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
     }
@@ -124,7 +124,6 @@ class Project {
                 where: { chain },
                 attributes: [[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']]
             })
-            log.debug(`project count of chain ${chain}: `, re)
             return Ok(parseInt((re[0] as any).dataValues.count))
         } catch (err) {
             return Err(errMsg(err, 'query error'))
@@ -142,12 +141,12 @@ class Project {
                 option.group = Sequelize.col('chain')
             }
             const re = await ProjectModel.findAll(option)
-            log.debug(`project count of user ${userId}: `, re)
+            log.debug(`project count of user ${userId}: %o`, re)
             // TODO
             if (byChain) { return Ok(re) }
             return Ok(parseInt((re[0] as any).dataValues.count))
         } catch (err) {
-            log.error('query project count of user error: ', err)
+            log.error('query project count of user error: %o', err)
             return Err(errMsg(err, 'query error'))
         }
     }
@@ -160,7 +159,7 @@ class Project {
                 attributes: [[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']],
                 group: Sequelize.col('chain')
             })
-            log.debug(`project count of user ${userId} by chain: `, re)
+            log.debug(`project count of user ${userId} by chain: %o`, re)
             return Ok(parseInt((re[0] as any).dataValues.count))
         } catch (err) {
             return Err(errMsg(err, 'query error'))

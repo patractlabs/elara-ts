@@ -9,7 +9,7 @@ import { SuducerT } from './suducer'
 import { randomId } from '@elara/lib'
 import { CacheStrategyT, ReqT } from './interface'
 
-const log = getAppLogger('suducer', true)
+const log = getAppLogger('suducer')
 
 const buildReq = (id: string, method: string, params: any[]): ReqT => {
     return { id, jsonrpc: "2.0", method, params }

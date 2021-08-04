@@ -39,7 +39,7 @@ function post(chain: string, url: string, data: ReqDataT, resp: Http.ServerRespo
         log.info(`new node rpc response: chain[${chain}] method ${data.method} time[${time}]`)
     })
     req.on('error', (err: Error) => {
-        log.error('post noder rpc request error: ', err)
+        log.error('post noder rpc request error: %o', err)
         Response.Fail(resp, err.message, 500, stat)
     })
     req.write(JSON.stringify(data))

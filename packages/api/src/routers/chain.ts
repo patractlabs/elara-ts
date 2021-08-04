@@ -5,7 +5,7 @@ import { ChainAttr } from '../models/chain'
 import Chain from '../service/chain'
 
 const R = new Router()
-const log = getAppLogger('chain', true)
+const log = getAppLogger('chain')
 
 const chainList = async (ctx: KCtxT, next: NextT) => {
     const re = await Chain.chainList()

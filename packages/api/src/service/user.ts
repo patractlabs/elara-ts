@@ -5,7 +5,7 @@ import Project, { ProStatus } from '../models/project'
 import ProService from '../service/project'
 import Limit from './limit'
 
-const log = getAppLogger('user-service', true)
+const log = getAppLogger('user-service')
 
 export default class User {
 
@@ -26,7 +26,7 @@ export default class User {
             log.debug('UserModel create result: ', re)
             return Ok(re)
         } catch (err) {
-            log.error('create user error: ', err)
+            log.error('create user error: %o', err)
             return Err(err.errors[0].message ?? 'create error')
         }
     }

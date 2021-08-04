@@ -5,7 +5,7 @@ import Conf from '../config'
 import Dao, { chainPSub } from '../src/dao'
 import G from './global'
 import Suber from './suber'
-const log = getAppLogger('chain', true)
+const log = getAppLogger('chain')
 
 enum Topic {
     ChainAdd    = 'chain-add',
@@ -61,7 +61,7 @@ chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
 })
 
 chainPSub.on('error', (err) => {
-    log.error('Redis chain-server listener error: ', err)
+    log.error('Redis chain-server listener error: %o', err)
 })
 
 namespace Chain {

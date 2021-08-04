@@ -34,12 +34,12 @@ export class Subscriber extends Redis {
                 let res = re[0][1]
                 const { length } = re
                 if (length !== 1) {
-                    log.error(`${typ} stream ${consumer} read result: `, res, length)
+                    log.error(`${typ} stream ${consumer} read result: %o`, res, length)
                 }
                 if (length < 1) { continue }
                 cb(res[0])
             } catch (err) {
-                log.error(`${typ} stram subscribe error: `, err)
+                log.error(`${typ} stram subscribe error: %o`, err)
             }
         }
     }

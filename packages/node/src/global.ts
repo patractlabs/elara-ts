@@ -3,7 +3,7 @@ import { SuberMap, PuberMap, ChainSuber, SubscripT, SubscripMap, ReqMap, ReqT } 
 import Suber from './suber'
 import Puber from './puber'
 
-const log = getAppLogger('G', true)
+const log = getAppLogger('G')
 
 /**
  * Subers {

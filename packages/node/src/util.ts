@@ -4,7 +4,7 @@ import G from './global'
 import { ChainPidT } from './interface'
 // import FastStr from 'fast-json-stringify'
 
-const log = getAppLogger('util', true)
+const log = getAppLogger('util')
 // /chain/pid
 const UrlReg = (() => {
     return /^\/([a-zA-Z]{4,20})\/([a-z0-9]{32})$/

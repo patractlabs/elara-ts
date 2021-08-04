@@ -19,6 +19,7 @@ export function todayStamp(): number {
 }
 
 export function errMsg(err: any, msg: string): Msg {
+    log.debug('error msg: %o', err)
     if (err.errors) {
         return err.errors[0].message ?? msg
     } else {

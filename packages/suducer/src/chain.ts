@@ -5,7 +5,7 @@ import { isErr } from '@elara/lib'
 import Dao from './dao'
 import { G } from './global'
 import Conf from '../config'
-const log = getAppLogger('chain', true)
+const log = getAppLogger('chain')
 import { Redis, DBT } from '@elara/lib'
 
 const redisConf = Conf.getRedis()

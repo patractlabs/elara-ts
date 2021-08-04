@@ -7,7 +7,7 @@ import Router from 'koa-router'
 import User from '../service/user'
 
 const R = new Router()
-const log = getAppLogger('project', true)
+const log = getAppLogger('project')
 
 function checkName(name: string): void {
     const regOk = /[a-zA-Z0-9]/.test(name)  // not invalid
@@ -131,6 +131,7 @@ async function statusByChainPid(ctx: KCtxT, next: NextT) {
 // project count list of chain by user
 async function countOfChain(ctx: KCtxT, next: NextT) {
     const { chain } = ctx.request.body
+    log.debug(`count of ${chain} params: %o`, ctx.request.body)
     let re = await Project.countOfChain(chain)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
@@ -153,7 +154,7 @@ async function countOfUser(ctx: KCtxT, next: NextT) {
 
 async function list(ctx: KCtxT, next: NextT) {
     const { userId, chain } = ctx.request.body
-    log.debug('get project list: ', userId, chain)
+    log.debug(`get project list: ${userId}, ${chain}`)
     let re = await Project.list(userId, chain)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)

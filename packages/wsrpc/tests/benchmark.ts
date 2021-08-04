@@ -76,7 +76,7 @@ const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = fal
     })
 
     w.on('error', (err) => {
-        log.error('ws error: ', err)
+        log.error('ws error: %o', err)
     })
 
     w.on('message', (data) => {

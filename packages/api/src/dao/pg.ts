@@ -21,7 +21,7 @@ async function run () {
         await Pg.authenticate()
         log.info('postgres connection open')
     } catch(err) {
-        log.error('Unable to connect to the database: ', err)
+        log.error('Unable to connect to the database: %o', err)
         process.exit(1)
     }
 }

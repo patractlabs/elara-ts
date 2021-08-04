@@ -182,7 +182,7 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
     // subReqMap may uninit, then miss the first data response
     let re: any = parseReq(dat)
     if (isErr(re)) {
-        log.error(`parse request cache error: `, re.value)
+        log.error(`parse request cache error: %o`, re.value)
         return Err(`${re.value}`)
     }
     if (re.value === true) {
@@ -407,7 +407,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
     })
 
     ws.on('error', (err) => {
-        log.error(`${chain} suber[${suber.id}] socket error: `, err)
+        log.error(`${chain} suber[${suber.id}] socket error: %o`, err)
         // suber.ws.close()
     })
 

@@ -7,7 +7,7 @@ import Conf from '../../config'
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
 
-const log = getAppLogger('redis', true)
+const log = getAppLogger('redis')
 const rdConf = Conf.getRedis()
 log.warn(`current env ${process.env.NODE_ENV}, redis configure: ${JSON.stringify(rdConf)}`)
 // TODO redis pool

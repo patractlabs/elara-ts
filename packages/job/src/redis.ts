@@ -11,7 +11,7 @@ Stt.onConnect(() => {
 })
 
 Stt.onError((err) => {
-    log.error('statistic redis connection error: ', err)
+    log.error('statistic redis connection error: %o', err)
 })
 
 export const Rd = Stt.getClient()

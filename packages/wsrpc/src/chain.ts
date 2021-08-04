@@ -73,7 +73,7 @@ chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
 })
 
 chainPSub.on('error', (err) => {
-    log.error('Redis chain-server listener error: ', err)
+    log.error('Redis chain-server listener error: %o', err)
 })
 
 class Chain {

@@ -46,7 +46,7 @@ function post(url: string, body: ChainPidT): Promise<any> {
             })
         })
         req.on('error', (err: Error) => {
-            log.error('post noder rpc request error: ', err)
+            log.error('post noder rpc request error: %o', err)
             reject({ code: 500, msg: err, data: false })
         })
         req.write(JSON.stringify(body))
@@ -61,7 +61,7 @@ async function resourceLimit(chain: string, pid: string): PBoolT {
     }
     // check request limit & bandwidth limit
     const res = await post(`http://${conf.apiHost}:${conf.apiPort}/auth/islimit`, { chain, pid })
-    log.debug(`${chain} pid[${pid}] limit check result: `, res, chain, pid)
+    log.debug(`${chain} pid[${pid}] limit check result: %o`, res, chain, pid)
     const ok = JSON.parse(res).data as boolean ?? true
     return ok
 }
@@ -106,7 +106,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
     // method check
     let reqStatis = initStatistic('http', req.method!, req.headers)
     if (!isPostMethod(req.method!)) {
-        log.warn(`Invalid method ${req.method}, only POST support: `, req.url)
+        log.warn(`Invalid method ${req.method}, only POST support: %o`, req.url)
         return Response.Fail(res, 'Invalid method, only POST support', 400, reqStatis)
     }
 
@@ -147,7 +147,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
                 return Response.Fail(res, 'resource out of limit', 419, reqStatis)
             }
         } catch (err) {
-            log.error(`rpc request catch error: `, err)
+            log.error(`rpc request catch error: %o`, err)
             return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400, reqStatis)
         }
         // dispatch request 
@@ -256,7 +256,7 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('error', (err) => {
-        log.error(`Puber[${id}] Connection error: `, err)
+        log.error(`Puber[${id}] Connection error: %o`, err)
     })
     return
 })

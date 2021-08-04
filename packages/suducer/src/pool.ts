@@ -79,7 +79,7 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
     })
 
     ws.on('error', (err: Error) => {
-        log.error(`Suducer err-evt ${sign}: `, err)
+        log.error(`Suducer err-evt ${sign}: %o`, err)
     })
 
     ws.on('close', (code: number, reason: string) => {

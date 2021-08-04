@@ -155,6 +155,6 @@ export async function handleStat(stream: string[]): PVoidT {
             Rd.zincrby(KEY.zDailyBw(), req.bw ?? 0, req.req.method)
         }
     } catch (err) {
-        log.error(`dump request statistic [${req.chain}-${req.pid}] error: `, err)
+        log.error(`dump request statistic [${req.chain}-${req.pid}] error: %o`, err)
     }
 }

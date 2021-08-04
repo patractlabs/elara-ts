@@ -151,7 +151,7 @@ const dataParse = (data: WebSocket.Data): ResultT<DParT> => {
     // subReqMap may uninit, then miss the first data response
     let re: any = parseReq(dat)
     if (isErr(re)) {
-        log.error(`parse request cache error: `, re.value)
+        log.error(`parse request cache error: %o`, re.value)
         return Err(`${re.value}`)
     }
     if (re.value === true) {
@@ -243,7 +243,7 @@ const closeHandler = async (chain: string, suber: Suber): PVoidT => {
     for (let pubId of suber.pubers) {
         let re = G.getPuber(pubId)
         if (isErr(re)) {
-            log.error(`[SBH] clear puber error: `, re.value)
+            log.error(`[SBH] clear puber error: %o`, re.value)
             process.exit(1)
             continue
         }
@@ -293,7 +293,7 @@ const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set
     for (let pubId of pubers) {
         let re = G.getPuber(pubId)
         if (isErr(re)) {
-            log.error(`Handle re open error: `, re.value)
+            log.error(`Handle re open error: %o`, re.value)
             process.exit(2)
         }
         const puber = re.value as Puber
@@ -355,7 +355,7 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     })
 
     ws.on('error', (err) => {
-        log.error(`${chain} suber[${suber.id}] socket error: `, err)
+        log.error(`${chain} suber[${suber.id}] socket error: %o`, err)
         suber.ws.close()
     })
 
@@ -364,7 +364,7 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
 
         const re = G.getSuber(chain, suber.id)
         if (isErr(re)) {
-            log.error(`Handle suber close event error: `, re.value)
+            log.error(`Handle suber close event error: %o`, re.value)
             process.exit(1)
         }
 
@@ -449,7 +449,7 @@ namespace Suber {
         // fetch chain list
         const re = await Chain.fetchChains()
         if (isErr(re)) {
-            log.error(`Init chain list error: `, re.value)
+            log.error(`Init chain list error: %o`, re.value)
             process.exit(1)
         }
         const chains = re.value as string[]

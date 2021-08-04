@@ -14,7 +14,7 @@ const newConn = (url: string, port: number, path: string) => {
     // })
 
     // ws.on('error', (err) => {
-    //     log.error('ws error: ', err)
+    //     log.error('ws error: %o', err)
     // })
 
     // ws.on('message', (data) => {
@@ -81,7 +81,7 @@ const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = fal
     })
 
     w.on('error', (err) => {
-        log.error('ws error: ', err)
+        log.error('ws error: %o', err)
     })
 
     w.on('message', (data) => {

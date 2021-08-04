@@ -12,7 +12,7 @@ class Limit {
             log.debug('create limit result: ', re)
             return Ok(re)
         } catch (err) {
-            log.error('add new limit error: ', err)
+            log.error('add new limit error: %o', err)
             return Err(errMsg(err, 'add fail'))
         }
     }
@@ -31,7 +31,7 @@ class Limit {
             })
             return Ok(re)
         } catch (err) {
-            log.error('udpate error: ', err)
+            log.error('udpate error: %o', err)
             return Err(errMsg(err, 'udpate error'))
         }
     }
@@ -48,7 +48,7 @@ class Limit {
             }
             return Ok(re)
         } catch (err) {
-            log.error(`find limit of id ${id} error: `, err)
+            log.error(`find limit of id ${id} error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
     }
@@ -65,7 +65,7 @@ class Limit {
             }
             return Ok(re)
         } catch (err) {
-            log.error(`find limit of level ${level} error: `, err)
+            log.error(`find limit of level ${level} error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
     }
@@ -80,7 +80,7 @@ class Limit {
             })
             return Ok(re === 1)
         } catch (err) {
-            log.error(`destroy limit of ${id} error: `, err)
+            log.error(`destroy limit of ${id} error: %o`, err)
             return Err(errMsg(err, 'destroy error'))
         }
     }

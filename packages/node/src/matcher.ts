@@ -20,7 +20,7 @@ import Util from './util'
 import Conf from '../config'
 import Topic from './topic'
 
-const log = getAppLogger('matcher', true)
+const log = getAppLogger('matcher')
 
 const clearSubContext = async (puber: Puber, code: number) => {
     // sub context: 1. subed topics 2. subreqMap 3. reqCache for subscribe

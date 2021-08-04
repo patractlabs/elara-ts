@@ -2,7 +2,7 @@ import { getAppLogger, PResultT, Ok, ChainConfig, isErr } from '@elara/lib'
 import Dao from '../dao'
 import ChainModel, { ChainAttr } from '../models/chain'
 
-const log = getAppLogger('chain', true)
+const log = getAppLogger('chain')
 
 export enum Topic {
     ChainAdd    = 'chain-add',

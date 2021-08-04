@@ -7,7 +7,7 @@ import Matcher from './matcher'
 import Suber from './suber'
 import Util from './util'
 
-const log = getAppLogger('Puber', true)
+const log = getAppLogger('Puber')
 
 interface Puber {
     id: IDT,

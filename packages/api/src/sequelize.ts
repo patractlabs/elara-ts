@@ -5,6 +5,8 @@ import Conf from '../config'
 const log = getAppLogger('sequelize')
 const dconf = Conf.getDB()
 
+log.debug('env: %o', process.env.NODE_ENV)
+
 const sequelize =  new Sequelize(dconf.table, dconf.user, dconf.password, {
     host: dconf.host,
     port: dconf.port,
