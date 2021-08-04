@@ -36,7 +36,7 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
     // const pid = cp.pid
     let re = await Dao.getChainConfig(chain)
     if (isErr(re)) {
-        log.error('Request error:', re.value)
+        log.error('Request error: %o', re.value)
         return Err('invalid chain')
     }
     const conf = re.value as ChainConfig
@@ -55,7 +55,7 @@ const post = async (cp: ChainPidT, body: any, resp: Http.ServerResponse): PResul
     })
     req.write(body)
     req.end()
-    log.info(`Transpond rpc request: `, body)
+    log.info(`Transpond rpc request: %o`, body)
     return Ok(req)
 }
 
@@ -123,7 +123,7 @@ Server.on('upgrade', async (res: Http.IncomingMessage, socket, head) => {
     const path = res.url!
     const re = await Util.urlParse(path)
     if (isErr(re)) {
-        log.error('Invalid socket request: ', re.value)
+        log.error('Invalid socket request: %o', re.value)
         return socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`,'ascii')
     }
  
@@ -146,7 +146,7 @@ wss.on('connection', async (ws, req: any) => {
     const time = Util.traceEnd(start)
     log.info(`chain ${req.chain} pid[${req.pid}] puber connect time: ${time}`)
     if (isErr(re)) {
-        log.error('Connect handle error: ', re.value)
+        log.error('Connect handle error: %o', re.value)
         let err = re.value
         if (re.value.indexOf('no valid subers of chain') !== 1) {
             ws.send(`no chain named ${req.chain}`)
@@ -157,7 +157,7 @@ wss.on('connection', async (ws, req: any) => {
     const puber = re.value as Puber
 
     ws.on('message', async (data) => {
-        log.info(`new puber[${puber.id}] request of chain ${puber.chain}: `, data)
+        log.info(`new puber[${puber.id}] request of chain ${puber.chain}: %o`, data)
         let dat: WsData
         try {
             dat = JSON.parse(data.toString())
@@ -212,7 +212,7 @@ const run = async () => {
     await Suber.init()
     let conf = Conf.getServer()
     Server.listen(conf.port, () => {
-        log.info('Elara node transpond server listen on port: ', conf.port)
+        log.info(`Elara node transpond server listen on port: ${conf.port}`)
     })
 }
 

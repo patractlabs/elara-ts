@@ -13,7 +13,7 @@ const log = getAppLogger('service')
 async function clearDayExpire() {
     const dayStamp = startStamp('day', rconf.expire)
     const keys = await Rd.keys(`*${dayStamp}`)
-    log.debug('expire keys: ', keys)
+    log.debug('expire keys: %o',keys)
     for (let k of keys) {
         Rd.del(k)
     }
@@ -67,14 +67,14 @@ async function clearHourExpire(): PVoidT {
     const zlKey = KEY.zStatList()
     const keys = await Rd.zrangebyscore(zlKey, start, end)
     for (let k of keys) {
-        log.debug('remove expire statistic: ', k)
+        log.debug('remove expire statistic: %o',k)
         Rd.zrem(zlKey, k)
     }
     
     const zelKey = KEY.zErrStatList()
     const ekeys = await Rd.zrangebyscore(zelKey, start, end)
     for (let k of ekeys) {
-        log.debug('remove expire error statistic: ', k)
+        log.debug('remove expire error statistic: %o',k)
         Rd.zrem(zelKey, k)
     }
 }

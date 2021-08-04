@@ -79,7 +79,7 @@ namespace Util {
         const format = (bytes: number) => {
             return (bytes / 1024 / 1024).toFixed(2) + 'MB'
         }
-        log.info('Memory usage: ', {
+        log.info('Memory usage: %o',{
             rss: format(mem.rss),
             heapTotal: format(mem.heapTotal),
             heapUsed: format(mem.heapUsed),
@@ -102,7 +102,7 @@ namespace Util {
             data += chunk
         })
         res.on('end', () => {
-            log.info('New rpc response: ', data)
+            log.info('New rpc response: %o',data)
         })
     }
 

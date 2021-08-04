@@ -43,7 +43,7 @@ namespace Project {
         }
         // if chain is empty and pid not, would be get only one
         let key = `${com}${CHAIN}${PID}`
-        // log.info('Project key: ', key)
+        // log.info('Project key: %o',key)
         return key
     }
 
@@ -58,7 +58,7 @@ namespace Project {
             UID = '*'
         }
         let key = `${com}${CHAIN}${UID}`
-        // log.info('Project list key: ', key)
+        // log.info('Project list key: %o',key)
         return key
     }
 

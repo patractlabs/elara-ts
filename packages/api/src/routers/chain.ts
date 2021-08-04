@@ -20,7 +20,7 @@ const detail = async (ctx: KCtxT, next: NextT) => {
     const chain = ctx.request.body.chain
     const re = await Chain.detail(chain)
     const cha = re.value
-    log.debug('detail: ', cha)
+    log.debug('detail: %o', cha)
     ctx.body = Resp.Ok(re.value)
 
     return next()
@@ -28,7 +28,7 @@ const detail = async (ctx: KCtxT, next: NextT) => {
 
 const addChain = async (ctx: KCtxT, next: NextT) => {
     const req: ChainAttr = ctx.request.body
-    log.info('add body: ', req)
+    log.info('add body: %o',req)
     // if (await Chain.isExist(req.name)) {
     //     throw Resp.Fail(Code.Dup_Name, Msg.Dup_Name)
     // }

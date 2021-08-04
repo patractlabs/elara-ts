@@ -54,7 +54,7 @@ namespace Rd {
             updateTime,
             result
         }
-        log.error('data to be dump: ', latest)
+        log.error('data to be dump: %o',latest)
         return cacheRedis.hmset(KCache.hCache(chain, method), latest)
     }
 

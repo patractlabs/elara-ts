@@ -44,7 +44,7 @@ const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT, strat
     // const extens: string[] = G.getExtends(chain, stratgy as any)
     // const nrpcs = [...rpcs, ...extens]
     // const excludes = G.getExcludes(chain)
-    // log.info(`Extends & excludes list of chain[${chain}]: `, extens, excludes)
+    // log.info(`Extends & excludes list of chain[${chain}]: %o %o`, extens, excludes)
     if (stratgy) { 
         // TODO 
     }

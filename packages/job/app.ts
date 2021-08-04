@@ -15,7 +15,7 @@ const subhttp = new Subscriber(DBT.Pubsub, { host: redis.host });
     Service.init()
     subws.subscribe('statistic-ws', handleStat, 0)
     subhttp.subscribe('statistic-http', handleStat, 0)
-    log.info('Job server run: ', process.env.NODE_ENV)
+    log.info('Job server run: %o',process.env.NODE_ENV)
 })()
 
 unexpectListener()

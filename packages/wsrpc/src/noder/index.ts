@@ -29,7 +29,7 @@ function post(chain: string, url: string, data: ReqDataT, resp: Http.ServerRespo
             stat.delay = Util.traceDelay(stat.start)
             stat.code = 200
             if (stat.delay > 1000) {
-                log.warn(`request ${stat.chain} pid[${stat.pid}] delay ${stat.delay} timeout: `, stat.req)
+                log.warn(`request ${stat.chain} pid[${stat.pid}] delay ${stat.delay} timeout: %o`, stat.req)
                 stat.timeout = true
             }
             // publish statistics

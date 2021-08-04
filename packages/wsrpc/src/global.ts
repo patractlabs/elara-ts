@@ -111,7 +111,7 @@ namespace G {
             publish(stat)
             delete ReqMap[reqId]
         } else {
-            log.warn(`request cache ${reqId} invalid: `, ReqMap[reqId])
+            log.warn(`request cache ${reqId} invalid: %o`, ReqMap[reqId])
         }
     }
 

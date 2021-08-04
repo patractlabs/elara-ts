@@ -84,8 +84,8 @@ namespace Util {
     export function debugSuber() {
         let ksub = Suber.getSubersByChain('polkadot', SuberTyp.Kv)
         let nsub = Suber.getSubersByChain('polkadot', SuberTyp.Node)
-        log.debug(`kv suber pubers: `, ksub[Object.keys(ksub)[0]]?.pubers)
-        log.debug(`node suber pubers: `, nsub[Object.keys(nsub)[0]]?.pubers)
+        log.debug(`kv suber pubers: %o`, ksub[Object.keys(ksub)[0]]?.pubers)
+        log.debug(`node suber pubers: %o`, nsub[Object.keys(nsub)[0]]?.pubers)
     }
 
     export function strBytes(str: string): number {

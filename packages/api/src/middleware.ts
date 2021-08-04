@@ -12,13 +12,13 @@ export const responseTime = async (ctx: KCtxT, next: NextT) => {
 }
 
 export const authCheck = async (ctx: KCtxT, next: NextT) => {
-    log.debug('NO_AUTH env: ', process.env.NO_AUTH)
+    log.debug('NO_AUTH env: %o', process.env.NO_AUTH)
     if (process.env.NO_AUTH?.toLowerCase() === 'true') {
         ctx.state.user = 'TestUID'
         return next()
     }
-    log.debug('context: ', ctx, ctx.isAuthenticated())
     const re = ctx.isAuthenticated()
+    log.debug(`auth check result: ${re}`)
     if (!re) {
         throw Resp.Fail(Code.Auth_Fail, Msg.Auth_Fail)
     }

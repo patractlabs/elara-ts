@@ -1,6 +1,5 @@
 import Ws from 'ws'
 import { randomId } from '@elara/lib'
-import Util from '../src/util'
 const log = console
 
 async function sleeps(s: number): Promise<void> {
@@ -25,7 +24,6 @@ const connBuild = (cnt: number, url: string, port: number) => {
         const ws = newConn(url, port, `${pat}${id}`)
         wss.push(ws)
     }
-    // log.info('socket conn: ', wss)
     return wss
 }
 
@@ -45,7 +43,6 @@ const topics = [
 const sendReq = async (w: Ws, lis: string[]) => {
     for (let m of lis) {
         const req = {"id": randomId(), "jsonrpc":"2.0", "method": m,"params":[]}
-        // log.info('ws state: ', w.readyState, req)
         if (w.readyState == 1) {
             await sleeps(0.1)
             if (m === 'state_subscribeStorage') {
@@ -72,7 +69,7 @@ const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = fal
     })
 
     w.on('close', (code, reason) => {
-        log.info('closed: ', code, reason)
+        log.info('closed: %o, %o', code, reason)
     })
 
     w.on('error', (err) => {
@@ -80,7 +77,7 @@ const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = fal
     })
 
     w.on('message', (data) => {
-        log.info('new msg: ', data)
+        log.info('new msg: %o', data)
     })
 }
 
@@ -100,9 +97,7 @@ export const wsTestRunner = async (loop: number, newConn: boolean, conn: number,
     }
     if (loop <= 0) { loop = Number.MAX_VALUE } 
     for (let i = 0; i < loop; i++) {
-        log.info('wss: ', wss.length)
         if (wss.length === 0) {
-            log.info('===========to create new connect====================')
             wss = connBuild(conn, '127.0.0.1', 7001)
         }
 
@@ -111,7 +106,6 @@ export const wsTestRunner = async (loop: number, newConn: boolean, conn: number,
         }
         await sleeps(10)
         if (newConn) {
-            log.warn('=====================ready to clear all connection===========================')
             clearConn(wss)
             wss = []
         }
@@ -132,15 +126,15 @@ const connTestRunner = async (conn: number, delay: number) => {
         const id = formatstr(i)
         const ws = newConn('127.0.0.1', 7001, `${pat}${id}`)
         ws.on('open', () => {
-            log.info('open ws id i==================: ', i)
+            log.info('open ws id: %o', i)
         })
 
         ws.on('close', () => {
-            log.info('close===============: ', i)
+            log.info('close connection id: %o', i)
         })
 
         ws.on('error', (err) => {
-            log.error('error id ', i, err)
+            log.error(`error id ${i}: %o`, err)
         })
         wss.push(ws)
     }
@@ -159,11 +153,8 @@ const connTest = async (loop: number) => {
 
 (async () => {
     if (true) {
-        // wsTestRunner(1, true, 1, WsTyp.All)
-        let start = Util.traceStart()
-        console.log('start :', start)
-        let str = JSON.stringify({name: '蔡长霖'})
-        log.info(`${str}, ${str.length} chars, ${Buffer.byteLength(str, 'utf8')} bytes`)
+        wsTestRunner(1, true, 1, WsTyp.All)
+        
     } else {
         // wsTestRunner(0, false, 100)
         connTest(0)

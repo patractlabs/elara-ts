@@ -32,7 +32,7 @@ const generateUrl = (url: string, port: number, sec: boolean = false) => {
 }
 
 const rdConf = Conf.getRedis()
-log.warn(`current env ${process.env.NODE_ENV} redis conf: `, JSON.stringify(rdConf))
+log.warn(`current env ${process.env.NODE_ENV} redis conf: %o`, JSON.stringify(rdConf))
 
 const SubReg = (() => {
     return /[0-9a-zA-Z]{16}/
@@ -83,7 +83,7 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
     })
 
     ws.on('close', (code: number, reason: string) => {
-        log.error(`Suducer close-evt ${sign}: `, code, reason, suducer.ws.readyState)
+        log.error(`Suducer close-evt ${sign}: %o %o %o`, code, reason, suducer.ws.readyState)
 
         if (type === SuducerT.Cache) {
             // G.delInterval(chain, CacheStrategyT.SyncAsBlock)

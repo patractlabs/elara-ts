@@ -4,22 +4,6 @@ const log = console
 
 const newConn = (url: string, port: number, path: string) => {
     const ws = new Ws(`ws://${url}:${port}/${path}`)
-
-    // ws.once('open', () => {
-    //     log.info('new ws conn open')
-    // })
-
-    // ws.on('close', (_code, _reason) => {
-    //     // log.info('closed: ', code, reason)
-    // })
-
-    // ws.on('error', (err) => {
-    //     log.error('ws error: %o', err)
-    // })
-
-    // ws.on('message', (data) => {
-    //     log.info('new msg: ', data)
-    // })
     return ws
 }
 
@@ -37,7 +21,6 @@ const connBuild = (cnt: number, url: string, port: number) => {
         const ws = newConn(url, port, `${pat}${id}`)
         wss.push(ws)
     }
-    // log.info('socket conn: ', wss)
     return wss
 }
 
@@ -54,7 +37,6 @@ const topics = [
 const sendReq = async (w: Ws, lis: string[]) => {
     for (let m of lis) {
         const req = `{"id": 1, "jsonrpc":"2.0", "method":"${m}","params":[]}`
-        // log.info('ws state: ', w.readyState, req)
         if (w.readyState == 1) {
             await Util.sleeps(0.1)
             w.send(req)
@@ -64,7 +46,6 @@ const sendReq = async (w: Ws, lis: string[]) => {
 
 const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = false) => {
     w.on('open', async () => {
-        // log.info('new open--------------------')
         if (newConn) {
             sendReq(w, lis)
         } else {
@@ -77,7 +58,7 @@ const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = fal
     })
 
     w.on('close', (code, reason) => {
-        log.info('closed: ', code, reason)
+        log.info('closed: %o %o', code, reason)
     })
 
     w.on('error', (err) => {
@@ -85,7 +66,7 @@ const listenHandle = (w: Ws, lis: string[], loop: number, newConn: boolean = fal
     })
 
     w.on('message', (data) => {
-        log.info('new msg: ', data)
+        log.info('new msg: %o', data)
     })
 }
 

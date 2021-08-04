@@ -50,7 +50,7 @@ async function checkProjectLimit(userId: number): PVoidT {
 
 async function create(ctx: KCtxT, next: NextT) {
     const uid = ctx.state.user
-    log.debug('create project request: ', uid, ctx.request.body)
+    log.debug('create project request: %o %o',uid, ctx.request.body)
     const {userId, name, chain, team, reqDayLimit, reqSecLimit, bwDayLimit} = ctx.request.body
 
     if (!userId || !chain || !team || !name) {
@@ -79,11 +79,11 @@ async function create(ctx: KCtxT, next: NextT) {
     const re = await Project.create(attr)
 
     if (isErr(re)) {
-        log.debug('create project error: ', re.value)
+        log.debug('create project error: %o', re.value)
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
 
-    log.info('create project result: ', re)
+    log.info('create project result: %o', re)
 
     ctx.body = Resp.Ok(re.value)   // equals to ctx.response.body
     return next()
@@ -104,7 +104,7 @@ async function findById(ctx: KCtxT, next: NextT) {
 
 async function findByChainPid(ctx: KCtxT, next: NextT) {
     const { chain, pid } = ctx.request.body
-    log.debug('get project detail: ', chain, pid)
+    log.debug('get project detail: %o %o', chain, pid)
     checkChainPid(chain, pid)
 
     let project = await Project.findByChainPid(chain, pid)
@@ -117,7 +117,7 @@ async function findByChainPid(ctx: KCtxT, next: NextT) {
 
 async function statusByChainPid(ctx: KCtxT, next: NextT) {
     let { chain, pid, includeUser } = ctx.request.body
-    log.debug('get project detail: ', chain, pid)
+    log.debug('get project detail: %o %o', chain, pid)
     checkChainPid(chain, pid)
     if (includeUser !== true) { includeUser = false}
     let project = await Project.statusByChainPid(chain, pid, includeUser)

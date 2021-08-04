@@ -59,7 +59,6 @@ namespace Rd {
             updateTime,
             result: JSON.stringify(result)
         } as CacheT
-        // log.error('data to be dump: ', latest)
         return cacheRedis.hmset(KCache.hCache(chain, method), latest)
     }
 

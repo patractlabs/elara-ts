@@ -75,7 +75,7 @@ const lastHours = async (ctx: KCtxT, next: NextT) => {
 const mostResourceLastDays = async (ctx: KCtxT, next: NextT) => {
     const { count, days } = ctx.request.body
     const { type } = ctx.request.params
-    console.log('type: ', type)
+    console.log('type: %o',type)
     if (type !== 'bandwidth' && type !== 'request') {
         throw Resp.Fail(400, 'invalid resource type' as Msg)
     }

@@ -195,7 +195,7 @@ namespace G {
     export const addChain = (chain: string): void => {
         chain = chain.toLowerCase()
         if (Chains.has(chain))  {
-            log.warn('duplex chain when add new chain: ', chain)
+            log.warn('duplex chain when add new chain: %o', chain)
             return
         }
         Chains.add(chain)

@@ -9,7 +9,7 @@ class Limit {
     static async add(attr: LimitAttr) {
         try {
             const re = await lModel.create(attr)
-            log.debug('create limit result: ', re)
+            log.debug('create limit result: %o', re)
             return Ok(re)
         } catch (err) {
             log.error('add new limit error: %o', err)

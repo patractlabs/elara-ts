@@ -16,7 +16,7 @@ namespace Chain {
     export const isExist = async (chain: string): Promise<Boolean> => {
         const re = await Dao.getChainName(chain)
         if (isErr(re)) {
-            log.info('No this chain: ', re.value)
+            log.info('No this chain: %o', re.value)
             return false
         }
         if (re.value.toLowerCase() === chain.toLowerCase()) {
@@ -39,7 +39,7 @@ namespace Chain {
 
     export const newChain = async (chain: ChainAttr): PResultT<ChainAttr> => {
         let re = await ChainModel.create(chain)
-        log.info('add chain result: ', re)
+        log.info('add chain result: %o', re)
 
         // publish newchain event
         Dao.publishTopic(Topic.ChainAdd, chain.name)
@@ -48,7 +48,7 @@ namespace Chain {
 
     export const deleteChain = async (chain: string): PResultT<void> => {
         const re = await Dao.delChain(chain)
-        log.warn('delete result: ', re)
+        log.warn('delete result: %o', re)
 
         // publish chain delete event
         await Dao.publishTopic(Topic.ChainDel, chain)

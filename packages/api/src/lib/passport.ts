@@ -29,7 +29,7 @@ Passport.use(
             profile: any,
             done: any
         ) => {
-            log.info('passport callback: ', accessToken, refreshToken, profile)
+            log.info('passport callback: %o %o %o',accessToken, refreshToken, profile)
             process.nextTick(() => {
                 return done(null, profile)
             })

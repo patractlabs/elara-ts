@@ -78,9 +78,8 @@ export async function statDump(req: Statistics, key: string): PVoidT {
     // country access
     if (req.header !== undefined && req.header.ip) {
         const c = ip2county(req.header.ip.split(':')[0])
-        log.debug('parse country: ', key, dat[`${req.proto}Ct`])
+        log.debug('parse country: %o %o',key, dat[`${req.proto}Ct`])
         const ac: Record<string, number> = JSON.parse(dat[`${req.proto}Ct`] as string)
-        log.debug('country parse: ', c, ac)
         ac[c] = (ac[c] ?? 0) + 1
         dat[`${req.proto}Ct`] = JSON.stringify(ac)
     }
@@ -116,7 +115,6 @@ export async function dailyStatDump(req: Statistics, key: string): PVoidT {
     if (req.header !== undefined && req.header.ip) {
         const c = ip2county(req.header.ip.split(':')[0])
         const ac: Record<string, number> = JSON.parse(await Rd.hget(key, `${req.proto}Ct`) ?? '{}')
-        log.debug('country parse: ', c, ac)
         ac[c] = (ac[c] ?? 0) + 1
         Rd.hset(key, `${req.proto}Ct`, JSON.stringify(ac))
     }
@@ -126,7 +124,7 @@ export async function handleStat(stream: string[]): PVoidT {
     const dat = stream[1][1]
     const req = JSON.parse(dat) as Statistics
     const key = md5(dat)
-    log.debug('dump new request statistic: ', key, dat)
+    log.debug('dump new request statistic: %o %o',key, dat)
     try {
         if (req.code === 200) {
             // request record

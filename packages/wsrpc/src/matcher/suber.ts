@@ -57,7 +57,7 @@ function parseReq(dat: WsData): ResultT<ReqT | boolean> {
 
     if (isSecondResp(dat.params)) {
         const subsId = dat.params.subscription
-        log.info('receive second response of subscribe: ', subsId)
+        log.info('receive second response of subscribe: %o', subsId)
         const re = GG.getReqId(subsId)
         if (isErr(re)) {
             log.error(`parse request cache error: ${re.value}, puber has been closed.`)
@@ -107,7 +107,7 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
     if (dres === false) {
         log.error(`Puber[${pubId}] unsubscribe fail: chain[${req.chain}] pid[${req.pid}] topic[${req.method}] params[${req.params}] id[${req.subsId}]`)
     } else {
-        log.debug('unsubscribe subsid params: ', req.subsId, req.params)
+        log.debug('unsubscribe subsid params: %o %o', req.subsId, req.params)
         const subsId = req.subsId!
         let re = GG.getReqId(subsId)
         if (isErr(re)) {
@@ -156,7 +156,7 @@ function updateStatistic(req: ReqT, data: string, isSub: boolean = false): void 
     }
     req.stat = stat
     G.updateReqCache(req)
-    log.debug('udpdate reqcahce statistic: ', stat)
+    log.debug('udpdate reqcahce statistic: %o', stat)
 }
 
 /// 1. rpc response: clear reqcache, replace originid 
@@ -190,7 +190,6 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
     }
 
     const req = re.value as ReqT
-    // log.debug('parse request cache result: ', JSON.stringify(req))
     const stat = req.stat
 
     if (isSecondResp(dat.params)) {
@@ -206,7 +205,7 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
         stat.delay = Util.traceDelay(stat.start)
         stat.bw = Util.strBytes(data.toString())
         GG.delReqCacheByPubStatis(req.id)
-        log.info('delete request cache non-subscribe: ', req.id, JSON.stringify(req))
+        log.info('delete request cache non-subscribe: %o %o', req.id, JSON.stringify(req))
     } else {
         updateStatistic(req, data.toString())
     }
@@ -225,7 +224,7 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
     } else if (isSubRequest(req.type, isSubscribeID(dres))) {
         // first response of subscribe
         // NOTE: may receive after puber closed
-        log.debug(`first response of subscribe method[${req.method}] params[${req.params}] puber[${req.pubId}]: `, dat)
+        log.debug(`first response of subscribe method[${req.method}] params[${req.params}] puber[${req.pubId}]: %o`, dat)
         // check puber is closed or not
         const pubre = Puber.get(req.pubId)
         if (isNone(pubre)) {
@@ -317,7 +316,7 @@ function recoverPuberTopics(puber: Puber, ws: WebSocket, subType: SuberTyp, subI
 }
 
 async function openHandler(chain: string, subType: SuberTyp, subId: IDT, ws: WebSocket, pubers: Set<IDT>) {
-    log.info(`Into re-open handle chain[${chain}] ${subType} suber[${subId}] pubers: `, pubers)
+    log.info(`Into re-open handle chain[${chain}] ${subType} suber[${subId}] pubers: %o`, pubers)
     for (let pubId of pubers) {
         let re = Puber.get(pubId)
         if (isNone(re)) {
@@ -378,7 +377,7 @@ function clearNonSubReqcache(subId: IDT) {
 function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>): Suber {
     const ws = new WebSocket(url, { perMessageDeflate: false })
     let suber = { id: randomId(), ws, url, chain, type, stat: SuberStat.Create, pubers } as Suber
-    log.info('create new suber with puber: ', pubers)
+    log.info('create new suber with puber: %o',pubers)
     Suber.updateOrAddSuber(chain, type, suber)
     ws.once('open', () => {
         /// pubers may closed when re-open
@@ -394,7 +393,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         }
         const subTmp = re.value as Suber
         subTmp.stat = SuberStat.Active
-        log.debug(`on open suber pubers: `, subTmp.pubers)
+        log.debug(`on open suber pubers: %o`, subTmp.pubers)
         Suber.updateOrAddSuber(chain, type, subTmp)
 
         if (!pubers || pubers.size < 1) {
@@ -412,21 +411,21 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
     })
 
     ws.on('close', async (code: number, reason: string) => {
-        log.error(`${chain} ${type} suber[${suber.id}] socket closed: `, code, reason)
+        log.error(`${chain} ${type} suber[${suber.id}] socket closed: %o %o`, code, reason)
         const re = Suber.getSuber(chain, type, suber.id)
         if (isNone(re)) {
             log.error(`Handle suber close event error: invalid suber ${suber.id} of chain ${chain}`)
             process.exit(1)
         }
         const subTmp = re.value as Suber
-        log.debug(`get ${type} suber ${subTmp.id} pubers size: `, subTmp.pubers?.size)
+        log.debug(`get ${type} suber ${subTmp.id} pubers size: %o`, subTmp.pubers?.size)
         const isSubClose = isSuberClosed(reason as CloseReason)
         // if (isSubClose) {
         //     subTmp.stat = SuberStat.Stoped  // stop to reconnect
         // } else {
         //     subTmp.stat = SuberStat.Closed
         // }
-        log.warn(`chain ${chain} ${type} suber ${subTmp.id} close reason: `, isSubClose ? 'brother suber closed' : 'service invalid')
+        log.warn(`chain ${chain} ${type} suber ${subTmp.id} close reason: %o`, isSubClose ? 'brother suber closed' : 'service invalid')
         // GG.updateOrAddSuber(chain, type, subTmp)
         let pubers = new Set(subTmp.pubers) // new heap space
         const curTryCnt = GG.getTryCnt(chain)
@@ -515,7 +514,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         const time = Util.traceEnd(start)
 
         if (isErr(re)) {
-            log.error('Parse suber message data error: ', re.value)
+            log.error('Parse suber message data error: %o', re.value)
             return
         }
         if (re.value.data === true) {
@@ -525,7 +524,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
 
         const { data, req } = re.value
         puberSend(req.pubId, data as WebSocket.Data)
-        log.info(`new suber message of [${req.method}] parse time[${time}]:  `, Util.globalStat())
+        log.info(`new suber message of [${req.method}] parse time[${time}]:  : %o`, Util.globalStat())
     })
     return suber
 }
@@ -592,14 +591,14 @@ class Suber {
         const ct = `${chain}-${type}`
         Suber.g[ct] = Suber.g[ct] || {}
         Suber.g[ct][suber.id] = suber
-        // log.debug(`updateOradd ${chain} ${type} suber[${suber.id}] pubers: `, Suber.g[ct][suber.id].pubers)
+        // log.debug(`updateOradd ${chain} ${type} suber[${suber.id}] pubers: %o`, Suber.g[ct][suber.id].pubers)
     }
 
     static delSuber(chain: string, type: SuberTyp, subId: IDT): void {
         const ct = `${chain}-${type}`
         // Suber.g[ct][subId].pubers?.clear()    // BUG: will clear other  suber's pubers
         delete Suber.g[ct][subId]
-        log.debug(`delete ${chain} ${type} suber[${subId}] result: `, Suber.g[ct][subId] === undefined)
+        log.debug(`delete ${chain} ${type} suber[${subId}] result: %o`, Suber.g[ct][subId] === undefined)
     }
 
     // subscribed topic
@@ -640,7 +639,7 @@ class Suber {
 
             // kv Suber
             if ((conf.kvEnable.toString()) === 'true') {
-                log.debug(`chain ${chain} kv subscribe enable: `, conf.kvEnable)
+                log.debug(`chain ${chain} kv subscribe enable: %o`, conf.kvEnable)
                 newSuber(chain, urls[1], SuberTyp.Kv, new Set())
             }
         }

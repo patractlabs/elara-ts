@@ -11,7 +11,7 @@ import Conf from '../config'
 import Util from './util'
 import Topic from './topic'
 
-const log = getAppLogger('suber', process.env.NODE_ENV === 'dev')
+const log = getAppLogger('suber')
 
 const delays = (sec: number, cb: () => void) => {
     const timer = setTimeout(() => {
@@ -52,7 +52,7 @@ const isUnsubOnClose = (dat: WsData): boolean => {
 }
 
 const parseReq =  (dat: WsData): ResultT<ReqT|boolean> => {
-    log.info('parse new request: ', JSON.stringify(dat))
+    log.info('parse new request: %o',JSON.stringify(dat))
     let reqId = dat.id // maybe null
 
     if (dat.id === null) {
@@ -60,10 +60,9 @@ const parseReq =  (dat: WsData): ResultT<ReqT|boolean> => {
         return Err(`null id response: ${dat}`)
     }
     
-    // log.warn('sub test: ', isSubID(dat.id!.toString()))
     if (isSecondResp(dat.params)) {
         const subsId = dat.params.subscription
-        log.info('receive second response of subscribe: ', subsId)
+        log.info('receive second response of subscribe: %o', subsId)
         const re = G.getReqId(subsId)
         if (isErr(re)) {
             log.error(`parse request cache error: ${re.value}, puber has been closed.`)
@@ -159,12 +158,12 @@ const dataParse = (data: WebSocket.Data): ResultT<DParT> => {
     }
 
     const req = re.value as ReqT
-    log.info('parse request cache result: ', JSON.stringify(req))
+    log.info('parse request cache result: %o',JSON.stringify(req))
     // if suber close before message event,
     // request Cache will clear before suber delete
     if (req.type !== ReqTyp.Sub) {
         // subscribe request cache will be clear on unsubscribe event
-        log.info('delete request cache non-subscribe: ', req.id)
+        log.info(`delete request cache non-subscribe: ${req.id}`)
         G.delReqCache(req.id)
     }
 
@@ -183,7 +182,7 @@ const dataParse = (data: WebSocket.Data): ResultT<DParT> => {
         if (req.originId === 0) { return Ok({req, data: true}) }
     } else if (isSubscribe(req.type === ReqTyp.Sub, dres)) {
         // first response of subscribe
-        log.info(`first response of subscribe method[${req.method}] params[${req.params}] puber[${req.pubId}]: `, dat)
+        log.info(`first response of subscribe method[${req.method}] params[${req.params}] puber[${req.pubId}]: %o`, dat)
         const subsId = dat.result
   
         // WTF: set suscribe context, cannot be async, will race
@@ -219,7 +218,7 @@ const msgCb = (dat: WebSocket.Data) => {
     const time = Util.traceEnd(start)
 
     if (isErr(re)) {
-        log.error('Parse suber message data error: ', re.value)
+        log.error('Parse suber message data error: %o', re.value)
         return
     }
     if (re.value.data === true) { 
@@ -229,7 +228,7 @@ const msgCb = (dat: WebSocket.Data) => {
 
     const {data, req} = re.value 
     puberSend(req.pubId, data as WebSocket.Data)
-    log.info(`new suber message of [${req.method}] parse time[${time}]:  `, Util.globalStat())
+    log.info(`new suber message of [${req.method}] parse time[${time}]:  : %o`, Util.globalStat())
 }
 
 const closeHandler = async (chain: string, suber: Suber): PVoidT => {
@@ -314,7 +313,7 @@ const openHandler = async (chain: string, subId: IDT, ws: WebSocket, pubers: Set
 }
 
 const clearReqcache = async (pubers: Set<IDT>) => {
-    log.info('clear request cache of pubers: ', pubers)
+    log.info('clear request cache of pubers: %o',pubers)
     const reqs = G.getAllReqCache()
     for (let reqId in reqs) {
         if (pubers.has(reqs[reqId].pubId)) {
@@ -338,7 +337,7 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     // Dao.getChainConfig(chain)
     const ws = new WebSocket(url, { perMessageDeflate: false })
     let suber: any =  { id: randomId(), ws, url, chain, pubers } as Suber
-    log.info('create new suber with puber: ', pubers)
+    log.info('create new suber with puber: %o',pubers)
     G.updateAddSuber(chain, suber)
 
     ws.once('open', () => {
@@ -360,7 +359,7 @@ const newSuber = (chain: string, url: string, pubers?: Set<IDT>): Suber => {
     })
 
     ws.on('close', async (code: number, reason: string) => {
-        log.error(`${chain} suber[${suber.id}] socket closed: `, code, reason)
+        log.error(`${chain} suber[${suber.id}] socket closed: %o %o`, code, reason)
 
         const re = G.getSuber(chain, suber.id)
         if (isErr(re)) {
@@ -439,7 +438,7 @@ namespace Suber {
         }
         G.addChain(chain)
         const url = geneUrl(conf.value)
-        log.info(`Url of chain [${chain}] is: `, url, G.getChains())
+        log.info(`Url of chain [${chain}] is: %o %o`, url, G.getChains())
         for (let i = 0; i < poolSize; i++) {                
             newSuber(chain, url, new Set())
         }
@@ -465,7 +464,7 @@ namespace Suber {
     export const unsubscribe = async (chain: string, subId: IDT, topic: string, subsId: string) => {
         const re = G.getSuber(chain, subId)
         if (isErr(re)) {
-            log.error('[SBH] get suber to unsubcribe error: ', re.value)
+            log.error('[SBH] get suber to unsubcribe error: %o', re.value)
             process.exit(1)
         }
         const suber = re.value as Suber

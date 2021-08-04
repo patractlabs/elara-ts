@@ -28,7 +28,7 @@ const clearSubContext = async (puber: Puber, code: number) => {
     // then clear the puber when all topic context clear
     const {chain, pid, subId} = puber
     const topics = G.getSubTopics(chain, pid)
-    log.info(`clear subscribe context chain[${chain}] pid[${pid}] code[${code}] topics: `, Object.keys(topics))
+    log.info(`clear subscribe context chain[${chain}] pid[${pid}] code[${code}] topics: %o`, Object.keys(topics))
     const ptopics = puber.topics || new Set()
     const hasTopic = ptopics.size > 0
     if (!hasTopic) {
@@ -121,7 +121,7 @@ namespace Matcher {
 
         // side context set
         G.incrConnCnt(chain, puber.pid)
-        log.info(`regist puber[${puber.id}] to suber[${suber.id}]: `, Util.globalStat())
+        log.info(`regist puber[${puber.id}] to suber[${suber.id}]: : %o`, Util.globalStat())
         return Ok(puber)
     }
     
@@ -130,7 +130,7 @@ namespace Matcher {
         let type = ReqTyp.Rpc
         
         if (isUnsubReq(method)) {
-            log.info(`pre handle unsubscribe request: ${method}: `, data.params, Suber.isSubscribeID(data.params[0]))
+            log.info(`pre handle unsubscribe request: ${method}: %o %o`, data.params, Suber.isSubscribeID(data.params[0]))
             type = ReqTyp.Unsub
             if (data.params.length < 1 || !Suber.isSubscribeID(data.params[0])) {
                 return Err(`invalid unsubscribe params: ${data.params[0]}`)
@@ -154,7 +154,7 @@ namespace Matcher {
         G.addReqCache(req)
 
         data.id = req.id
-        log.info(`global stat after new request[${req.id}] : `, Util.globalStat())
+        log.info(`global stat after new request[${req.id}] : : %o`, Util.globalStat())
         return Ok(data)
     }
 
@@ -177,7 +177,7 @@ namespace Matcher {
         // add new subscribed topic
         G.addSubTopic(puber.chain, puber.pid, {id: subsId, pubId: req.pubId, method: req.method, params: req.params})
    
-        log.info(`After set subscribe context requestId[${req.id}] global stat: `, Util.globalStat())    // for test
+        log.info(`After set subscribe context requestId[${req.id}] global stat: : %o`, Util.globalStat())    // for test
         return Ok(void(0))
     }
 
@@ -188,7 +188,7 @@ namespace Matcher {
         let re = G.getPuber(pubId)
         if (isErr(re) || !re.value.subId) {
             // SBH
-            log.error('[SBH] Unregist puber error: ', re.value)
+            log.error('[SBH] Unregist puber error: %o', re.value)
             process.exit(1)
         }
         const puber = re.value as Puber
@@ -198,7 +198,7 @@ namespace Matcher {
 
         const sre = G.getSuber(puber.chain, puber.subId!)
         if (isErr(sre)) {
-            log.error('Unregist puber error: ', sre.value)
+            log.error('Unregist puber error: %o', sre.value)
             return
         }
         const suber = sre.value as Suber
@@ -209,7 +209,7 @@ namespace Matcher {
         }
         suber.pubers.delete(pubId)
         G.updateAddSuber(suber.chain, suber)
-        log.info(`Unregist successfully: ${pubId} - ${suber.id}, global stat: `, Util.globalStat())
+        log.info(`Unregist successfully: ${pubId} - ${suber.id}, global stat: : %o`, Util.globalStat())
         // global.gc()
     }
 
@@ -229,7 +229,7 @@ namespace Matcher {
     
     export const isSubscribed = (chain: string, pid: IDT, data: WsData): boolean => {
         const topics = G.getSubTopics(chain, pid)
-        log.info(`subscribed topics of chain[${chain}] pid[${pid}]: `, Object.keys(topics))
+        log.info(`subscribed topics of chain[${chain}] pid[${pid}]: %o`, Object.keys(topics))
         for (let id in topics) {
             const sub = topics[id]
             const params = `${data.params}` || 'none'

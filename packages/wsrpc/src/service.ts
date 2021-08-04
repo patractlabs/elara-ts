@@ -21,7 +21,7 @@ async function statusCheck(chain: string): PVoidT {
         stat = {block: 0, acc: 0}
     }
     let { block, acc } = stat
-    log.debug(`chain ${chain} sync block ${currentBlock}, update time: `, time)
+    log.debug(`chain ${chain} sync block ${currentBlock}, update time: %o`, time)
     let status = true
     if (currentBlock <= block) {
         log.warn(`chain ${chain} cacher hasn't been update: ${block}-${currentBlock}, last update time: ${time}`)

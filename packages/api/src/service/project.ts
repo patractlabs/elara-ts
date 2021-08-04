@@ -12,8 +12,6 @@ class Project {
 
     static async create(pro: ProAttr): PResultT<ProAttr> {
         try {
-            log.debug('create new project: ', pro)
-
             const re = await ProjectModel.create({
                 ...pro,
                 pid: randomId(),
@@ -167,19 +165,19 @@ class Project {
     }
 
     static async isExist(userId: number, chain: string, name: string): Promise<boolean> {
-        log.debug('Info project exist check: ', userId, chain, name)
+        log.debug('Info project exist check: %o %o %o',userId, chain, name)
         try {
             const re = await ProjectModel.findOne({
                 where: { userId, chain, name },
                 attributes: ['name']
             })
-            log.debug(`project name of user[${userId}]${chain}: `, name)
+            log.debug(`project name of user[${userId}]${chain}: ${name}`)
             if (re !== null) {
                 log.debug(`duplicate project name ${name} `)
                 return true
             }
-        } catch (e) {
-            log.error('Project exist check error: ', e)
+        } catch (err) {
+            log.error('Project exist check error: %o', err)
             return true
         }
         return false

@@ -88,7 +88,7 @@ namespace Matcher {
 
         // side context set
         GG.incrConnCnt(chain, puber.pid)
-        log.info(`regist puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvOk ? kvSuber!.id : 'none'}]: `, Util.globalStat())
+        log.info(`regist puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvOk ? kvSuber!.id : 'none'}]: : %o`, Util.globalStat())
         return Ok(puber)
     }
 
@@ -97,7 +97,7 @@ namespace Matcher {
         let type = ReqTyp.Rpc
         let subsId
         if (isUnsubReq(method)) {
-            log.info(`pre handle unsubscribe request: ${method}: `, data.params, Suber.isSubscribeID(data.params![0]))
+            log.info(`pre handle unsubscribe request: ${method}: %o %o`, data.params, Suber.isSubscribeID(data.params![0]))
             type = ReqTyp.Unsub
             subsId = data.params![0]
             if (data.params!.length < 1 || !Suber.isSubscribeID(data.params![0])) {
@@ -128,7 +128,7 @@ namespace Matcher {
         GG.addReqCache(req)
 
         data.id = req.id as string
-        log.info(`global stat after new request[${req.id}] : `, Util.globalStat())
+        log.info(`global stat after new request[${req.id}] : : %o`, Util.globalStat())
         return Ok(data)
     }
 
@@ -151,7 +151,7 @@ namespace Matcher {
         // add new subscribed topic
         GG.addSubTopic(puber.chain, puber.pid, { id: subsId, pubId: req.pubId, method: req.method, params: req.params })
 
-        log.info(`After set subscribe context requestId[${req.id}] global stat: `, Util.globalStat())    // for test
+        log.info(`After set subscribe context requestId[${req.id}] global stat: : %o`, Util.globalStat())    // for test
         return Ok(void (0))
     }
 
@@ -246,7 +246,7 @@ namespace Matcher {
 
     export const isSubscribed = (chain: string, pid: IDT, data: WsData): boolean => {
         const topics = GG.getSubTopics(chain, pid)
-        log.info(`subscribed topics of chain[${chain}] pid[${pid}]: `, Object.keys(topics))
+        log.info(`subscribed topics of chain[${chain}] pid[${pid}]: %o`, Object.keys(topics))
         for (let id in topics) {
             log.debug(`id: ${id}\n data: ${JSON.stringify(data)}, topic: ${JSON.stringify(topics[id])}`)
             const sub = topics[id]

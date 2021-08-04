@@ -84,7 +84,6 @@ async function dailyStatistic(req: Statistics, dat: Stats): Promise<Stats> {
     if (req.header !== undefined && req.header.ip) {
         const c = ip2county(req.header.ip.split(':')[0])
         const ac: Record<string, number> = dat[`${req.proto}Ct`] as Record<string, number>
-        log.debug('country parse: ', c, ac)
         ac[c] = (ac[c] ?? 0) + 1
         dat[`${req.proto}Ct`] = ac
     }
@@ -180,7 +179,7 @@ namespace Stat {
     export const latestReq = async (num: number): Promise<Statistics[]> => {
         if (num < 1) { num = 1 }
         const keys = await statRd.zrevrange(sKEY.zStatList(), 0, num - 1)
-        log.debug('latest request: ', num, keys)
+        log.debug('latest request: %o %o',num, keys)
         const res: Statistics[] = []
         for (let k of keys) {
             const re = await statRd.get(`Stat_${k}`)
@@ -198,7 +197,7 @@ namespace Stat {
     }
 
     export async function lastDays(day: number, chain?: string, pid?: string): Promise<StatT[]> {
-        log.debug(`last days pid[${pid}]: `, day)
+        log.debug(`last days pid[${pid}]: ${day}`)
         let stat: StatT[] = [pid !== undefined ? await proDaily(chain!, pid) : await daily()]
         // let stat = pid !== undefined ? await proDaily(pid) : await daily()
         if (day < 2) {
@@ -214,7 +213,7 @@ namespace Stat {
             }
 
             const keys = await statRd.keys(sKEY.hProDaily('*', '*', stamp))
-            log.debug('last days keys: ', i, keys)
+            log.debug('last days keys: %o %o',i, keys)
             let tstat = newStats() as unknown as StatT
             for (let k of keys) {
                 const tmp = await statRd.hgetall(k)
@@ -226,8 +225,6 @@ namespace Stat {
     }
 
     export async function lastHours(hour: number, pid?: string): Promise<StatT[]> {
-        log.debug(`last hours pid[${pid}]: `, hour)
-
         let res: StatT[] = []
         if (hour < 1) { hour = 1 }
         for (let h = 0; h < hour; h++) {
@@ -235,7 +232,6 @@ namespace Stat {
             const [start, end] = lastTime('hour', h)
             // const start = startStamp(hour, 'hour')
             const keys = await statRd.zrangebyscore(sKEY.zStatList(), start, end)
-            log.debug('hour keys: ', keys, start, end)
             for (let k of keys) {
                 if (pid && !k.includes(pid)) { continue }
                 const tmp = await statRd.get(`Stat_${k}`)
@@ -251,7 +247,6 @@ namespace Stat {
     }
 
     export const mostResourceLastDays = async (num: number, day: number, typ: string) => {
-        log.debug(`most ${typ} request: `, num, day)
         let key = sKEY.zDailyReq()
         if (typ === 'bandwidth') {
             key = sKEY.zDailyBw()
@@ -310,7 +305,7 @@ namespace Stat {
 
         const [start, end] = lastTime('hour', 0)
         const keys = await statRd.zrangebyscore(sKEY.zStatList(), start, end)
-        log.debug('project daily last hour keys: ', keys)
+        log.debug('project daily last hour keys: %o',keys)
         for (let k of keys) {
             if (!k.includes(pid)) { continue }
             const key = `Stat_${k}`

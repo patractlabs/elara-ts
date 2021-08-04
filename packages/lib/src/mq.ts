@@ -130,7 +130,7 @@ class Mq extends Redis {
 
     async consumerInfo(grp: string, chan: string): Promise<ConsumerListT> {
         let re = await this.client.xinfo('CONSUMERS', chan, grp)
-        log.info('result of consumer: ', JSON.stringify(re))
+        log.info('result of consumer: %o',JSON.stringify(re))
         let res: ConsumerListT = []
         for (let c of re) {
             let cinfo = {

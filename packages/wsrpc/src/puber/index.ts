@@ -66,14 +66,14 @@ class Puber {
 
         Puber.updateOrAdd(puber)
 
-        log.info(`update puber[${pubId}] topic [${subsId}] done: `, puber.topics)
+        log.info(`update puber[${pubId}] topic [${subsId}] done: %o`, puber.topics)
         return Ok(puber)
     }
 
     static async transpond(puber: Puber, type: SuberTyp, data: ReqDataT, stat: Statistics): PVoidT {
         const { id, chain, pid } = puber
         const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
-        log.debug('puber transpond statistics: ', stat)
+        log.debug('puber transpond statistics: %o', stat)
         // topic bind to chain and params 
         if (Matcher.isSubscribed(chain, pid, data)) {
             log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)

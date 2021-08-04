@@ -23,7 +23,7 @@ export default class User {
         } as UserModel
         try {
             const re = await UserModel.create(user)
-            log.debug('UserModel create result: ', re)
+            log.debug('UserModel create result: %o', re)
             return Ok(re)
         } catch (err) {
             log.error('create user error: %o', err)
@@ -66,7 +66,7 @@ export default class User {
             where: { githubId },
             paranoid
         })
-        log.debug(`user of githubId[${githubId}]: `, user)
+        log.debug(`user of githubId[${githubId}]: ${user}`)
         if (user === null) {
             return Err('no this user')
         }
@@ -79,7 +79,7 @@ export default class User {
             include: Project,
             paranoid        // if false query logic deleted item
         })
-        log.debug(`user of githubId[${githubId}] with project: `, user)
+        log.debug(`user of githubId[${githubId}] with project: ${user}`)
         if (user === null) {
             return Err('no this user')
         }
@@ -122,12 +122,12 @@ export default class User {
     static async projectCreateOutLimit(userId: number, curNum: number): PBoolT {
         const level = await this.getLevelById(userId)
         if (isErr(level)) {
-            log.error('query user level error: ', level.value)
+            log.error('query user level error: %o', level.value)
             return true
         }
         const re = await Limit.findByLevel(level.value as UserLevel)
         if (isErr(re)) {
-            log.error('query limit resource error: ', re.value)
+            log.error('query limit resource error: %o', re.value)
             return true
        }
         if (re.value.projectNum > curNum) { return false }
@@ -140,7 +140,7 @@ export default class User {
         // project limit
         const proRe = await ProService.statusByChainPid(chain, pid, true)
         if (isErr(proRe)) {
-            log.error('query project limit error: ', proRe.value)
+            log.error('query project limit error: %o',proRe.value)
             return Err('query project error')
         }
         const pro = proRe.value as Project
@@ -155,11 +155,11 @@ export default class User {
         // invalid request count
         const reqCnt = stat.httpReqNum + stat.wsReqNum + stat.httpInReqNum + stat.wsInReqNum
 
-        log.debug('project current resource usage: ', bw, reqCnt)
+        log.debug('project current resource usage: %o %o',bw, reqCnt)
         // user limit
         const limitRe = await Limit.findByLevel(pro.user.level)
         if (isErr(limitRe)) {
-            log.error('query user resource limit error: ', limitRe.value)
+            log.error('query user resource limit error: %o',limitRe.value)
             return Err('query user resource error')
         }
         const limit = limitRe.value

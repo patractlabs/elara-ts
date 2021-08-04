@@ -257,7 +257,7 @@ export namespace G {
             return []
         }
         const extens = cconf['extends'] as RpcMapT
-        // log.error(`extens of chain[${chain}]: `, extens)
+        // log.error(`extens of chain[${chain}]: %o`, extens)
         let res: string[] = []
         for (let k in extens) {
             if (extens[k] === strategy) {

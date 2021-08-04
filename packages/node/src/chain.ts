@@ -15,7 +15,7 @@ enum Topic {
 
 // chain events
 const chainAddHandler = async (chain: string): PVoidT => {
-    log.info('Into chain add handler: ', chain)
+    log.info('Into chain add handler: %o', chain)
 
     // reinit subers of chain 
     const wsConf = Conf.getWs()
@@ -23,13 +23,13 @@ const chainAddHandler = async (chain: string): PVoidT => {
 }
 
 const chainDelHandler = async (chain: string): PVoidT => {
-    log.info('Into chain delete handler: ', chain)
+    log.info('Into chain delete handler: %o', chain)
     // TODO ?
     G.remChain(chain)
 }
 
 const chainUpdateHandler = async (chain: string): PVoidT => {
-    log.info('Into chain update handler: ', chain)
+    log.info('Into chain update handler: %o', chain)
     // TODO
     // nothing to do now
 }
@@ -40,22 +40,22 @@ chainPSub.psubscribe('*', (err: any, topicNum: number) => {
 })
 
 chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
-    log.info('received new topic message: ', chan)
+    log.info('received new topic message: %o', chan)
     switch(chan) {
         case Topic.ChainAdd:
-            log.info('Topic chain message: ', chain)
+            log.info('Topic chain message: %o', chain)
             chainAddHandler(chain)
             break
         case Topic.ChainDel:
-            log.info('Chain delete message: ', chain)
+            log.info('Chain delete message: %o', chain)
             chainDelHandler(chain)
             break
         case Topic.ChainUpdate:
-            log.info('chain update message: ', chain)
+            log.info('chain update message: %o', chain)
             chainUpdateHandler(chain)
             break
         default:
-            log.info(`Unknown topic [${chan}] message: `, chain)
+            log.info(`Unknown topic [${chan}] message: ${chain}`)
             break
     }
 })

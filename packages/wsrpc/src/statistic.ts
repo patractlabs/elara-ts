@@ -13,7 +13,7 @@ export class Stat {
     // static pro = new Producer({db: DBT.Pubsub, arg: {host: redis.host, port: redis.port}})
 
     static async publish(stat: Statistics): PVoidT {
-        log.debug('publish statistics: ', stat)
+        log.debug('publish statistics: %o', stat)
         if (stat.proto === 'ws') {
             wspro.publish(`statistic-ws`, ['result', JSON.stringify(stat)], 10)
         } else {

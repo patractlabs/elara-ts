@@ -39,7 +39,7 @@ function post(url: string, body: ChainPidT): Promise<any> {
                 data += chunk
             })
             res.on('end', () => {
-                log.debug('response: ', data)
+                log.debug('response: %o', data)
                 resolve(data)
                 const time = Util.traceEnd(start)
                 log.debug(`new node rpc response time[${time}]`)
@@ -60,10 +60,10 @@ async function resourceLimit(chain: string, pid: string): PBoolT {
         return false
     }
     // check request limit & bandwidth limit
-    const res = await post(`http://${conf.apiHost}:${conf.apiPort}/auth/islimit`, { chain, pid })
-    log.debug(`${chain} pid[${pid}] limit check result: %o`, res, chain, pid)
-    const ok = JSON.parse(res).data as boolean ?? true
-    return ok
+    const res = await post(`http://${conf.apiHost}:${conf.apiPort}/auth/projectOk`, { chain, pid })
+    const isOk = JSON.parse(res).data as boolean ?? true
+    log.debug(`${chain} pid[${pid}] project-is-ok check result: ${isOk}`)
+    return !isOk
 }
 
 function isPostMethod(method: string): boolean {
@@ -163,7 +163,7 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
     reqStatis.type = 'conn'
 
     if (isErr(re)) {
-        log.error('Invalid socket request: ', re.value)
+        log.error('Invalid socket request: %o', re.value)
         // 
         reqStatis.code = 400
         // publish statistics
@@ -209,7 +209,7 @@ wss.on('connection', async (ws, req: any) => {
     Stat.publish(stat)
 
     ws.on('message', async (data) => {
-        log.info(`new puber[${id}] request of chain ${chain}: `, data)
+        log.info(`new puber[${id}] request of chain ${chain}: %o`, data)
         let dat: ReqDataT
         let reqStatis = initStatistic('ws', '', {} as Http.IncomingHttpHeaders)
         reqStatis.code = 400
@@ -248,7 +248,7 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('close', async (code, reason) => {
-        log.error(`puber[${id}] close: ${reason}, code ${code}, reason[${reason}]\n \tcurrent total puber connections `, wss.clients.size)
+        log.error(`puber[${id}] close: ${reason}, code ${code}, reason[${reason}]\n \tcurrent total puber connections: %o`, wss.clients.size)
         if (reason === CloseReason.OutOfLimit || reason === CloseReason.SuberUnavail) {
             return  // out of limit
         }
@@ -266,7 +266,7 @@ async function run(): PVoidT {
 
     await Service.init()
     Server.listen(conf.port, () => {
-        log.info('Elara server listen on port: ', conf.port)
+        log.info(`Elara server listen on port: ${conf.port}`)
     })
 }
 

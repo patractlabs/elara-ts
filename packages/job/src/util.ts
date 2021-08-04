@@ -8,7 +8,7 @@ export function lastTime(unit: MomUnit, off: number = 1): number[] {
     const last = Mom().subtract(off, `${unit}s` as DurationT)
     const start = last.startOf(unit as StartT).clone()
     const end = last.endOf(unit as StartT)
-    log.debug(`last start-end of ${off} ${unit}: `, start, end)
+    log.debug(`last start-end of ${off} ${unit}: %o %o`, start, end)
     return [start.valueOf(), end.valueOf()]
 }
 
@@ -17,18 +17,17 @@ export function tillTime(unit: MomUnit, off: number = 1): number[] {
     const last = cur.clone().subtract(off, `${unit}s` as DurationT)
     const start = last.startOf(unit as StartT).clone()
     const end = cur.startOf(unit as StartT)
-    log.debug(`last start-end of ${off} ${unit}s: `, start, end, start.valueOf(), end.valueOf())
+    log.debug(`last start-end of ${off} ${unit}s: %o %o`, start, end)
     return [start.valueOf(), end.valueOf()]
 }
 
 export function startStamp(unit: MomUnit, off: number = 1): number {
     const time = Mom().subtract(off, `${unit}s`).startOf(unit as StartT)
-    log.debug('start time: ', time)
     return time.valueOf()
 }
 
 export function todayStamp(): number {
     const today = Mom().startOf('day')
-    log.debug('today is: ', today)
+    log.debug('today is: %o', today)
     return today.valueOf()
 }

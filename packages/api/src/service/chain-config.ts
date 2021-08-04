@@ -13,6 +13,6 @@ export default class ChainConfig {
             kvEnable: false,
             chainId: 1
         })
-        log.debug('create chain config: ', re)
+        log.debug('create chain config: %o', re)
     }
 }
