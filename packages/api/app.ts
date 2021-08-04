@@ -55,7 +55,7 @@ app.on('error', (err) => {
 
 app.listen(server.port, async () => {
     await sequelize.sync()
-    log.info('elara api service listen on port 7000: %o', process.env.NODE_ENV)
+    log.info('elara api service listen on port %o: %o',server.port, process.env.NODE_ENV)
 })
 
 unexpectListener()

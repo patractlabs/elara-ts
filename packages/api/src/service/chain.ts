@@ -1,7 +1,8 @@
-import { getAppLogger, PResultT, Ok, ChainConfig, isErr } from '@elara/lib'
+import { getAppLogger, PResultT, Ok, ChainConfig, isErr, Err } from '@elara/lib'
 import Dao from '../dao'
-import ChainModel, { ChainAttr } from '../models/chain'
-
+import ChainModel, { ChainAttr ,Network} from '../models/chain'
+import { FindOptions } from 'sequelize/types'
+import { errMsg } from '../util'
 const log = getAppLogger('chain')
 
 export enum Topic {
@@ -38,21 +39,49 @@ namespace Chain {
     }
 
     export const newChain = async (chain: ChainAttr): PResultT<ChainAttr> => {
-        let re = await ChainModel.create(chain)
-        log.info('add chain result: %o', re)
 
-        // publish newchain event
-        Dao.publishTopic(Topic.ChainAdd, chain.name)
-        return Ok(re)
+        try {
+            log.debug('add new chain: %o', chain)
+            Dao.publishTopic(Topic.ChainAdd, chain.name)
+            const re = await ChainModel.create({
+                ...chain,
+            }) 
+            return Ok(re)
+        } catch (err) {
+            log.error('create project error: ', err)
+            return Err(errMsg(err, 'create error'))
+        }
+
+        // let re = await ChainModel.create(chain)
+        // log.info('add chain result: ', re)
+
+        // // publish newchain event
+        // Dao.publishTopic(Topic.ChainAdd, chain.name)
+        // return Ok(re)
     }
 
-    export const deleteChain = async (chain: string): PResultT<void> => {
-        const re = await Dao.delChain(chain)
-        log.warn('delete result: %o', re)
+    export const deleteChain = async (name: string,force: boolean = false): PResultT<boolean> => {
+        try {
+            const re = await ChainModel.destroy({
+                where: {
+                    name 
+                },
+                force
+            })
 
-        // publish chain delete event
-        await Dao.publishTopic(Topic.ChainDel, chain)
-        return Ok(re)
+            await Dao.publishTopic(Topic.ChainDel, name)
+            await Dao.delChain(name)
+            return Ok(re === 1)
+        } catch (err) {
+            log.error(`delete chain ${name} error: %o`, err)
+            return Err(errMsg(err, 'delete error'))
+        }
+        // const re = await Dao.delChain(chain)
+        // log.warn('delete result: ', re)
+
+        // // publish chain delete event
+        // await Dao.publishTopic(Topic.ChainDel, chain)
+        // return Ok(re)
     }
 
     export const updateChain = async (chain: ChainConfig): PResultT<string | number> => {
@@ -60,9 +89,32 @@ namespace Chain {
         return re
     }
 
-    export const chainList = async (): PResultT<string[]> => {
-        const re = await Dao.getChainList()
-        return Ok(re)
+    export const findByNetwork = async (network: Network): PResultT<ChainAttr[]> => {
+        try {
+            const re = await ChainModel.findAll({
+                where: { network },
+            })
+            if (re === null) {
+                return Err(`no ${network} chain `)
+            }
+            return Ok(re)
+        } catch (err) {
+            log.error(`find ${network} chain ,error: `, err)
+            return Err(errMsg(err, 'find error'))
+        }
+    }
+
+    export const chainList = async (): PResultT<ChainAttr[]> => {
+        try {
+            const option: FindOptions<ChainAttr> = {}
+            const re = await ChainModel.findAll(option)
+            return Ok(re)
+        } catch (err) {
+            log.error(`find chain  error: `, err)
+            return Err(errMsg(err, 'find error'))
+        }
+        // const re = await Dao.getChainList()
+        // return Ok(re)
     }
 }
 

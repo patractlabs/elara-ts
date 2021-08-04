@@ -11,6 +11,15 @@ async function add(ctx: KCtxT, next: NextT) {
     return next()
 }
 
+async function deleteChainConf(ctx: KCtxT, next: NextT) {
+    // ChainConfig.delete()
+    ctx.body = Resp.Ok()
+    return next()
+}
+
+
 R.post('/config/add', add)
+R.post('/config/delete', deleteChainConf)
+
 
 export default R.routes()
