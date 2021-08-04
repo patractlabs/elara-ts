@@ -19,6 +19,13 @@ const log = getAppLogger("auth");
 
 const userConf = Conf.getUser();
 
+/**
+ *
+ * @api {get} /auth/login login
+ * @apiGroup auth
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ */
 async function login(ctx: KCtxT, next: NextT) {
     if (ctx.isAuthenticated()) {
         const user = await User.findUserByGit(ctx.state.user);
@@ -28,6 +35,16 @@ async function login(ctx: KCtxT, next: NextT) {
     }
     return next();
 }
+
+/**
+ *
+ * @api {get} /auth/github github
+ * @apiDescription
+ * 使用 clientID，clientSecret，访问GitHub
+ * @apiGroup auth
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ */
 
 async function github(ctx: KCtxT, next: NextT) {
     return Passport.authenticate("github", { scope: ["user"] })(ctx, next);
@@ -80,6 +97,13 @@ async function githubCallback(ctx: KCtxT, next: NextT) {
     )(ctx, next);
 }
 
+/**
+ *
+ * @api {get} /auth/logout logout
+ * @apiGroup auth
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ */
 async function logout(ctx: KCtxT, next: NextT) {
     ctx.logOut();
     ctx.response.body = Resp.Ok().toString();
