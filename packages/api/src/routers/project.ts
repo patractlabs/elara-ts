@@ -346,6 +346,7 @@ R.post('/detail/id', findById)
 
 /**
  * @api {post} /project/detail/status projectStatus
+ * @apiDescription get project status and resource limit
  * @apiVersion 0.1.0
  * @apiGroup project
  * @apiSampleRequest off
@@ -353,7 +354,11 @@ R.post('/detail/id', findById)
  * @apiParam {String} chain
  * @apiParam {String} pid
  * 
- * @apiSuccess {String} none project status
+ * @apiSuccess {Object} Status project status
+ * @apiSuccess {Integer} Status.bwDayLimit
+ * @apiSuccess {Integer} Status.reqDayLimit
+ * @apiSuccess {Integer} Status.reqSecLimit
+ * @apiSuccess {String{'active','stop','suspend'}} Status.status
  */
 R.post('/detail/status', statusByChainPid)
 

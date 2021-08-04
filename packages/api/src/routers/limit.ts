@@ -66,6 +66,24 @@ R.post('/add', add)
 R.post('/delete', destroy)
 R.post('/update', update)
 R.post('/id', findById)
+
+/**
+ * @api {post} /limit/level resourceOfLevel
+ * @apiGroup user
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {String{'normal', 'bronzer','silver','gold'}} level user level
+ * 
+ * @apiSuccess {LimitAttr} Resource limit resource object
+ * @apiSuccess {Integer} Resource.id
+ * @apiSuccess {Integer} Resource.projectNum    max proejct number to create
+ * @apiSuccess {Integer} Resource.bwDayLimit
+ * @apiSuccess {Integer} Resource.reqDayLimit
+ * @apiSuccess {Integer} Resource.reqSecLimit
+ * @apiSuccess {String} Resource.level
+ * 
+ */
 R.post('/level', findByLevel)
 
 export default R.routes()

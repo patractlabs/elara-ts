@@ -86,11 +86,33 @@ async function newUser(ctx: KCtxT, next: NextT) {
 
 R.post('/update/status', updateStatus)
 R.post('/update/level', updateLevel)
-R.post('/detail', detail)
+
+/**
+ * @api {get} /user/detail detail
+ * @apiDescription user detail info
+ * @apiGroup user
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiSuccess {UserAttr} User
+ * @apiSuccess {Integer} User.id    user id
+ * @apiSuccess {String} User.name   user ame
+ * @apiSuccess {String{'active','suspend','barred'}} User.status 
+ * @apiSuccess {String{'normal', 'bronzer','silver','gold'}} User.level
+ * @apiSuccess {String} User.loginType now is github
+ * @apiSuccess {String} User.githubId origin uid
+ * @apiSuccess {String} [User.phone]
+ * @apiSuccess {String} [User.mail]
+ */
+R.get('/detail', detail)
 R.post('/detail/withproject', detailWithProject)
+
 R.post('/detail/status', getStatus)
 R.post('/detail/level', getLevel)
 
+/**
+ * 
+ */
 R.post('/islimit', checkLimit)
 
 R.post('/create', newUser)
