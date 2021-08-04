@@ -39,8 +39,7 @@ async function login(ctx: KCtxT, next: NextT) {
 /**
  *
  * @api {get} /auth/github github
- * @apiDescription
- * 使用 clientID，clientSecret，访问GitHub
+ * @apiDescription clientID，clientSecret，access GitHub
  * @apiGroup auth
  * @apiVersion  0.1.0
  * @apiSampleRequest off
