@@ -7,6 +7,7 @@ import {
     PrimaryKey,
     AutoIncrement,
     HasMany,
+    Unique,
 } from "sequelize-typescript";
 
 import Project from "./project";
