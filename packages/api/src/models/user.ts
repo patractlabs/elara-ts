@@ -1,68 +1,77 @@
-import { Optional } from 'sequelize'
-import { Model, DataType, Table, Column, PrimaryKey, AutoIncrement, HasMany } from 'sequelize-typescript'
+import { Optional } from "sequelize";
+import {
+    Model,
+    DataType,
+    Table,
+    Column,
+    PrimaryKey,
+    AutoIncrement,
+    HasMany,
+} from "sequelize-typescript";
 
-import Project from './project'
+import Project from "./project";
 
 export enum UserStat {
-    Active = 'active',
-    Suspend = 'suspend',    // update 00:00 o'clock
-    Barred = 'barred'       // account abandon
+    Active = "active",
+    Suspend = "suspend", // update 00:00 o'clock
+    Barred = "barred", // account abandon
 }
 
 export enum UserLevel {
-    Normal = 'normal',
-    Bronze = 'bronzer',
-    Silver = 'silver',
-    Golden = 'gold'
+    Normal = "normal",
+    Bronze = "bronzer",
+    Silver = "silver",
+    Golden = "gold",
 }
 
 export enum LoginType {
-    Github = 'github',
-    Phone = 'phone',
-    Mail = 'mail'
+    Github = "github",
+    Phone = "phone",
+    Mail = "mail",
 }
 
 export interface UserAttr {
-    id: number,
-    name: string,
-    status: UserStat,
-    level: UserLevel,
-    loginType: LoginType,
-    githubId?: string,
-    phone?: string,
-    mail?: string,
+    id: number;
+    name: string;
+    status: UserStat;
+    level: UserLevel;
+    loginType: LoginType;
+    githubId?: string;
+    phone?: string;
+    mail?: string;
 }
 
-interface UserCreateOptionAttr extends Optional<UserAttr, 'id'> { }
+interface UserCreateOptionAttr extends Optional<UserAttr, "id"> {}
 
 @Table
 export default class User extends Model<UserAttr, UserCreateOptionAttr> {
     @PrimaryKey
     @AutoIncrement
     @Column(DataType.BIGINT)
-    id!: number
+    id!: number;
 
     @Column(DataType.STRING)
-    name!: string
+    name!: string;
 
     @Column(DataType.STRING)
-    status!: UserStat
+    status!: UserStat;
 
     @Column(DataType.STRING)
-    level!: UserLevel
+    level!: UserLevel;
 
     @Column(DataType.STRING)
-    loginType!: LoginType
+    loginType!: LoginType;
+
+    @Unique
+    @Column(DataType.STRING)
+    githubId?: string;
 
     @Column(DataType.STRING)
-    githubId?: string
+    phone?: string;
 
     @Column(DataType.STRING)
-    phone?: string
-
-    @Column(DataType.STRING)
-    mail?: string
+    mail?: string;
 
     @HasMany(() => Project)
-    projects?: Project[]
+    projects?: Project[];
 }
