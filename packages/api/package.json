@@ -15,7 +15,6 @@
   "dependencies": {
     "@elara/lib": "0.1.0",
     "config": "^3.3.6",
-    "geoip-country": "^4.0.78",
     "ioredis": "^4.27.2",
     "koa": "^2.13.1",
     "koa-body": "^4.2.0",
@@ -28,7 +27,6 @@
     "sequelize-typescript": "^2.1.0"
   },
   "devDependencies": {
-    "@types/geoip-country": "^4.0.0",
     "@types/ioredis": "^4.26.3",
     "@types/koa": "^2.13.4",
     "@types/koa-passport": "^4.0.2",

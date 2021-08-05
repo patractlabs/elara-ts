@@ -1,4 +1,3 @@
-import geo from 'geoip-country'
 import { getAppLogger, md5, KEYS, PVoidT } from '@elara/lib'
 import { Rd } from './redis'
 import { Statistics, StatT, Stats } from './interface'
@@ -13,11 +12,13 @@ function accAverage(num: number, av: number, val: number, fixed: number = 2): nu
 }
 
 function ip2county(ip: string): string {
-    const dat = geo.lookup(ip)
-    if (dat) {
-        return dat.country
-    }
-    return 'unknow'
+    // TODO
+    return ip
+    // const dat = geo.lookup(ip)
+    // if (dat) {
+    //     return dat.country
+    // }
+    // return 'unknow'
 }
 
 function parseStatRecord(stat: Record<string, string>): StatT {
