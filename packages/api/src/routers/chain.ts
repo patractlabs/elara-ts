@@ -1,8 +1,8 @@
 import { isErr, KCtxT, NextT, Resp, } from '@elara/lib'
-import { getAppLogger,Code ,Msg} from '@elara/lib'
+import { getAppLogger, Code, Msg } from '@elara/lib'
 import Router from 'koa-router'
 import { lengthOk } from '../lib'
-import { ChainAttr,Network } from '../models/chain'
+import { ChainAttr, Network } from '../models/chain'
 import Chain from '../service/chain'
 
 const R = new Router()
@@ -38,7 +38,7 @@ const detail = async (ctx: KCtxT, next: NextT) => {
 const addChain = async (ctx: KCtxT, next: NextT) => {
     const req: ChainAttr = ctx.request.body
     log.debug('add Chain request: %o', req)
-    const { name, team, network} = ctx.request.body
+    const { name, team, network } = ctx.request.body
     if (!name || !network || !team || !name) {
         throw Resp.Fail(400, 'invalid params' as Msg)
     }
@@ -58,7 +58,7 @@ const addChain = async (ctx: KCtxT, next: NextT) => {
 
 const deleteChain = async (ctx: KCtxT, next: NextT) => {
     const name = ctx.request.body.name
-    const re = await Chain.deleteChain(name,true)
+    const re = await Chain.deleteChain(name, true)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
@@ -88,10 +88,10 @@ const findChainsByNetwork = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
- 
 
 
-function checkNetwork(network: Network ): void {
+
+function checkNetwork(network: Network): void {
     if (!Object.values(Network).includes(network)) {
         log.error(`invalid network: ${network}`)
         throw Resp.Fail(Code.Chain_Err, 'invalid network' as Msg)

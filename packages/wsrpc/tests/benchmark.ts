@@ -153,7 +153,7 @@ const connTest = async (loop: number) => {
 
 (async () => {
     if (true) {
-        wsTestRunner(1, true, 1, WsTyp.All)
+        wsTestRunner(0, true, 100, WsTyp.All)
         
     } else {
         // wsTestRunner(0, false, 100)

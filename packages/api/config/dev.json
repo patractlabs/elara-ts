@@ -17,6 +17,6 @@
         "port": 5432,
         "table": "elara",
         "user": "root",
-        "password": "LlZ9L8zx13ASshRysD3bCQ"
+        "password": "root"
     }
 }
