@@ -84,7 +84,6 @@ class Limit {
             return Err(errMsg(err, 'destroy error'))
         }
     }
-
 }
 
 export default Limit

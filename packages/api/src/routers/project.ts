@@ -51,9 +51,9 @@ async function checkProjectLimit(userId: number): PVoidT {
 async function create(ctx: KCtxT, next: NextT) {
     const uid = ctx.state.user
     log.debug('create project request: %o %o',uid, ctx.request.body)
-    const {userId, name, chain, team, reqDayLimit, reqSecLimit, bwDayLimit} = ctx.request.body
+    const {userId, name, chain, team, network, reqDayLimit, reqSecLimit, bwDayLimit} = ctx.request.body
 
-    if (!userId || !chain || !team || !name) {
+    if (!userId || !chain || !team || !network || !name) {
         throw Resp.Fail(400, 'invalid params' as Msg)
     }
 

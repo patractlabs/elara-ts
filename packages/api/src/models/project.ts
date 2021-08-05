@@ -1,6 +1,6 @@
 import { Optional } from 'sequelize'
 import { Model, DataType, Table, Column, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
-
+import { Network } from './chain'
 import User from './user'
 
 export enum ProStatus {
@@ -14,10 +14,11 @@ export interface ProAttr {
     pid: string,
     name: string,
     status: ProStatus,
-    chain: string,           // chain name
-    team: string,
     userId: number            // user id
     secret: string
+    chain: string,
+    team: string,
+    network: Network,
     reqSecLimit: number,
     reqDayLimit: number,
     bwDayLimit: number
@@ -44,14 +45,17 @@ export default class Project extends Model<ProAttr, ProCreateOptionAttr> {
     public status!: ProStatus
 
     @Column(DataType.STRING)
-    public chain!: string
-
-    @Column(DataType.STRING)
-    public team!: string
-
-    @Column(DataType.STRING)
     public secret!: string
 
+    @Column(DataType.STRING)
+    chain!: string
+
+    @Column(DataType.STRING)
+    team!: string
+
+    @Column(DataType.STRING)
+    network!: Network
+    
     @Column(DataType.INTEGER)
     public reqSecLimit!: number
 

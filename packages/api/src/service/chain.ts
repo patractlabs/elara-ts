@@ -1,120 +1,112 @@
-import { getAppLogger, PResultT, Ok, ChainConfig, isErr, Err } from '@elara/lib'
-import Dao from '../dao'
-import ChainModel, { ChainAttr ,Network} from '../models/chain'
-import { FindOptions } from 'sequelize/types'
+import { getAppLogger, PResultT, Ok, Err } from '@elara/lib'
+import ChainModel, { ChainAttr, Network } from '../models/chain'
 import { errMsg } from '../util'
+import { Sequelize } from 'sequelize-typescript'
 const log = getAppLogger('chain')
 
-export enum Topic {
-    ChainAdd    = 'chain-add',
-    ChainDel    = 'chain-del',
-    ChainUpdate = 'chain-update'
-}
+class Chain {
 
-namespace Chain {
-    // TODO error handle
+    static async findByName(name: string): PResultT<ChainAttr> {
+        try {
+            const re = await ChainModel.findOne({
+                where: { name }
+            })
+            if (re === null) {
+                return Err(`no chain name ${name}`)
+            }
+            return Ok(re)
+        } catch (err) {
+            log.error(`find chain ${name} error: %o`, err)
+            return Err(errMsg(err, 'find error'))
+        }
 
-    export const isExist = async (chain: string): Promise<Boolean> => {
-        const re = await Dao.getChainName(chain)
-        if (isErr(re)) {
-            log.info('No this chain: %o', re.value)
-            return false
-        }
-        if (re.value.toLowerCase() === chain.toLowerCase()) {
-            return true
-        }
-        return false
     }
 
-    export const detail = async (chain: string): PResultT<ChainConfig> => {
-        const re: any = await Dao.getChainDetail(chain)
-        let cha: ChainConfig = {
-            ...re,
-            name: chain,
-            baseUrl: re.baseUrl,
-            excludes: JSON.parse(re.excludes),
-            extends: JSON.parse(re.extends),
+    static async findById(id: number): PResultT<ChainAttr> {
+        try {
+            const re = await ChainModel.findOne({
+                where: { id }
+            })
+            if (re === null) {
+                return Err(`no chain ${id}`)
+            }
+            return Ok(re)
+        } catch (err) {
+            log.error(`find chain ${id} error: %o`, err)
+            return Err(errMsg(err, 'find error'))
         }
-        return Ok(cha)
+
     }
 
-    export const newChain = async (chain: ChainAttr): PResultT<ChainAttr> => {
+    static async newChain(chain: ChainAttr): PResultT<ChainAttr> {
 
         try {
             log.debug('add new chain: %o', chain)
-            Dao.publishTopic(Topic.ChainAdd, chain.name)
             const re = await ChainModel.create({
                 ...chain,
-            }) 
+            })
             return Ok(re)
         } catch (err) {
-            log.error('create project error: ', err)
+            log.error('create chain error: %o', err)
             return Err(errMsg(err, 'create error'))
         }
-
-        // let re = await ChainModel.create(chain)
-        // log.info('add chain result: ', re)
-
-        // // publish newchain event
-        // Dao.publishTopic(Topic.ChainAdd, chain.name)
-        // return Ok(re)
     }
 
-    export const deleteChain = async (name: string,force: boolean = false): PResultT<boolean> => {
+    static async deleteChain(id: number, name: string, force: boolean = false): PResultT<boolean> {
         try {
             const re = await ChainModel.destroy({
-                where: {
-                    name 
-                },
+                where: { id },
                 force
             })
-
-            await Dao.publishTopic(Topic.ChainDel, name)
-            await Dao.delChain(name)
+            log.warn(`chain ${name} deleted, force: ${force}`)
             return Ok(re === 1)
         } catch (err) {
             log.error(`delete chain ${name} error: %o`, err)
             return Err(errMsg(err, 'delete error'))
         }
-        // const re = await Dao.delChain(chain)
-        // log.warn('delete result: ', re)
-
-        // // publish chain delete event
-        // await Dao.publishTopic(Topic.ChainDel, chain)
-        // return Ok(re)
     }
 
-    export const updateChain = async (chain: ChainConfig): PResultT<string | number> => {
-        const re = await Dao.updateChain(chain)
-        return re
-    }
-
-    export const findByNetwork = async (network: Network): PResultT<ChainAttr[]> => {
+    static async findByNetwork(network: Network): PResultT<ChainAttr[]> {
         try {
             const re = await ChainModel.findAll({
                 where: { network },
             })
-            if (re === null) {
-                return Err(`no ${network} chain `)
-            }
             return Ok(re)
         } catch (err) {
-            log.error(`find ${network} chain ,error: `, err)
+            log.error(`find ${network} chain ,error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
     }
 
-    export const chainList = async (): PResultT<ChainAttr[]> => {
+    static async chainList(): PResultT<Record<string, ChainAttr[]>> {
         try {
-            const option: FindOptions<ChainAttr> = {}
-            const re = await ChainModel.findAll(option)
-            return Ok(re)
+            const re = await ChainModel.findAll({
+                order: [Sequelize.col('network')]
+            })
+            let network = ''
+            let chains: Record<string, ChainAttr[]> = {}
+            let chainLis: ChainAttr[] = []
+            // group by network
+            re.map(async (chain: ChainModel) => {
+                if (chain.network === network) {
+                    chainLis.push(chain)
+                } else {
+                    if (network !== '') {
+                        chains[network] = chainLis
+                        chainLis = []
+                        network = chain.network
+                    } else {
+                        network = chain.network
+                        chainLis.push(chain)
+                    }
+                }
+            })
+            chains[network] = chainLis
+            return Ok(chains)
         } catch (err) {
-            log.error(`find chain  error: `, err)
+            log.error(`find chain  error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
-        // const re = await Dao.getChainList()
-        // return Ok(re)
     }
 }
 

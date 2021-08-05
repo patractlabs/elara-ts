@@ -19,19 +19,32 @@ function checkName(name: string): void {
 const chainList = async (ctx: KCtxT, next: NextT) => {
     const re = await Chain.chainList()
     if (isErr(re)) {
-        throw Resp.Unknown()
+        throw Resp.Fail(400, re.value as Msg)
     }
     ctx.body = Resp.Ok(re.value)
     return next()
 }
 
-const detail = async (ctx: KCtxT, next: NextT) => {
-    const chain = ctx.request.body.chain
-    const re = await Chain.detail(chain)
-    const cha = re.value
-    log.debug('detail: %o', cha)
+const findByName = async (ctx: KCtxT, next: NextT) => {
+    const { name } = ctx.request.body
+    const re = await Chain.findByName(name)
+    if (isErr(re)) {
+        throw Resp.Fail(400, re.value as Msg)
+    }
     ctx.body = Resp.Ok(re.value)
+    return next()
+}
 
+const findById = async (ctx: KCtxT, next: NextT) => {
+    const { id } = ctx.request.body
+    if (!Number.isInteger(id)) {
+        throw Resp.Fail(400, 'id must be integer' as Msg)
+    }
+    const re = await Chain.findById(id)
+    if (isErr(re)) {
+        throw Resp.Fail(400, re.value as Msg)
+    }
+    ctx.body = Resp.Ok(re.value)
     return next()
 }
 
@@ -52,13 +65,14 @@ const addChain = async (ctx: KCtxT, next: NextT) => {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
     log.info('add Chain result: %o', re)
-    ctx.body = Resp.Ok(req)
+    ctx.body = Resp.Ok(re.value)
     return next()
 }
 
 const deleteChain = async (ctx: KCtxT, next: NextT) => {
-    const name = ctx.request.body.name
-    const re = await Chain.deleteChain(name, true)
+    let { id, name, force } = ctx.request.body
+    if (force !== true) { force = false }
+    const re = await Chain.deleteChain(id, name, force)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
@@ -66,20 +80,10 @@ const deleteChain = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-const updateChain = async (ctx: KCtxT, next: NextT) => {
-    const req = ctx.request.body
-    const re = await Chain.updateChain(req)
-    if (isErr(re)) {
-        throw Resp.Unknown()
-    }
-    ctx.body = Resp.Ok(re.value)
-    return next()
-}
-
 const findChainsByNetwork = async (ctx: KCtxT, next: NextT) => {
-    const network = ctx.request.body.network
+    const { network } = ctx.request.body
 
-    if (network) { checkNetwork(network) }
+    checkNetwork(network)
     const re = await Chain.findByNetwork(network)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
@@ -87,9 +91,6 @@ const findChainsByNetwork = async (ctx: KCtxT, next: NextT) => {
     ctx.body = Resp.Ok(re.value)
     return next()
 }
-
-
-
 
 function checkNetwork(network: Network): void {
     if (!Object.values(Network).includes(network)) {
@@ -105,16 +106,15 @@ function checkNetwork(network: Network): void {
  * @apiVersion  0.1.0
  * @apiSampleRequest off
  * 
- * @apiSuccess {ChainAttr[]} chain list of chain
- * @apiSuccess {Number} chain.id chain id, integer
- * @apiSuccess {String} chain.name chain name
- * @apiSuccess {String} chain.team chain team
- * @apiSuccess {String} chain.network chain network ['test', 'live', 'polkadot','kusama','westend','rococo']
+ * @apiSuccess {Object} Record chain list map by network,Record<String, ChainAttr[]>
  * @apiSuccessExample Success:
  *  {
  *      code: 0,
  *      msg: 'ok',
- *      data: ChainAttr[]
+ *      data: { 
+ *          'live': [{}, {}],
+ *          'test': []
+ *      }
  *  }
  */
 R.get('/list', chainList)
@@ -143,40 +143,33 @@ R.get('/list', chainList)
  */
 R.post('/list/bynetwork', findChainsByNetwork)
 
+R.post('/add', addChain)
+
+R.post('/delete', deleteChain)
+
 /**
- *
- * @api {post} /chain/add add
+ * @api {post} /chain/detail/byname findByName
  * @apiGroup chain
  * @apiVersion  0.1.0
  * @apiSampleRequest off
  * 
- * @apiParam {String} [network]   chain network, list of network ['test', 'live', 'polkadot','kusama','westend','rococo']
- * @apiParam {String} team    team name
- * @apiParam {String} name   chain name
+ * @apiSuccess {ChainAttr} chain
+ */
+R.post('/detail/byname', findByName)
+
+/**
+ * @api {post} /chain/detail/byid findById
+ * @apiGroup chain
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
  * 
- * @apiSuccess {ChainAttr[]} chain list of chain
+ * @apiSuccess {ChainAttr} chain
  * @apiSuccess {Number} chain.id chain id, integer
  * @apiSuccess {String} chain.name chain name
  * @apiSuccess {String} chain.team chain team
  * @apiSuccess {String} chain.network chain network ['test', 'live', 'polkadot','kusama','westend','rococo']
  *
  */
-R.post('/add', addChain)
-
-/**
- *
- * @api {post} /chain/delete delete
- * @apiGroup chain
- * @apiVersion  0.1.0
- * @apiSampleRequest off
- * 
- * @apiParam {String} name   chain name
- * 
- *
- */
-R.post('/delete', deleteChain)
-
-R.post('/detail', detail)
-R.post('/update', updateChain)
+R.post('/detail/byid', findById)
 
 export default R.routes()

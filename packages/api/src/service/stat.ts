@@ -1,12 +1,20 @@
-import { getAppLogger, KEYS, randomId } from '@elara/lib'
+import { getAppLogger, Redis, DBT, KEYS, randomId } from '@elara/lib'
 import geo from 'geoip-country'
-import { statRd } from '../dao/redis'
 import { StatT, Stats, Statistics } from '../interface'
 import Mom from 'moment'
 import { lastTime, todayStamp } from '../util'
 
 const sKEY = KEYS.Stat
 const log = getAppLogger('stat')
+const StatRd = new Redis(DBT.Stat)
+StatRd.onConnect(() => {
+    log.info(`stat redis connection open`)
+})
+
+StatRd.onError((err) => {
+    log.error(`stat redis connection error: %o`, err)
+})
+const Rd = StatRd.getClient()
 
 type PStatT = Promise<StatT>
 
@@ -91,7 +99,7 @@ async function dailyStatistic(req: Statistics, dat: Stats): Promise<Stats> {
 }
 
 async function handleScore(res: Record<string, number>, key: string): Promise<Record<string, number>> {
-    const lis = await statRd.zrange(key, 0, -1, 'WITHSCORES')
+    const lis = await Rd.zrange(key, 0, -1, 'WITHSCORES')
     const len = lis.length
     for (let i = 0; i < len; i += 2) {
         res[lis[i]] = (res[lis[i]] ?? 0) + parseInt(lis[i + 1])
@@ -156,16 +164,16 @@ function parseStatRecord(stat: Record<string, string>): StatT {
     }
 }
 
-namespace Stat {
+class Stat {
     // elara statistic
-    export async function total(): PStatT {
-        return parseStatRecord(await statRd.hgetall(sKEY.hTotal()))
+    static async total(): PStatT {
+        return parseStatRecord(await Rd.hgetall(sKEY.hTotal()))
     }
 
-    export const daily = async (): PStatT => {
+    static async daily(): PStatT {
         let res = newStats() as StatT
         try {
-            const re = await statRd.hgetall(sKEY.hDaily())
+            const re = await Rd.hgetall(sKEY.hDaily())
             if (re === null) {
                 log.error('Redis get daily statistic failed')
             }
@@ -176,15 +184,15 @@ namespace Stat {
         return res as unknown as StatT
     }
 
-    export const latestReq = async (num: number): Promise<Statistics[]> => {
+    static async latestReq(num: number): Promise<Statistics[]> {
         if (num < 1) { num = 1 }
-        const keys = await statRd.zrevrange(sKEY.zStatList(), 0, num - 1)
-        log.debug('latest request: %o %o',num, keys)
+        const keys = await Rd.zrevrange(sKEY.zStatList(), 0, num - 1)
+        log.debug('latest request: %o %o', num, keys)
         const res: Statistics[] = []
         for (let k of keys) {
-            const re = await statRd.get(`Stat_${k}`)
+            const re = await Rd.get(`Stat_${k}`)
             if (re === null) {
-                statRd.zrem(sKEY.zStatList(), k)
+                Rd.zrem(sKEY.zStatList(), k)
                 continue
             }
             const stat = JSON.parse(re) as Statistics
@@ -196,9 +204,9 @@ namespace Stat {
         return res
     }
 
-    export async function lastDays(day: number, chain?: string, pid?: string): Promise<StatT[]> {
+    static async lastDays(day: number, chain?: string, pid?: string): Promise<StatT[]> {
         log.debug(`last days pid[${pid}]: ${day}`)
-        let stat: StatT[] = [pid !== undefined ? await proDaily(chain!, pid) : await daily()]
+        let stat: StatT[] = [pid !== undefined ? await Stat.proDaily(chain!, pid) : await Stat.daily()]
         // let stat = pid !== undefined ? await proDaily(pid) : await daily()
         if (day < 2) {
             return stat
@@ -207,16 +215,16 @@ namespace Stat {
         for (let i = 1; i < day; i++) {
             const stamp = startStamp(i, 'day')
             if (pid !== undefined) {
-                const re = await statRd.hgetall(sKEY.hProDaily(chain!, pid, stamp))
+                const re = await Rd.hgetall(sKEY.hProDaily(chain!, pid, stamp))
                 stat.push(parseStatRecord(re))
                 continue
             }
 
-            const keys = await statRd.keys(sKEY.hProDaily('*', '*', stamp))
-            log.debug('last days keys: %o %o',i, keys)
+            const keys = await Rd.keys(sKEY.hProDaily('*', '*', stamp))
+            log.debug('last days keys: %o %o', i, keys)
             let tstat = newStats() as unknown as StatT
             for (let k of keys) {
-                const tmp = await statRd.hgetall(k)
+                const tmp = await Rd.hgetall(k)
                 tstat = statAdd(tstat, parseStatRecord(tmp))
             }
             stat.push(tstat)
@@ -224,19 +232,19 @@ namespace Stat {
         return stat
     }
 
-    export async function lastHours(hour: number, pid?: string): Promise<StatT[]> {
+    static async lastHours(hour: number, pid?: string): Promise<StatT[]> {
         let res: StatT[] = []
         if (hour < 1) { hour = 1 }
         for (let h = 0; h < hour; h++) {
             let stat = newStats() as unknown as Stats
             const [start, end] = lastTime('hour', h)
             // const start = startStamp(hour, 'hour')
-            const keys = await statRd.zrangebyscore(sKEY.zStatList(), start, end)
+            const keys = await Rd.zrangebyscore(sKEY.zStatList(), start, end)
             for (let k of keys) {
                 if (pid && !k.includes(pid)) { continue }
-                const tmp = await statRd.get(`Stat_${k}`)
+                const tmp = await Rd.get(`Stat_${k}`)
                 if (tmp === null) {
-                    statRd.zrem(sKEY.zStatList(), k)
+                    Rd.zrem(sKEY.zStatList(), k)
                     continue
                 }
                 stat = await dailyStatistic(JSON.parse(tmp) as Statistics, stat)
@@ -246,41 +254,41 @@ namespace Stat {
         return res
     }
 
-    export const mostResourceLastDays = async (num: number, day: number, typ: string) => {
+    static async mostResourceLastDays(num: number, day: number, typ: string) {
         let key = sKEY.zDailyReq()
         if (typ === 'bandwidth') {
             key = sKEY.zDailyBw()
         }
         if (num < 1) { num = 1 }
         if (day < 2) {
-            return statRd.zrevrange(key, 0, num - 1, 'WITHSCORES')
+            return Rd.zrevrange(key, 0, num - 1, 'WITHSCORES')
         }
         let res = await handleScore({}, key)
         for (let i = 1; i < day; i++) {
             const stamp = startStamp(i, 'day')
-            const keys = await statRd.keys(typ === 'req' ? sKEY.zReq('*', '*', stamp) : sKEY.zBw('*', '*', stamp))
+            const keys = await Rd.keys(typ === 'req' ? sKEY.zReq('*', '*', stamp) : sKEY.zBw('*', '*', stamp))
             for (let k of keys) {
                 res = await handleScore(res, k)
             }
         }
         const skey = `Z_Score_${typ}_${randomId()}`
         for (let m in res) {
-            statRd.zadd(skey, res[m], m)
+            Rd.zadd(skey, res[m], m)
         }
-        const re = await statRd.zrevrange(skey, 0, num - 1, 'WITHSCORES')
-        statRd.del(skey)
+        const re = await Rd.zrevrange(skey, 0, num - 1, 'WITHSCORES')
+        Rd.del(skey)
         log.debug(`${typ} score rank reulst: %o`, re)
         return re
     }
 
-    export const recentError = async (num: number): Promise<Statistics[]> => {
+    static async recentError(num: number): Promise<Statistics[]> {
         if (num < 1) { num = 1 }
-        const keys = await statRd.zrevrange(sKEY.zErrStatList(), 0, num - 1)
+        const keys = await Rd.zrevrange(sKEY.zErrStatList(), 0, num - 1)
         const res: Statistics[] = []
         for (let k of keys) {
-            const re = await statRd.get(`Stat_Err_${k}`)
+            const re = await Rd.get(`Stat_Err_${k}`)
             if (re === null) {
-                statRd.zrem(sKEY.zErrStatList(), k)
+                Rd.zrem(sKEY.zErrStatList(), k)
                 continue
             }
             const stat = JSON.parse(re) as Statistics
@@ -293,23 +301,23 @@ namespace Stat {
     }
 
     // chain statistic
-    export const chain = async (chain: string): PStatT => {
-        return parseStatRecord(await statRd.hgetall(sKEY.hChainTotal(chain)))
+    static async chain(chain: string): PStatT {
+        return parseStatRecord(await Rd.hgetall(sKEY.hChainTotal(chain)))
     }
 
     // project statistic
-    export const proDaily = async (chain: string, pid: string): PStatT => {
-        const re = await statRd.hgetall(sKEY.hProDaily(chain, pid, todayStamp()))
+    static async proDaily(chain: string, pid: string): PStatT {
+        const re = await Rd.hgetall(sKEY.hProDaily(chain, pid, todayStamp()))
         log.debug(`get ${chain} project[${pid}] day statistic: %o`, re)
         let stat = parseStatRecord(re) as unknown as Stats
 
         const [start, end] = lastTime('hour', 0)
-        const keys = await statRd.zrangebyscore(sKEY.zStatList(), start, end)
-        log.debug('project daily last hour keys: %o',keys)
+        const keys = await Rd.zrangebyscore(sKEY.zStatList(), start, end)
+        log.debug('project daily last hour keys: %o', keys)
         for (let k of keys) {
             if (!k.includes(pid)) { continue }
             const key = `Stat_${k}`
-            const re = await statRd.get(key)
+            const re = await Rd.get(key)
             if (re === null) { continue }
             const stmp = JSON.parse(re) as Statistics
             stat = await dailyStatistic(stmp, stat)

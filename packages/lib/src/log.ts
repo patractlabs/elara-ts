@@ -18,18 +18,18 @@ const logFormat = (labelStr?: string, isJson: boolean = false) => {
     return combine(common, isJson ? json() : printFormat)
 }
 
-function newRotateFile(filename: string, level: string = 'info') {
+function newRotateFile(filename: string, level: string = 'info', isJson: boolean = true) {
     return new DailyRotateFile({
         level,
         filename: `logs/${filename}-%DATE%.log`,
         datePattern: 'YYYY-MM-DD',
         zippedArchive: true,
         handleExceptions: true,
-        json: true,
+        json: isJson,
         createSymlink: true,
         symlinkName: `${filename}.log`,
         maxSize: '20m',
-        maxFiles: '14d',
+        maxFiles: '7d',
     })
 }
 
@@ -48,7 +48,7 @@ export function getAppLogger(label: string = '', opt?: { isJson: boolean, consol
             newRotateFile('app')
         ],
         exceptionHandlers: [
-            newRotateFile('exception')
+            newRotateFile('exception', 'error', false)
             // new transports.File({ filename: 'logs/exceptions.log' })
         ],
         exitOnError: false
@@ -66,7 +66,7 @@ export function accessLogger() {
             newRotateFile('access', 'http')
         ],
         exceptionHandlers: [
-            newRotateFile('access-exception')
+            newRotateFile('access-exception', 'error')
         ],
         exitOnError: false
     })
