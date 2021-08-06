@@ -1,10 +1,13 @@
-import { getAppLogger, md5, KEYS, PVoidT } from '@elara/lib'
-import { Rd } from './redis'
-import { Statistics, StatT, Stats } from './interface'
+import { getAppLogger, md5, KEYS, PVoidT, isErr } from '@elara/lib'
+import { ProRd, SttRd, UserRd } from './redis'
+import { Statistics, StatT, Stats, ProAttr } from './interface'
 import Conf from '../config'
+import HttpUtil from './http'
 
 const log = getAppLogger('statistic')
 const KEY = KEYS.Stat
+const pKEY = KEYS.Project
+const uKEY = KEYS.User
 const rconf = Conf.getRedis()
 
 function accAverage(num: number, av: number, val: number, fixed: number = 2): number {
@@ -48,8 +51,65 @@ function asNum(val: number | string): number {
     return (val as number) ?? 0
 }
 
+async function checkProjecLimit(dat: Stats, pro: ProAttr) {
+    // check project limit
+    const reqCnt = asNum(dat.httpReqNum) + asNum(dat.wsReqNum) + asNum(dat.httpInReqNum) + asNum(dat.wsInReqNum)
+    const bw = asNum(dat.httpBw) + asNum(dat.wsBw)
+    const reqLimit = pro.reqDayLimit !== -1 && reqCnt >= pro.reqDayLimit
+    const bwLimit = pro.bwDayLimit !== -1 && bw >= pro.bwDayLimit
+    if (reqLimit || bwLimit) {
+        // set suspend
+        HttpUtil.updateProjectStatus(pro.id, 'suspend')
+
+        // cache
+        ProRd.hset(pKEY.hProjectStatus(pro.chain, pro.pid), 'status', 'suspend')
+    }
+}
+
+async function checkUserLimit(userId: number) {
+    const ure = await HttpUtil.getUserWithLimit(userId)
+    if (isErr(ure)) {
+        log.error(`check user error: %o`, ure.value)
+        return
+    }
+    const user = ure.value as any // UserModel
+    const limit = user.limit
+    if (!limit) {
+        log.error(`check user limit error: invalid user model`)
+        return
+    }
+    const re = await HttpUtil.getUserDailyStatistic(userId)
+    if (isErr(re)) {
+        log.error(`check user resource limit error: %o`, re.value)
+        return
+    }
+    const stat = re.value
+    const reqCnt = stat.httpReqNum + stat.wsReqNum + stat.httpInReqNum + stat.wsInReqNum
+    const bw = stat.httpBw + stat.wsBw
+    
+    if (reqCnt >= limit.reqDayLimit || bw >= limit.bwDayLimit) {
+        HttpUtil.updateUserStatus(user.githubId, 'suspend')
+        // cache
+        UserRd.hset(uKEY.hStatus(userId), 'status', 'suspend')
+    }
+}
+
 export async function statDump(req: Statistics, key: string): PVoidT {
-    const dat = parseStatRecord(await Rd.hgetall(key)) as unknown as Stats
+    const dat = parseStatRecord(await SttRd.hgetall(key)) as unknown as Stats
+    if (key != KEY.hDaily() && key != KEY.hTotal()) {
+        const ks = key.split('_')
+        const chain = ks[3]
+        const pid = ks[4]
+        const re = await HttpUtil.getProject(chain, pid)
+
+        if (isErr(re)) {
+            log.error(`check ${chain} project [${pid}] error: %o`, re.value)
+        } else {
+            checkProjecLimit(dat, re.value)
+            checkUserLimit(re.value.userId)
+        }
+    }
+
     const curNum = req.proto === 'ws' ? dat.wsReqNum : dat.httpReqNum
     const curDelay = req.proto === 'ws' ? dat.wsDelay : dat.httpDelay
 
@@ -79,45 +139,45 @@ export async function statDump(req: Statistics, key: string): PVoidT {
     // country access
     if (req.header !== undefined && req.header.ip) {
         const c = ip2county(req.header.ip.split(':')[0])
-        log.debug('parse country: %o %o',key, dat[`${req.proto}Ct`])
+        log.debug('parse country: %o %o', key, dat[`${req.proto}Ct`])
         const ac: Record<string, number> = JSON.parse(dat[`${req.proto}Ct`] as string)
         ac[c] = (ac[c] ?? 0) + 1
         dat[`${req.proto}Ct`] = JSON.stringify(ac)
     }
-    Rd.hmset(key, dat)
+    SttRd.hmset(key, dat)
 }
 
 export async function dailyStatDump(req: Statistics, key: string): PVoidT {
-    const curNum: number = parseInt(await Rd.hget(key, `${req.proto}ReqNum`) ?? '0')
-    const curDelay: number = parseInt(await Rd.hget(key, `${req.proto}Delay`) ?? '0')
+    const curNum: number = parseInt(await SttRd.hget(key, `${req.proto}ReqNum`) ?? '0')
+    const curDelay: number = parseInt(await SttRd.hget(key, `${req.proto}Delay`) ?? '0')
     if (req.timeout) {
-        Rd.hincrby(key, `${req.proto}TimeoutCnt`, 1)
-        Rd.hset(key, `${req.proto}Timeout`, accAverage(curNum, curDelay, req.delay ?? 0))
+        SttRd.hincrby(key, `${req.proto}TimeoutCnt`, 1)
+        SttRd.hset(key, `${req.proto}Timeout`, accAverage(curNum, curDelay, req.delay ?? 0))
     } else {
-        Rd.hset(key, `${req.proto}Delay`, accAverage(curNum, curDelay, req.delay ?? 0))
+        SttRd.hset(key, `${req.proto}Delay`, accAverage(curNum, curDelay, req.delay ?? 0))
     }
     if (req.proto === 'ws' && req.reqCnt) {
-        Rd.hincrby(key, `wsSubNum`, 1)
-        Rd.hincrby(key, `wsSubResNum`, req.reqCnt)
+        SttRd.hincrby(key, `wsSubNum`, 1)
+        SttRd.hincrby(key, `wsSubResNum`, req.reqCnt)
     }
-    Rd.hincrby(key, `${req.proto}ReqNum`, 1)
+    SttRd.hincrby(key, `${req.proto}ReqNum`, 1)
     // ws connection cnt
     if (req.type === 'conn') {
-        Rd.hincrby(key, 'wsConn', 1)
+        SttRd.hincrby(key, 'wsConn', 1)
     }
     if (req.bw !== undefined) {
-        Rd.hincrby(key, `${req.proto}Bw`, req.bw)
+        SttRd.hincrby(key, `${req.proto}Bw`, req.bw)
     }
     if (req.code !== 200) {
-        Rd.hincrby(key, `${req.proto}InReqNum`, 1)
+        SttRd.hincrby(key, `${req.proto}InReqNum`, 1)
     }
 
     // country access
     if (req.header !== undefined && req.header.ip) {
         const c = ip2county(req.header.ip.split(':')[0])
-        const ac: Record<string, number> = JSON.parse(await Rd.hget(key, `${req.proto}Ct`) ?? '{}')
+        const ac: Record<string, number> = JSON.parse(await SttRd.hget(key, `${req.proto}Ct`) ?? '{}')
         ac[c] = (ac[c] ?? 0) + 1
-        Rd.hset(key, `${req.proto}Ct`, JSON.stringify(ac))
+        SttRd.hset(key, `${req.proto}Ct`, JSON.stringify(ac))
     }
 }
 
@@ -125,17 +185,16 @@ export async function handleStat(stream: string[]): PVoidT {
     const dat = stream[1][1]
     const req = JSON.parse(dat) as Statistics
     const key = md5(dat)
-    log.debug('dump new request statistic: %o %o',key, dat)
+    log.debug('dump new request statistic: %o %o', key, dat)
     try {
         if (req.code === 200) {
             // request record
-            Rd.setex(KEY.stat(req.chain, req.pid, key), rconf.expireFactor + 3600, dat)
-            // Rd.setex(KEY.stat(req.chain, req.pid, key), 120, dat)    // for test
-            Rd.zadd(KEY.zStatList(), req.reqtime, `${req.chain}_${req.pid}_${key}`)
+            SttRd.setex(KEY.stat(req.chain, req.pid, key), rconf.expireFactor + 3600, dat)
+            SttRd.zadd(KEY.zStatList(), req.reqtime, `${req.chain}_${req.pid}_${key}`)
         } else {
             // keep one day error record
-            Rd.setex(KEY.errStat(req.chain, req.pid, key), 3600 * 24, dat)
-            Rd.zadd(KEY.zErrStatList(), req.reqtime, `${req.chain}_${req.pid}_${key}`)
+            SttRd.setex(KEY.errStat(req.chain, req.pid, key), 3600 * 24, dat)
+            SttRd.zadd(KEY.zErrStatList(), req.reqtime, `${req.chain}_${req.pid}_${key}`)
         }
 
         // daily statistic
@@ -150,8 +209,8 @@ export async function handleStat(stream: string[]): PVoidT {
 
         // most request & bandwidth
         if (req.proto === 'http') {
-            Rd.zincrby(KEY.zDailyReq(), 1, req.req.method)
-            Rd.zincrby(KEY.zDailyBw(), req.bw ?? 0, req.req.method)
+            SttRd.zincrby(KEY.zDailyReq(), 1, req.req.method)
+            SttRd.zincrby(KEY.zDailyBw(), req.bw ?? 0, req.req.method)
         }
     } catch (err) {
         log.error(`dump request statistic [${req.chain}-${req.pid}] error: %o`, err)

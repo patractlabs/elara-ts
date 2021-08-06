@@ -1,12 +1,15 @@
-import { PResultT, Ok, Err, getAppLogger, PBoolT, PVoidT, isErr } from '@elara/lib'
+import { PResultT, Ok, Err, getAppLogger, PBoolT, PVoidT, isErr, KEYS } from '@elara/lib'
 import UserModel, { UserAttr, UserStat, UserLevel } from '../models/user'
 import ProjectModel, { ProAttr, ProStatus } from '../models/project'
 import LimitModel from '../models/limit'
 import Project from './project'
 import Limit from './limit'
-import Stat from './stat'
+import Stat, { newStats, statAdd } from './stat'
 import { errMsg } from '../util'
+import { StatT } from '../interface'
+import { UserRd } from '../redis'
 
+const KEY = KEYS.User
 const log = getAppLogger('user-service')
 
 export default class User {
@@ -33,6 +36,7 @@ export default class User {
         try {
             const re = await UserModel.create(user)
             log.debug('UserModel create result: %o', re)
+            UserRd.hset(KEY.hStatus(re.id), 'status', 'active')
             return Ok(re)
         } catch (err) {
             log.error('create user error: %o', err)
@@ -150,6 +154,21 @@ export default class User {
             return Err('no this user')
         }
         return Ok(re.level)
+    }
+
+    static async getStatisticById(id: number): PResultT<StatT> {
+        const re = await Project.listOfUser(id, true)
+        if (isErr(re)) {
+            log.error(`get project of user[${id} error: `, re.value)
+            return re
+        }
+        const pros = re.value
+        let stat = newStats()
+        for (let pro of pros)  {
+            const re = await Stat.proDaily(pro.chain, pro.pid)
+            stat = statAdd(stat, re)
+        }
+        return Ok(stat)
     }
 
     static async getAllUser(): PResultT<UserAttr[]> {

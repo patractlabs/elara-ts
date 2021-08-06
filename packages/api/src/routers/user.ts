@@ -49,6 +49,16 @@ async function detailWithProject(ctx: KCtxT, next: NextT) {
     return next()
 }
 
+async function detailWithLimit(ctx: KCtxT, next: NextT) {
+    const { userId } = ctx.request.body
+    const re = await User.findUserByIdwithLimit(userId)
+    if (isErr(re)) {
+        throw Resp.Fail(400, re.value as Msg)
+    }
+    ctx.body = Resp.Ok(re.value)
+    return next()
+}
+
 async function getStatus(ctx: KCtxT, next: NextT) {
     const re = await User.getStatusByGit(ctx.state.user)
     log.debug('get status result: %o', re)
@@ -60,6 +70,16 @@ async function getLevel(ctx: KCtxT, next: NextT) {
     const re = await User.getLevelByGit(ctx.state.user)
     log.debug('get level result: %o', re)
     ctx.body = Resp.Ok(re)
+    return next()
+}
+
+async function getDailyStatistic(ctx: KCtxT, next: NextT) {
+    const { userId } = ctx.request.body
+    const re = await User.getStatisticById(userId)
+    if (isErr(re)) {
+        throw Resp.Fail(400, re.value as Msg)
+    }
+    ctx.body = Resp.Ok(re.value)
     return next()
 }
 
@@ -100,10 +120,24 @@ R.post('/update/level', updateLevel)
  * @apiSuccess {String} [User.mail]
  */
 R.get('/detail', detail)
+
 R.post('/detail/withproject', detailWithProject)
+
+R.post('/detail/withlimit', detailWithLimit)
 
 R.post('/detail/status', getStatus)
 R.post('/detail/level', getLevel)
+
+/**
+ * @api {get} /user/detail/statistic userDailyStatistic
+ * @apiDescription user detail info
+ * @apiGroup user
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiSuccess {StatT} Stat user statistic of all project
+ */
+R.post('/detail/statistic', getDailyStatistic)
 
 R.post('/create', newUser)
 

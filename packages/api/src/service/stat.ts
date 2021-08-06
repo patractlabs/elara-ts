@@ -17,7 +17,7 @@ const Rd = StatRd.getClient()
 
 type PStatT = Promise<StatT>
 
-function newStats(): StatT {
+export function newStats(): StatT {
     return {
         wsReqNum: 0,
         wsConn: 0,
@@ -119,7 +119,7 @@ function statMerge(lct: Record<string, number>, rct: Record<string, number>): Re
     return lct
 }
 
-function statAdd(l: StatT, r: StatT): StatT {
+export function statAdd(l: StatT, r: StatT): StatT {
     l.wsConn += r.wsConn
     l.wsReqNum += r.wsReqNum
     l.wsSubNum += r.wsSubNum

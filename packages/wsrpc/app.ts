@@ -11,6 +11,7 @@ import Matcher from './src/matcher'
 import Puber from './src/puber'
 import Response from './src/resp'
 import { Stat } from './src/statistic'
+import Dao from './src/dao'
 
 const conf = Conf.getServer()
 const log = getAppLogger('app')
@@ -24,46 +25,29 @@ async function pathOk(url: string, host: string): PResultT<ChainPidT> {
     return Util.urlParse(path)
 }
 
-function post(url: string, body: ChainPidT): Promise<any> {
-    const start = Util.traceStart()
-    return new Promise((resolve, reject) => {
-        let data = ''
-        const req = Http.request(url, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json; charset=UTF-8'
-            }
-        }, (res: Http.IncomingMessage) => {
-            res.on('data', (chunk) => {
-                data += chunk
-            })
-            res.on('end', () => {
-                log.debug('response: %o', data)
-                resolve(data)
-                const time = Util.traceEnd(start)
-                log.debug(`new node rpc response time[${time}]`)
-            })
-        })
-        req.on('error', (err: Error) => {
-            log.error('post noder rpc request error: %o', err)
-            reject({ code: 500, msg: err, data: false })
-        })
-        req.write(JSON.stringify(body))
-        req.end()
-    })
-
-}
-
 async function resourceLimit(chain: string, pid: string): PBoolT {
     if (pid === '00000000000000000000000000000000') {
         return false
     }
     // check request limit & bandwidth limit
-    const res = await post(`http://${conf.apiHost}:${conf.apiPort}/auth/projectOk`, { chain, pid })
-    const isOk = JSON.parse(res).data as boolean ?? true
-    log.debug(`${chain} pid[${pid}] project-is-ok check result: ${isOk}`)
-    return !isOk
+    // const res = await post(`http://${conf.apiHost}:${conf.apiPort}/auth/projectOk`, { chain, pid })
+    // const isOk = JSON.parse(res).data as boolean ?? true
+    // log.debug(`${chain} pid[${pid}] project-is-ok check result: ${isOk}`)
+    // return !isOk
+
+    const pstat = await Dao.getProjectStatus(chain, pid)
+    log.debug(`project status ${pstat['status']}: %o`, pstat)
+    if (pstat.status !== 'active') {
+        return true
+    }
+    const userId = parseInt(pstat.user)
+    const ustat = await Dao.getUserStatus(userId)
+    log.debug(`user status: %o`, ustat)
+    
+    if (ustat.status !== 'active') {
+        return true
+    }
+    return false
 }
 
 function isPostMethod(method: string): boolean {

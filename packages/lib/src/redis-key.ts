@@ -78,6 +78,11 @@ namespace Project {
     export const zProjectNames = (uid: IDT, chain: string): string => {
         return `Z_${P}_Name_${chain.toLowerCase()}_${uid}`
     }
+
+    // project status
+    export const hProjectStatus = (chain: string, pid: string): string => {
+        return `H_${P}_status_${chain.toLowerCase()}_${pid}`
+    }
 }
 
 namespace Cache {
@@ -151,15 +156,20 @@ namespace Stat {
     }
 }
 
-namespace Account {
-    const A = 'Account'
+namespace User {
+    const U = 'User'
 
-    export const hAccount = (uid?: IDT): string => {
+    export const hUser = (uid?: IDT): string => {
         let UID = `${uid}`
         if (isEmpty(uid?.toString())) {
             UID = '*_'
         }
-        return `H_${A}_${UID.toLowerCase()}`
+        return `H_${U}_${UID.toLowerCase()}`
+    }
+
+    // status 
+    export const hStatus = (id: number): string => {
+        return `${U}_status_${id}`
     }
 }
 
@@ -167,6 +177,6 @@ export const KEYS = {
     Chain,
     Project,
     Cache,
-    Account,
+    User,
     Stat
 }

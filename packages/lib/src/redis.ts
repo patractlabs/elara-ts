@@ -1,7 +1,7 @@
 import IORedis, { RedisOptions } from 'ioredis'
 
 export enum DBT {
-    Account = 0,
+    User = 0,
     Project = 1,
     Stat = 2,
     Chain = 3,

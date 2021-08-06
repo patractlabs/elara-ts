@@ -1,24 +1,28 @@
-import { getAppLogger, randomId, Err, Ok, PResultT } from '@elara/lib'
+import { getAppLogger, randomId, Err, Ok, PResultT, KEYS } from '@elara/lib'
 import ProjectModel, { ProAttr, ProStatus } from '../models/project'
 import { errMsg } from '../util'
-// import { Op } from 'sequelize'
 import { Sequelize } from 'sequelize-typescript'
 import { FindOptions } from 'sequelize/types'
 import User from '../models/user'
+import { ProRd } from '../redis'
 
+const KEY = KEYS.Project
 const log = getAppLogger('project-service')
 
 class Project {
 
     static async create(pro: ProAttr): PResultT<ProAttr> {
         try {
+            const chain = pro.chain.toLowerCase()
+            const pid = randomId()
             const re = await ProjectModel.create({
                 ...pro,
-                chain: pro.chain.toLowerCase(),
-                pid: randomId(),
+                chain,
+                pid,
                 secret: randomId(),
                 status: ProStatus.Active,
             })
+            ProRd.hmset(KEY.hProjectStatus(chain, pid), 'status', 'active', 'user', pro.userId)
             return Ok(re)
         } catch (err) {
             log.error('create project error: %o', err)
@@ -91,7 +95,7 @@ class Project {
             const re = await ProjectModel.findOne({
                 where: { chain, pid },
                 attributes: ['status', 'reqSecLimit', 'reqDayLimit', 'bwDayLimit'],
-                include: includeUser ? [User]: undefined
+                include: includeUser ? [User] : undefined
             })
             if (re === null) {
                 return Err(`no ${chain} project ${pid}`)
@@ -105,7 +109,7 @@ class Project {
 
     static async list(userId?: number, chain?: string): PResultT<ProAttr[]> {
         try {
-            
+
             const option: FindOptions<ProAttr> = {}
             // if (userId) { option.where = { [Op.and]: [{ userId }] } }
             // if (chain) { option.where = { [Op.and]: [{ ...option.where, chain }] } }
@@ -116,6 +120,18 @@ class Project {
         } catch (err) {
             log.error(`find projects of user[${userId}] ${chain} error: %o`, err)
             return Err(errMsg(err, 'find error'))
+        }
+    }
+
+    static async listOfUser(userId: number, short: boolean = false): PResultT<ProAttr[]> {
+        try {
+            const option: FindOptions<ProAttr> = { where: { userId } }
+            if (short) { option.attributes = ['id', 'name', 'chain', 'pid'] }
+            const re = await ProjectModel.findAll(option)
+            return Ok(re)
+        } catch (err) {
+            log.error(`get project list of user[${userId}] error: %o`, err)
+            return Err(errMsg(err, `project list of user[${userId}] error`))
         }
     }
 
@@ -170,7 +186,7 @@ class Project {
     }
 
     static async isExist(userId: number, chain: string, name: string): Promise<boolean> {
-        log.debug('Info project exist check: %o %o %o',userId, chain, name)
+        log.debug('Info project exist check: %o %o %o', userId, chain, name)
         try {
             chain = chain.toLowerCase()
             const re = await ProjectModel.findOne({
