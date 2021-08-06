@@ -1,9 +1,11 @@
 import { PResultT, Ok, Err, getAppLogger, PBoolT, PVoidT, isErr } from '@elara/lib'
-import Stat from './stat'
 import UserModel, { UserAttr, UserStat, UserLevel } from '../models/user'
-import Project, { ProAttr, ProStatus } from '../models/project'
-import ProService from '../service/project'
+import ProjectModel, { ProAttr, ProStatus } from '../models/project'
+import LimitModel from '../models/limit'
+import Project from './project'
 import Limit from './limit'
+import Stat from './stat'
+import { errMsg } from '../util'
 
 const log = getAppLogger('user-service')
 
@@ -14,9 +16,16 @@ export default class User {
         name,
         loginType }: UserAttr
     ): PResultT<UserAttr> {
+        const re = await Limit.findByLevel(UserLevel.Normal)
+        if (isErr(re)) {
+            log.error(`find limit by level error: %o`, re.value)
+            return re
+        }
+        const levelId = re.value.id
         const user = {
             githubId,
             name,
+            levelId,
             level: UserLevel.Normal,
             status: UserStat.Active,
             loginType
@@ -41,9 +50,16 @@ export default class User {
     }
 
     static async updateLevelByGit(githubId: string, level: UserLevel): PVoidT {
+        const re = await Limit.findByLevel(UserLevel.Normal)
+        if (isErr(re)) {
+            log.error(`update level error: %o`, re.value)
+            return
+        }
+        const levelId = re.value.id
         UserModel.update({
+            levelId,
             level
-        } as UserModel, {
+        }, {
             where: {
                 githubId,
             },
@@ -73,10 +89,27 @@ export default class User {
         return Ok(user)
     }
 
+    static async findUserByIdwithLimit(id: number, paranoid: boolean = true): PResultT<UserAttr> {
+        try {
+            const user = await UserModel.findOne({
+                where: { id },
+                include: LimitModel,
+                paranoid
+            })
+            if (user === null) {
+                return Err(`no this user`)
+            }
+            return Ok(user)
+        } catch (err) {
+            log.error(`find user with limit error: %o`, err)
+            return Err(errMsg(err, 'find user with limit error'))
+        }
+    }
+
     static async findUserByGitWithProject(githubId: string, paranoid: boolean = true): PResultT<UserAttr> {
         const user = await UserModel.findOne({
             where: { githubId },
-            include: Project,
+            include: ProjectModel,
             paranoid        // if false query logic deleted item
         })
         log.debug(`user of githubId[${githubId}] with project: ${user}`)
@@ -123,7 +156,7 @@ export default class User {
         try {
             const re = await UserModel.findAll()
             return Ok(re)
-        } catch(err) {
+        } catch (err) {
             log.error('get all user error: %o', err)
             return Ok([])
         }
@@ -139,7 +172,7 @@ export default class User {
         if (isErr(re)) {
             log.error('query limit resource error: %o', re.value)
             return true
-       }
+        }
         if (re.value.projectNum > curNum) { return false }
         return true
     }
@@ -148,12 +181,12 @@ export default class User {
         log.debug(`check limit status of ${chain} pid[${pid}]`)
 
         // project limit
-        const proRe = await ProService.statusByChainPid(chain, pid, true)
+        const proRe = await Project.statusByChainPid(chain, pid, true)
         if (isErr(proRe)) {
-            log.error('query project limit error: %o',proRe.value)
+            log.error('query project limit error: %o', proRe.value)
             return Err('query project error')
         }
-        const pro = proRe.value as Project
+        const pro = proRe.value as ProjectModel
 
         if (pro.status !== ProStatus.Active || pro.user.status !== UserStat.Active) {
             log.warn(`user ${pro.user.name} project [${pid}] is inactive: ${pro.user.status} ${pro.status}`)
@@ -165,11 +198,11 @@ export default class User {
         // invalid request count
         const reqCnt = stat.httpReqNum + stat.wsReqNum + stat.httpInReqNum + stat.wsInReqNum
 
-        log.debug('project current resource usage: %o %o',bw, reqCnt)
+        log.debug('project current resource usage: %o %o', bw, reqCnt)
         // user limit
         const limitRe = await Limit.findByLevel(pro.user.level)
         if (isErr(limitRe)) {
-            log.error('query user resource limit error: %o',limitRe.value)
+            log.error('query user resource limit error: %o', limitRe.value)
             return Err('query user resource error')
         }
         const limit = limitRe.value
@@ -181,7 +214,7 @@ export default class User {
         }
         // update user & project status
         User.updateStatusByGit(pro.user.githubId!, UserStat.Suspend)
-        ProService.update({id: pro.id, status: ProStatus.Suspend} as ProAttr)
+        Project.update({ id: pro.id, status: ProStatus.Suspend } as ProAttr)
         return Ok(false)
     }
 }

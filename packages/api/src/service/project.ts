@@ -14,6 +14,7 @@ class Project {
         try {
             const re = await ProjectModel.create({
                 ...pro,
+                chain: pro.chain.toLowerCase(),
                 pid: randomId(),
                 secret: randomId(),
                 status: ProStatus.Active,
@@ -70,6 +71,7 @@ class Project {
 
     static async findByChainPid(chain: string, pid: string): PResultT<ProAttr> {
         try {
+            chain = chain.toLowerCase()
             const re = await ProjectModel.findOne({
                 where: { chain, pid },
             })
@@ -85,6 +87,7 @@ class Project {
 
     static async statusByChainPid(chain: string, pid: string, includeUser: boolean = false): PResultT<ProAttr> {
         try {
+            chain = chain.toLowerCase()
             const re = await ProjectModel.findOne({
                 where: { chain, pid },
                 attributes: ['status', 'reqSecLimit', 'reqDayLimit', 'bwDayLimit'],
@@ -102,11 +105,12 @@ class Project {
 
     static async list(userId?: number, chain?: string): PResultT<ProAttr[]> {
         try {
+            
             const option: FindOptions<ProAttr> = {}
             // if (userId) { option.where = { [Op.and]: [{ userId }] } }
             // if (chain) { option.where = { [Op.and]: [{ ...option.where, chain }] } }
             if (userId) { option.where = { userId } }
-            if (chain) { option.where = { ...option.where, chain } }
+            if (chain) { option.where = { ...option.where, chain: chain.toLowerCase() } }
             const re = await ProjectModel.findAll(option)
             return Ok(re)
         } catch (err) {
@@ -118,6 +122,7 @@ class Project {
     // count 
     static async countOfChain(chain: string): PResultT<number> {
         try {
+            chain = chain.toLowerCase()
             const re = await ProjectModel.findAll({
                 where: { chain },
                 attributes: [[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']]
@@ -167,6 +172,7 @@ class Project {
     static async isExist(userId: number, chain: string, name: string): Promise<boolean> {
         log.debug('Info project exist check: %o %o %o',userId, chain, name)
         try {
+            chain = chain.toLowerCase()
             const re = await ProjectModel.findOne({
                 where: { userId, chain, name },
                 attributes: ['name']

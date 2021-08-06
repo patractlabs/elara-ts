@@ -1,6 +1,6 @@
 import { Optional } from 'sequelize'
-import { Model, DataType, Table, Column, PrimaryKey, AutoIncrement, Unique } from 'sequelize-typescript'
-import { UserLevel } from './user'
+import { Model, DataType, Table, Column, PrimaryKey, AutoIncrement, Unique, HasMany } from 'sequelize-typescript'
+import User, { UserLevel } from './user'
 
 export interface LimitAttr {
     id: number,
@@ -36,4 +36,7 @@ export default class Limit extends Model<LimitAttr, LimitCreateOptionAttr>
     @Unique
     @Column(DataType.STRING)
     level!: UserLevel
+
+    @HasMany(() => User)
+    users!: User[]
 }

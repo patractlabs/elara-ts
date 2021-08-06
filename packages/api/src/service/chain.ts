@@ -8,6 +8,7 @@ class Chain {
 
     static async findByName(name: string): PResultT<ChainAttr> {
         try {
+            name = name.toLowerCase()
             const re = await ChainModel.findOne({
                 where: { name }
             })
@@ -19,7 +20,6 @@ class Chain {
             log.error(`find chain ${name} error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
-
     }
 
     static async findById(id: number): PResultT<ChainAttr> {
@@ -44,6 +44,7 @@ class Chain {
             log.debug('add new chain: %o', chain)
             const re = await ChainModel.create({
                 ...chain,
+                name: chain.name.toLowerCase()
             })
             return Ok(re)
         } catch (err) {
@@ -54,6 +55,7 @@ class Chain {
 
     static async deleteChain(id: number, name: string, force: boolean = false): PResultT<boolean> {
         try {
+            name = name.toLowerCase()
             const re = await ChainModel.destroy({
                 where: { id },
                 force

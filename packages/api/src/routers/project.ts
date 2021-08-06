@@ -5,6 +5,8 @@ import { isErr, isEmpty } from '@elara/lib'
 import { lengthOk } from '../lib'
 import Router from 'koa-router'
 import User from '../service/user'
+import Chain from '../service/chain'
+import UserModel from '../models/user'
 
 const R = new Router()
 const log = getAppLogger('project')
@@ -50,14 +52,20 @@ async function checkProjectLimit(userId: number): PVoidT {
 
 async function create(ctx: KCtxT, next: NextT) {
     const uid = ctx.state.user
-    log.debug('create project request: %o %o',uid, ctx.request.body)
-    const {userId, name, chain, team, network, reqDayLimit, reqSecLimit, bwDayLimit} = ctx.request.body
+    log.debug('create project request: %o %o', uid, ctx.request.body)
+    let { userId, name, chain, reqDayLimit, reqSecLimit, bwDayLimit } = ctx.request.body
 
-    if (!userId || !chain || !team || !network || !name) {
+    if (!userId || !chain || !name) {
         throw Resp.Fail(400, 'invalid params' as Msg)
     }
 
     checkName(name)
+
+    const cre = await Chain.findByName(chain)
+    if (isErr(cre)) {
+        throw Resp.Fail(400, 'Invalid chain' as Msg)
+    }
+    const cconf = cre.value
 
     const isExist = await Project.isExist(userId, chain, name)
     if (isExist) {
@@ -66,16 +74,34 @@ async function create(ctx: KCtxT, next: NextT) {
 
     await checkProjectLimit(userId)
 
+    // TODO limit check
+    const lre = await User.findUserByIdwithLimit(userId)
+    if (isErr(lre)) {
+        log.error(lre.value)
+    } else {
+        reqDayLimit = reqDayLimit ?? -1
+        reqSecLimit = reqSecLimit ?? -1
+        bwDayLimit = bwDayLimit ?? -1
+        // limit
+        const limit = (lre.value as UserModel).limit
+        if (limit) {
+            if (reqDayLimit > limit.reqDayLimit) { reqDayLimit = limit.reqDayLimit }
+            if (reqSecLimit > limit.reqSecLimit) { reqSecLimit = limit.reqSecLimit }
+            if (bwDayLimit > limit.bwDayLimit) { bwDayLimit = limit.bwDayLimit }
+        }
+    }
+
     const attr = {
         userId,
         name,
         chain,
-        team,
-        reqSecLimit: reqSecLimit ?? -1, // project limit up to user level
-        reqDayLimit: reqDayLimit ?? -1,
-        bwDayLimit: bwDayLimit ?? -1
+        team: cconf.team,
+        network: cconf.network,
+        reqSecLimit,
+        reqDayLimit,
+        bwDayLimit
     } as ProAttr
-    
+
     const re = await Project.create(attr)
 
     if (isErr(re)) {
@@ -119,7 +145,7 @@ async function statusByChainPid(ctx: KCtxT, next: NextT) {
     let { chain, pid, includeUser } = ctx.request.body
     log.debug('get project detail: %o %o', chain, pid)
     checkChainPid(chain, pid)
-    if (includeUser !== true) { includeUser = false}
+    if (includeUser !== true) { includeUser = false }
     let project = await Project.statusByChainPid(chain, pid, includeUser)
     if (isErr(project)) {
         throw Resp.Fail(Code.Pro_Err, project.value as Msg)

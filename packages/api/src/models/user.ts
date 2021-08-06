@@ -8,7 +8,10 @@ import {
     AutoIncrement,
     HasMany,
     Unique,
+    BelongsTo,
+    ForeignKey
 } from "sequelize-typescript";
+import Limit from "./limit";
 
 import Project from "./project";
 
@@ -35,6 +38,7 @@ export interface UserAttr {
     id: number;
     name: string;
     status: UserStat;
+    levelId: number;
     level: UserLevel;
     loginType: LoginType;
     githubId?: string;
@@ -75,4 +79,11 @@ export default class User extends Model<UserAttr, UserCreateOptionAttr> {
 
     @HasMany(() => Project)
     projects?: Project[];
+
+    @BelongsTo(() => Limit)
+    limit!: Limit
+
+    @ForeignKey(() => Limit)
+    @Column(DataType.BIGINT)
+    levelId!: number
 }

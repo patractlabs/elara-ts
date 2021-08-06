@@ -8,11 +8,15 @@ const R = new Router()
 const log = getAppLogger('user')
 
 async function updateStatus(ctx: KCtxT, next: NextT) {
-    const { status } = ctx.request.body
+    const { githubId, status } = ctx.request.body
     if (!Object.values(UserStat).includes(status)) {
         throw Resp.Fail(400, 'invalid status' as Msg)
     }
-    User.updateStatusByGit(ctx.state.user, status)
+    let gitId = ctx.state.user || githubId
+    if (gitId === undefined) {
+        throw Resp.Fail(400, 'invalid githubId' as Msg)
+    }
+    User.updateStatusByGit(gitId, status)
     ctx.body = Resp.Ok()
     return next()
 }

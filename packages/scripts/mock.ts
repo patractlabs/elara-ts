@@ -219,9 +219,28 @@ async function mockUser(url: string) {
     post(url + '/user/create', user)
 }
 
+async function mockProject(url: string) {
+    const pros = [
+        {
+            name: 'web3',
+            team: 'Parity',
+            chain: 'Polkadot',
+            network: 'Polkadots',
+            userId: 1,
+            reqDayLimit: 10000,
+            reqSecLimit: 100,
+            bwDayLimit: 102400000000000000
+        }
+    ]
+    pros.forEach(async p => {
+        await post(url + '/project/create', p)
+    })
+}
+
 async function auth(url: string) {
     get(url + '/stat/total')
 }
+
 async function mockRun() {
     const url = 'http://localhost:7000'
     log.info('current url: ', url)
@@ -229,6 +248,7 @@ async function mockRun() {
     // await mockChain(url)
     // await mockUser(url)
     await auth(url)
+    await mockProject(url)
 }
 
 mockRun()

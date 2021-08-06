@@ -34,7 +34,7 @@ export default class HttpUtil {
                 method: 'POST',
                 auth: process.env.AUTH,
                 headers: {
-                    'Accept': 'application/json',
+                    // 'Accept': 'application/json',
                     'Content-Type': 'application/json; charset=UTF-8'
                 }
             }, (res: Http.IncomingMessage) => {
