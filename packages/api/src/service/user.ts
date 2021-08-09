@@ -110,10 +110,27 @@ export default class User {
         }
     }
 
+    static async findUserByGitwithLimit(githubId: string, paranoid: boolean = true): PResultT<UserAttr> {
+        try {
+            const user = await UserModel.findOne({
+                where: { githubId },
+                include: LimitModel,
+                paranoid
+            })
+            if (user === null) {
+                return Err(`no this user`)
+            }
+            return Ok(user)
+        } catch (err) {
+            log.error(`find user with limit error: %o`, err)
+            return Err(errMsg(err, 'find user with limit error'))
+        }
+    }
+
     static async findUserByGitWithProject(githubId: string, paranoid: boolean = true): PResultT<UserAttr> {
         const user = await UserModel.findOne({
             where: { githubId },
-            include: ProjectModel,
+            include:  ProjectModel,
             paranoid        // if false query logic deleted item
         })
         log.debug(`user of githubId[${githubId}] with project: ${user}`)

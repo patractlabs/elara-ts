@@ -125,8 +125,8 @@ class Project {
 
     static async listOfUser(userId: number, short: boolean = false): PResultT<ProAttr[]> {
         try {
-            const option: FindOptions<ProAttr> = { where: { userId } }
-            if (short) { option.attributes = ['id', 'name', 'chain', 'pid'] }
+            const option: FindOptions<ProAttr> = { where: { userId }, order: [Sequelize.col('chain')] }
+            if (short) { option.attributes = ['id', 'name', 'chain', 'status', 'pid'] }
             const re = await ProjectModel.findAll(option)
             return Ok(re)
         } catch (err) {

@@ -13,6 +13,7 @@ import User from "../service/user";
 import { UserAttr, LoginType } from "../models/user";
 import Passport from "../lib/passport";
 import Conf from "../../config";
+import Project from "../service/project";
 
 const R = new Router();
 const log = getAppLogger("auth");
@@ -25,11 +26,42 @@ const userConf = Conf.getUser();
  * @apiGroup auth
  * @apiVersion  0.1.0
  * @apiSampleRequest off
+ * 
+ * @apiSuccess {Object} User user obeject with limit resource and project count
+ * @apiSuccessExample Success
+ * {
+ *      code: 0,
+ *      msg: 'ok',
+ *      data: {
+ *          user: {
+ *              id: 1,
+ *              name: 'Bruce',
+ *              githubId: 'TestUID',
+ *              limit: {
+ *                  projectNum: 10, // max prject count
+ *                  bwDayLimit,
+ *                  reqDayLimit,
+ *                  ...
+ *              }
+ *          },
+ *          projectNum: 7
+ *      }
+ * }
  */
 async function login(ctx: KCtxT, next: NextT) {
     if (ctx.isAuthenticated()) {
-        const user = await User.findUserByGit(ctx.state.user);
-        ctx.response.body = Resp.Ok(user.value);
+        const ure = await User.findUserByGitwithLimit(ctx.state.user);
+        if (isErr(ure)) {
+            throw Resp.Fail(500, ure.value as Msg)
+        }
+        const user = ure.value
+        // project count
+        const cntre = await Project.countOfUser(user.id)
+        if (isErr(cntre)) {
+            log.error('user login get project count error: %o', cntre.value)
+            throw Resp.Fail(500, cntre.value as Msg)
+        }
+        ctx.response.body = Resp.Ok({user, projectNum: cntre.value as Number});
     } else {
         throw Resp.Fail(Code.Auth_Fail, Msg.Auth_Fail);
     }

@@ -1,8 +1,20 @@
-import { getAppLogger, PResultT, Ok, Err } from '@elara/lib'
+import { getAppLogger, PResultT, Ok, Err, isErr } from '@elara/lib'
 import ChainModel, { ChainAttr, Network } from '../models/chain'
 import { errMsg } from '../util'
 import { Sequelize } from 'sequelize-typescript'
+import Project from './project'
 const log = getAppLogger('chain')
+
+
+type ChainInfoT = {
+    status: 'active' | 'inactive' | 'empty',
+    count: number
+}
+
+interface ChainInfo extends ChainAttr {
+    status: string,
+    count: number
+}
 
 class Chain {
 
@@ -80,26 +92,43 @@ class Chain {
         }
     }
 
-    static async chainList(): PResultT<Record<string, ChainAttr[]>> {
+    static async chainsInfoList(userId: number): PResultT<Record<string, ChainInfo[]>> {
         try {
+            const pre = await Chain.chainsInfoOfUser(userId)
+            if (isErr(pre)) {
+                return pre
+            }
+            const chainInfo = pre.value
+            log.info(`chain info of user[${userId}]: %o`, chainInfo)
             const re = await ChainModel.findAll({
                 order: [Sequelize.col('network')]
             })
+
             let network = ''
-            let chains: Record<string, ChainAttr[]> = {}
-            let chainLis: ChainAttr[] = []
+            let chains: Record<string, ChainInfo[]> = {}
+            let chainLis: ChainInfo[] = []
             // group by network
-            re.map(async (chain: ChainModel) => {
+            re.forEach(async (chain: ChainAttr) => {
+                const info = { ...((chain as any)['dataValues']) } as ChainInfo
+                if (chainInfo[chain.name]) {
+                    info.status = chainInfo[chain.name].status
+                    info.count = chainInfo[chain.name].count
+                } else {
+                    info.status = 'empty'
+                    info.count = 0
+                }
+
                 if (chain.network === network) {
-                    chainLis.push(chain)
+                    chainLis.push(info)
                 } else {
                     if (network !== '') {
                         chains[network] = chainLis
                         chainLis = []
+                        chainLis.push(info)
                         network = chain.network
                     } else {
                         network = chain.network
-                        chainLis.push(chain)
+                        chainLis.push(info)
                     }
                 }
             })
@@ -108,6 +137,35 @@ class Chain {
         } catch (err) {
             log.error(`find chain  error: %o`, err)
             return Err(errMsg(err, 'find error'))
+        }
+    }
+
+    static async chainsInfoOfUser(userId: number): PResultT<Record<string, ChainInfoT>> {
+        try {
+            const cre = await Project.listOfUser(userId, true)
+            if (isErr(cre)) {
+                log.error('get project list of user error: %o', cre.value)
+                return cre
+            }
+            const pros = cre.value
+            let chain = ''
+            const chainMap: Record<string, ChainInfoT> = {}
+            pros.forEach(async pro => {
+                if (pro.chain !== chain) {
+                    chain = pro.chain
+                    chainMap[chain] = {
+                        status: pro.status === 'active' ? 'active' : 'inactive',
+                        count: 1
+                    }
+                } else {
+                    chainMap[chain].status = pro.status !== 'active' ? 'inactive' : chainMap[chain].status
+                    chainMap[chain].count += 1
+                }
+            })
+            return Ok(chainMap)
+        } catch (err) {
+            log.error(`get project info of user[${userId}] errorf: %o`, err)
+            return Err(errMsg(err, 'query project info of user error'))
         }
     }
 }

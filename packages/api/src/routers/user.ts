@@ -41,7 +41,8 @@ async function detail(ctx: KCtxT, next: NextT) {
 }
 
 async function detailWithProject(ctx: KCtxT, next: NextT) {
-    const re = await User.findUserByGitWithProject(ctx.state.user)
+    const { githubId } = ctx.request.body
+    const re = await User.findUserByGitWithProject(ctx.state.user || githubId)
     if (isErr(re)) {
         throw Resp.Fail(400, re.value as Msg)
     }
@@ -99,9 +100,6 @@ async function getAllUser(ctx: KCtxT, next: NextT) {
     return next()
 }
 
-R.post('/update/status', updateStatus)
-R.post('/update/level', updateLevel)
-
 /**
  * @api {get} /user/detail detail
  * @apiDescription user detail info
@@ -121,13 +119,6 @@ R.post('/update/level', updateLevel)
  */
 R.get('/detail', detail)
 
-R.post('/detail/withproject', detailWithProject)
-
-R.post('/detail/withlimit', detailWithLimit)
-
-R.post('/detail/status', getStatus)
-R.post('/detail/level', getLevel)
-
 /**
  * @api {get} /user/detail/statistic userDailyStatistic
  * @apiDescription user detail info
@@ -139,8 +130,19 @@ R.post('/detail/level', getLevel)
  */
 R.post('/detail/statistic', getDailyStatistic)
 
-R.post('/create', newUser)
+// job service will invoke this api
+R.post('/update/status', updateStatus)
 
+
+R.post('/detail/withproject', detailWithProject)
+R.post('/detail/withlimit', detailWithLimit)
+R.post('/detail/status', getStatus)
+R.post('/detail/level', getLevel)
 R.get('/list', getAllUser)
 
+if (process.env.NODE_ENV === 'dev') {
+    R.post('/create', newUser)
+    R.post('/update/level', updateLevel)
+}
+ 
 export default R.routes()

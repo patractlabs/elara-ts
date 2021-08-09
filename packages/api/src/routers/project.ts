@@ -171,7 +171,7 @@ async function countOfUser(ctx: KCtxT, next: NextT) {
     if (byChain !== true) { byChain = false }
     let cntRe = await Project.countOfUser(userId, byChain)
     if (isErr(cntRe)) {
-        log.error(`fetch user[${userId}] total created project num error: ${cntRe}`)
+        log.error(`fetch user[${userId}] total created project num error: %o`, cntRe.value)
         throw Resp.Fail(Code.Pro_Num_Limit, cntRe.value as Msg)
     }
     ctx.body = Resp.Ok(cntRe.value)
