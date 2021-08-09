@@ -6,7 +6,7 @@
     "include": [
         "src/**/*",
         "tests/**/*",
-        "src/config/**/*.json",
+        "config/**/*.json",
         "app.ts"
-, "../scripts/data.mock.ts"    ]
+    ]
 }

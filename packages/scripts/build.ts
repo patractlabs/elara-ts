@@ -11,15 +11,17 @@ export async function buildApp(options: BuildOptions) {
     const { env, app } = options
 
     await build({
-        // entryPoints: [`packages/${app}/app.ts`], // 我们从这个入口点读应用程序
         entryPoints: [`packages/${app}/app.ts`], // 我们从这个入口点读应用程序
         sourceRoot: `packages/${app}/**/*`,
-        // outfile: `packages/${app}/dist/app.js`, 
         outdir: `packages/${app}/dist`,
         // define: {
         //     'process.env.NODE_ENV': ``${env}``, // 我们需要定义构建应用程序的 Node.js 环境
         // },
-        external: ['koa', 'koa-router', 'koa-passport'],
+        external: ['koa', 'koa-router', 'koa-passport',
+            'winston', 'winston-daily-rotate-file',
+            'sequelize', 'sequelize-typescript',
+            'reflect-metadata', '@types/validator', '@types/node'
+        ],
         platform: 'node',
         target: 'node14.16.1',
         bundle: true,
