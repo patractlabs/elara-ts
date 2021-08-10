@@ -8,8 +8,12 @@ dotenvInit()
 const redis = Conf.getRedis()
 const log = getAppLogger('app')
 
-const subws = new Subscriber(DBT.Pubsub, { host: redis.host })
-const subhttp = new Subscriber(DBT.Pubsub, { host: redis.host });
+const subws = new Subscriber(DBT.Pubsub, { host: redis.host ,options:{
+    password:redis.password
+}})
+const subhttp = new Subscriber(DBT.Pubsub, { host: redis.host , options:{
+    password:redis.password
+}});
 
 (function main() {
     Service.init()
