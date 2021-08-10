@@ -33,7 +33,7 @@ export async function buildApp(options: BuildOptions) {
 async function buildAll() {
     const args = ArgParse(process.argv.slice(2))
     console.log('arg env: ', args)
-    const apps = ['wsrpc', 'suducer', 'node', 'api', 'job']
+    const apps = ['wsrpc', 'suducer', 'api', 'job']
     let papps: Promise<any>[] = []
     for (let app of apps) {
         papps.push(buildApp({env: args.env || 'pro', app}))
