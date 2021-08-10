@@ -4,8 +4,12 @@ import Conf from '../config'
 const log = getAppLogger('redis')
 const rconf = Conf.getRedis()
 
-const Pro = new Redis(DBT.Project, { host: rconf.host, port: rconf.port })
-const User = new Redis(DBT.User, { host: rconf.host, port: rconf.port })
+const Pro = new Redis(DBT.Project, { host: rconf.host, port: rconf.port , options:{
+    password:rconf.password
+}})
+const User = new Redis(DBT.User, { host: rconf.host, port: rconf.port , options:{
+    password:rconf.password
+}})
 
 Pro.onConnect(() => {
     log.info('project redis connection open')

@@ -9,10 +9,22 @@ const log = getAppLogger('redis')
 const rconf = Conf.getRedis()
 
 // TODO redis pool
-const chainRedis = new Redis(DBT.Chain, { host: rconf.host, port: rconf.port })
-const userRedis = new Redis(DBT.User, { host: rconf.host, port: rconf.port })
-const proRedis = new Redis(DBT.Project, { host: rconf.host, port: rconf.port })
-const cacheRedis = new Redis(DBT.Cache, { host: rconf.host, port: rconf.port })
+const chainRedis = new Redis(DBT.Chain, { host: rconf.host, port: rconf.port,options:{
+
+    password:rconf.password
+} })
+const userRedis = new Redis(DBT.User, { host: rconf.host, port: rconf.port ,options:{
+
+    password:rconf.password
+}})
+const proRedis = new Redis(DBT.Project, { host: rconf.host, port: rconf.port ,options:{
+
+    password:rconf.password
+}})
+const cacheRedis = new Redis(DBT.Cache, { host: rconf.host, port: rconf.port ,options:{
+
+    password:rconf.password
+}})
 
 const cacheRd = cacheRedis.getClient()
 const chainRd = chainRedis.getClient()
@@ -25,7 +37,7 @@ chainRedis.onError((err: string) => {
 })
 
 chainRedis.onConnect(() => {
-    log.info(`redis db chain connection open: ${rconf.host}:${rconf.port}`)
+    log.info(`redis db chain connection open: ${rconf.host}:${rconf.port} ${rconf.password}`)
 })
 
 userRedis.onError((err: string) => {
@@ -34,7 +46,7 @@ userRedis.onError((err: string) => {
 })
 
 userRedis.onConnect(() => {
-    log.info(`redis db user connection open: ${rconf.host}:${rconf.port}`)
+    log.info(`redis db user connection open: ${rconf.host}:${rconf.port}  ${rconf.password}`)
 })
 
 proRedis.onError((err: string) => {
@@ -43,11 +55,11 @@ proRedis.onError((err: string) => {
 })
 
 proRedis.onConnect(() => {
-    log.info(`redis db project connection open: ${rconf.host}:${rconf.port}`)
+    log.info(`redis db project connection open: ${rconf.host}:${rconf.port}  ${rconf.password}`)
 })
 
 cacheRedis.onConnect(() => {
-    log.info(`redis db cache connection open: ${rconf.host}:${rconf.port}`)
+    log.info(`redis db cache connection open: ${rconf.host}:${rconf.port}  ${rconf.password}`)
 })
 
 cacheRedis.onError((err: string) => {

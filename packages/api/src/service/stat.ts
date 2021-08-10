@@ -2,10 +2,15 @@ import { getAppLogger, Redis, DBT, KEYS, randomId } from '@elara/lib'
 import { StatT, Stats, Statistics } from '../interface'
 import Mom from 'moment'
 import { lastTime, todayStamp } from '../util'
-
+import Conf from '../../config'
 const sKEY = KEYS.Stat
+const rconf = Conf.getRedis()
+
 const log = getAppLogger('stat')
-const StatRd = new Redis(DBT.Stat)
+const StatRd = new Redis(DBT.Stat,{ host: rconf.host, port: rconf.port , options:{
+
+    password:rconf.password
+} })
 StatRd.onConnect(() => {
     log.info(`stat redis connection open`)
 })

@@ -9,7 +9,9 @@ const log = getAppLogger('chain')
 import { Redis, DBT } from '@elara/lib'
 
 const redisConf = Conf.getRedis()
-const pubsubRd = new Redis(DBT.Pubsub, {host: redisConf.host, port: redisConf.port})
+const pubsubRd = new Redis(DBT.Pubsub, {host: redisConf.host, port: redisConf.port, options:{
+    password:redisConf.password
+}})
 const PSuber = pubsubRd.getClient()
 
 pubsubRd.onConnect(() => {

@@ -9,11 +9,14 @@ import { Redis, DBT } from '@elara/lib'
 const log = getAppLogger('chain')
 const rconf = Conf.getRedis()
 
-const pubsubRd = new Redis(DBT.Pubsub, { host: rconf.host, port: rconf.port})
+const pubsubRd = new Redis(DBT.Pubsub, { host: rconf.host, port: rconf.port ,options:{
+
+    password:rconf.password
+}})
 const chainPSub = pubsubRd.getClient()
 
 pubsubRd.onConnect(() => {
-    log.info(`redis db pubsub connection open: ${rconf.host}:${rconf.port}`)
+    log.info(`redis db pubsub connection open: ${rconf.host}:${rconf.port}  ${rconf.password}`)
 })
 
 pubsubRd.onError((err: string) => {

@@ -6,8 +6,12 @@ import { Statistics } from './interface'
 const log = getAppLogger('stat')
 const redis = Conf.getRedis()
 
-const wspro = new Producer({db: DBT.Pubsub, arg: {host: redis.host, port: redis.port}})
-const httppro = new Producer({db: DBT.Pubsub, arg: {host: redis.host, port: redis.port}})
+const wspro = new Producer({db: DBT.Pubsub, arg: {host: redis.host, port: redis.port,options:{
+    password:redis.password
+}}})
+const httppro = new Producer({db: DBT.Pubsub, arg: {host: redis.host, port: redis.port , options:{
+    password:redis.password
+}}})
 
 export class Stat {
     // static pro = new Producer({db: DBT.Pubsub, arg: {host: redis.host, port: redis.port}})

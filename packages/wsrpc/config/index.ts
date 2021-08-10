@@ -13,6 +13,7 @@ interface ServerConf {
 
 interface RedisConf {
     host: string,
+    password: string,
     port: number,
     db: number,
     options?: any

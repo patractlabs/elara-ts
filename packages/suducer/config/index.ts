@@ -8,6 +8,7 @@ interface ServerConf {
 
 interface RedisConf {
     host: string,
+    password: string,
     port: number
 }
 
