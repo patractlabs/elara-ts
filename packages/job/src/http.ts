@@ -1,10 +1,8 @@
 import Http from 'http'
-import { Code, Err, getAppLogger, Ok, PResultT, PVoidT, KEYS } from '@elara/lib'
+import { Code, Err, getAppLogger, Ok, PResultT, PVoidT } from '@elara/lib'
 import Conf from '../config'
 import { ProAttr, StatT, UserAttr } from './interface'
-import { ProRd } from './redis'
 
-const KEY = KEYS.Project
 const conf = Conf.getApiServer()
 const log = getAppLogger('http')
 
@@ -82,8 +80,10 @@ export default class HttpUtil {
         return Ok(re.data as UserAttr)
     }
 
-    static async getProjecList(): Promise<ProAttr[]> {
-        const re = JSON.parse(await this.get(baseUrl + '/project/list'))
+    static async getProjecList(userId: number): Promise<ProAttr[]> {
+        const re = JSON.parse(await this.post(baseUrl + '/project/list', {
+            userId
+        }))
         if (re.code != Code.Ok) {
             log.error('fetch project list error: %o', re.msg)
             return []
@@ -100,7 +100,6 @@ export default class HttpUtil {
         if (res.code !== Code.Ok) {
             log.error(`update github user[${githubId}]}] status[${status}] error: %o`, res.msg)
         }
-        // update redis status cache
     }
 
     static async updateProjectStatus(id: number, status: string) {
