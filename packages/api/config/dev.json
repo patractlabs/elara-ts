@@ -1,4 +1,18 @@
 {
+    "redis": {
+        "host": "127.0.0.1",
+        "port": 6379,
+        "db": 0,
+        "password": "LlZ9L8zx13ASshRysD3bCQ"
+    },
+    "db": {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "table": "elara",
+        "user": "root",
+        "password": "LlZ9L8zx13ASshRysD3bCQ"
+    },
+    
     "limit": {
         "maxProjectNum": 10
     },
@@ -11,12 +25,5 @@
         },
         "defaultLevel": "normal",
         "apiKey": "elara"
-    },
-    "db": {
-        "host": "127.0.0.1",
-        "port": 5432,
-        "table": "elara",
-        "user": "root",
-        "password": "root"
     }
 }
