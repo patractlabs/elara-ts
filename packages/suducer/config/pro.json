@@ -1,6 +1,4 @@
-<<<<<<< HEAD
-{}
-=======
+
 {
     "server": {
         "id": 1,
@@ -12,4 +10,4 @@
         "port": 6379,
         "password": "LlZ9L8zx13ASshRysD3bCQ"
     }   
-}>>>>>>> pro env
+}
