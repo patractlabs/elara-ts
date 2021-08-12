@@ -61,78 +61,111 @@ export default class HttpUtil {
     }
 
     static async getUserList(): Promise<UserAttr[]> {
-        const re = JSON.parse(await this.get(baseUrl + '/user/list'))
-        if (re.code != Code.Ok) {
-            log.error('fetch user list error: %o', re.msg)
+        try {
+            const re = JSON.parse(await this.get(baseUrl + '/user/list'))
+            if (re.code != Code.Ok) {
+                log.error('fetch user list error: %o', re.msg)
+                return []
+            }
+            return re.data as UserAttr[]
+        } catch (err) {
+            log.error(`fetch user list error: %o`, err)
             return []
         }
-        return re.data as UserAttr[]
     }
 
     static async getUserWithLimit(userId: number): PResultT<UserAttr> {
-        const re = JSON.parse(await this.post(baseUrl + '/user/detail/withlimit', {
-            userId
-        }))
-        if (re.code != Code.Ok) {
-            log.error('get user with limit error: %o', re.msg)
-            return Err(re.msg)
+        try {
+            const re = JSON.parse(await this.post(baseUrl + '/user/detail/withlimit', {
+                userId
+            }))
+            if (re.code != Code.Ok) {
+                log.error('get user with limit error: %o', re.msg)
+                return Err(re.msg)
+            }
+            return Ok(re.data as UserAttr)
+        } catch (err) {
+            log.error(`get user limit resource error: %o`, err)
+            return Err('get error')
         }
-        return Ok(re.data as UserAttr)
     }
 
     static async getProjecList(userId: number): Promise<ProAttr[]> {
-        const re = JSON.parse(await this.post(baseUrl + '/project/list', {
-            userId
-        }))
-        if (re.code != Code.Ok) {
-            log.error('fetch project list error: %o', re.msg)
+        try {
+            const re = JSON.parse(await this.post(baseUrl + '/project/list', {
+                userId
+            }))
+            if (re.code != Code.Ok) {
+                log.error('fetch project list error: %o', re.msg)
+                return []
+            }
+            return re.data as ProAttr[]
+        } catch (err) {
+            log.error(`fetch project list error: %o`, err)
             return []
         }
-        return re.data as ProAttr[]
     }
 
     static async updateUserStatus(githubId: string, status: string): PVoidT {
-        const re = await this.post(baseUrl + '/user/update/status', {
-            githubId,
-            status
-        })
-        const res = JSON.parse(re)
-        if (res.code !== Code.Ok) {
-            log.error(`update github user[${githubId}]}] status[${status}] error: %o`, res.msg)
+        try {
+            const re = await this.post(baseUrl + '/user/update/status', {
+                githubId,
+                status
+            })
+            const res = JSON.parse(re)
+            if (res.code !== Code.Ok) {
+                log.error(`update github user[${githubId}]}] status[${status}] error: %o`, res.msg)
+            }
+        } catch (err) {
+            log.error(`update user[${githubId}] status[${status}] error: %o`, err)
         }
     }
 
     static async updateProjectStatus(id: number, status: string) {
-        const re = await this.post(baseUrl + '/project/update/status', {
-            id,
-            status
-        })
-        const res = JSON.parse(re)
-        if (res.code !== Code.Ok) {
-            log.error(`update project[${id}]}] status[${status}] error: %o`, res.msg)
+        try {
+            const re = await this.post(baseUrl + '/project/update/status', {
+                id,
+                status
+            })
+            const res = JSON.parse(re)
+            if (res.code !== Code.Ok) {
+                log.error(`update project[${id}]}] status[${status}] error: %o`, res.msg)
+            }
+        } catch (err) {
+            log.error(`update project[${id}] status[${status}] error: %o`, err)
         }
     }
 
     static async getProject(chain: string, pid: string): PResultT<ProAttr> {
-        const re = JSON.parse(await this.post(baseUrl + '/project/detail/chainpid', {
-            chain,
-            pid
-        }))
-        if (re.code !== Code.Ok) {
-            log.error('get project detail error: %o', re.msg)
-            return Err(re.msg)
+        try {
+            const re = JSON.parse(await this.post(baseUrl + '/project/detail/chainpid', {
+                chain,
+                pid
+            }))
+            if (re.code !== Code.Ok) {
+                log.error('get project detail error: %o', re.msg)
+                return Err(re.msg)
+            }
+            return Ok(re.data)
+        } catch (err) {
+            log.error(`get ${chain} project[${pid}] detail error: %o`, err)
+            return Err('get error')
         }
-        return Ok(re.data)
     }
 
     static async getUserDailyStatistic(userId: number): PResultT<StatT> {
-        const re = JSON.parse(await this.post(baseUrl + '/user/detail/statistic', {
-            userId
-        }))
-        if (re.code !== Code.Ok) {
-            log.error('get user daily statistic error: %o', re.msg)
-            return Err(re.msg)
+        try {
+            const re = JSON.parse(await this.post(baseUrl + '/user/detail/statistic', {
+                userId
+            }))
+            if (re.code !== Code.Ok) {
+                log.error('get user daily statistic error: %o', re.msg)
+                return Err(re.msg)
+            }
+            return Ok(re.data)
+        } catch (err) {
+            log.error(`get user[${userId}] daily statistic error: %o`, err)
+            return Err('get error')
         }
-        return Ok(re.data)
     }
 }

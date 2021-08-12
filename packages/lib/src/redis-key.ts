@@ -105,8 +105,8 @@ namespace Stat {
         return `H_${S}_${chain.toLowerCase()}`
     }
 
-    export const hDaily = (): string => {
-        return `H_${S}_daily`
+    export const hDaily = (timestmp: number): string => {
+        return `H_${S}_daily_${timestmp}`
     }
 
     export const hProDaily = (chain: string, pid: string, timestamp: number): string => {

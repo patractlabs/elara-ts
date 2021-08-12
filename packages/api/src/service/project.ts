@@ -179,26 +179,13 @@ class Project {
             }
             const re = await ProjectModel.findAll(option)
             log.debug(`project count of user ${userId}: %o`, re)
-            // TODO
-            if (byChain) { return Ok(re) }
+            if (byChain) {
+                return Ok(re)
+            }
+
             return Ok(parseInt((re[0] as any).dataValues.count))
         } catch (err) {
             log.error('query project count of user error: %o', err)
-            return Err(errMsg(err, 'query error'))
-        }
-    }
-
-    // TODO
-    static async countOfUserByChain(userId: number): PResultT<number> {
-        try {
-            const re = await ProjectModel.findAll({
-                where: { userId },
-                attributes: [[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']],
-                group: Sequelize.col('chain')
-            })
-            log.debug(`project count of user ${userId} by chain: %o`, re)
-            return Ok(parseInt((re[0] as any).dataValues.count))
-        } catch (err) {
             return Err(errMsg(err, 'query error'))
         }
     }

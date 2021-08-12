@@ -132,19 +132,18 @@ R.get('/detail', detail)
  */
 R.post('/detail/statistic', getDailyStatistic)
 
-// job service will invoke this api
-R.post('/update/status', updateStatus)
-
-
 R.post('/detail/withproject', detailWithProject)
 R.post('/detail/withlimit', detailWithLimit)
 R.post('/detail/status', getStatus)
 R.post('/detail/level', getLevel)
-R.get('/list', getAllUser)
 
 if (process.env.NODE_ENV === 'dev') {
     R.post('/create', newUser)
     R.post('/update/level', updateLevel)
 }
+
+// job service will invoke this api
+R.post('/update/status', updateStatus)
+R.get('/list', getAllUser)
  
 export default R.routes()

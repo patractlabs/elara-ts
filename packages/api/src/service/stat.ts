@@ -167,7 +167,7 @@ class Stat {
     static async daily(): PStatT {
         let res = newStats()
         try {
-            const re = await Rd.hgetall(sKEY.hDaily())
+            const re = await Rd.hgetall(sKEY.hDaily(todayStamp()))
             if (re === null) {
                 log.error('Redis get daily statistic failed')
             }
@@ -176,6 +176,23 @@ class Stat {
             log.error('Dashboard Parse Error!')
         }
         return res
+    }
+
+    static async lastDays(day: number): PStatLineT {
+        const today = Mom().utc(true).format('YYYY-MM-DD')
+        let stat: StatT = await Stat.daily()
+        const timeline: string[] = [today]
+        const stats: StatInfoT[] = [getStatInfo(stat)]
+        if (day < 2) {
+            return { timeline, stats }
+        }
+        for (let i = 1; i < day; i++) {
+            const stamp = startStamp(i, 'day')
+            timeline.push(Mom(stamp).utc(true).format('YYYY-MM-DD'))
+            stat = parseStatInfo(await Rd.hgetall(sKEY.hDaily(stamp)))
+            stats.push(getStatInfo(stat))
+        }
+        return { timeline, stats }
     }
 
     static async lastHours(hour: number): PStatLineT {

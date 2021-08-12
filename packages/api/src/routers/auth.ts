@@ -141,18 +141,6 @@ async function logout(ctx: KCtxT, next: NextT) {
     return next();
 }
 
-async function checkLimit(ctx: KCtxT, next: NextT) {
-    const { chain, pid } = ctx.request.body
-    log.debug('new limit check: %o %o', chain, pid)
-    const re = await User.projectOk(chain, pid)
-    if (isErr(re)) {
-        log.error('check project resource limit error: %o', re.value)
-        throw Resp.Fail(400, 'resource invalid' as Msg, false)
-    }
-    ctx.body = Resp.Ok(re.value)
-    return next()
-}
-
 /// for local test
 async function home(ctx: KCtxT, next: NextT) {
     ctx.response.type = "html";
@@ -189,6 +177,5 @@ R.get("/logout", logout);
 R.get("/github", github);
 R.get("/github/callback", githubCallback);
 R.get("/github/home", home);
-R.post('/projectOk', checkLimit)
 
-export default R.routes();
+export const authRouter = R.routes();

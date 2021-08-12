@@ -22,7 +22,7 @@ export function tillTime(unit: MomUnit, off: number = 1): number[] {
     return [start.valueOf(), end.valueOf()]
 }
 
-export function startStamp(unit: MomUnit, off: number = 1): number {
+export function startStamp(off: number = 1, unit: MomUnit): number {
     const time = Mom().subtract(off, `${unit}s`).startOf(unit as StartT)
     return time.valueOf()
 }

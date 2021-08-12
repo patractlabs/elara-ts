@@ -1,7 +1,7 @@
 import Sche from 'node-schedule'
 import { getAppLogger, KEYS, PVoidT, isErr, md5 } from '@elara/lib'
 import { ProRd, SttRd, UserRd } from './redis'
-import { Statistics, UserAttr, ProAttr, StatT, StatRedisT } from './interface'
+import { Statistics, UserAttr, ProAttr, StatT } from './interface'
 import { lastTime, todayStamp, currentHourStamp, startStamp, statisticDump, parseStatInfo } from './util'
 import Conf from '../config'
 import Http from './http'
@@ -34,24 +34,6 @@ async function projectStatUpdate(userId: number): PVoidT {
             ProRd.hset(pKEY.hProjectStatus(pro.chain, pro.pid), 'status', 'active')
         }
     })
-}
-
-async function dailyDashboardReset(): PVoidT {
-    const key = KEY.hDaily()
-    // SttRd.del(key)
-    SttRd.hmset(key, {
-        reqCnt: 0,
-        wsConn: 0,
-        bw: 0,
-        delay: 0,
-        inReqCnt: 0,
-        timeoutDelay: 0,
-        timeoutCnt: 0,
-        subCnt: 0,
-        subResCnt: 0,
-        ctMap: '{}',
-    } as StatRedisT)
-    log.debug('reset daily statistic')
 }
 
 async function checkProjecLimit(dat: StatT, pro: ProAttr) {
@@ -133,11 +115,14 @@ async function hourlyHandler(): PVoidT {
 }
 
 async function dailyHandler(): PVoidT {
-    // const start = startStamp('day', 1)
-    const start = startStamp('day', rconf.expire)
-    const keys: string[] = await SttRd.keys(`H_Stat_day_*_${start}`)
+    // const start = startStamp(1, 'day')
+    const start = startStamp(rconf.expire, 'day')
+
+    // clear expre total daily record
+    SttRd.del(KEY.hDaily(start))
 
     // stat records
+    const keys: string[] = await SttRd.keys(`H_Stat_day_*_${start}`)
     log.debug(`clear expire daily statistic: %o`, keys)
     for (let k of keys) {
         log.debug('remove expire daily statistic: %o', k)
@@ -154,14 +139,14 @@ async function dailyHandler(): PVoidT {
         if (typ === 'bw') {
             const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
             for (let i = 0; i < re.length; i += 2) {
-                log.debug(`decr total method bandwidth rank: ${re[i]} ${re[i+1]}`)
-                SttRd.zincrby(KEY.zProBw(chain, pid), -re[i+1], re[i])
+                log.debug(`decr total method bandwidth rank: ${re[i]} ${re[i + 1]}`)
+                SttRd.zincrby(KEY.zProBw(chain, pid), -re[i + 1], re[i])
             }
         } else {
             const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
             for (let i = 0; i < re.length; i += 2) {
-                log.debug(`decr total method request rank: ${re[i]} ${re[i+1]}`)
-                SttRd.zincrby(KEY.zProReq(chain, pid), -re[i+1], re[i])
+                log.debug(`decr total method request rank: ${re[i]} ${re[i + 1]}`)
+                SttRd.zincrby(KEY.zProReq(chain, pid), -re[i + 1], re[i])
             }
         }
         SttRd.del(key)
@@ -191,7 +176,6 @@ class Service {
         })
 
         const dayJob = Sche.scheduleJob('0 0 */1 * *', () => {
-            dailyDashboardReset()
             userStatUpdate()
             dailyHandler()
         })
@@ -214,7 +198,7 @@ class Service {
         try {
             const today = todayStamp()
 
-            const keys = [KEY.hTotal(), KEY.hChainTotal(req.chain), KEY.hDaily(),
+            const keys = [KEY.hTotal(), KEY.hChainTotal(req.chain), KEY.hDaily(today),
             KEY.hProDaily(chain, pid, today),
             KEY.hProHourly(chain, pid, currentHourStamp())
             ]
@@ -253,7 +237,7 @@ class Service {
                 // keep oneday
                 SttRd.setex(KEY.errStat(req.chain, req.pid, key), rconf.expireFactor + 3600, errStat)
                 SttRd.zadd(KEY.zErrStatList(chain, pid), now.valueOf(), `${req.chain}_${req.pid}_${key}`)
-            } 
+            }
             // disalbe now
             // else {
             //     // latest statistic

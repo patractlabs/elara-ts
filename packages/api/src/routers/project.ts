@@ -74,7 +74,6 @@ async function create(ctx: KCtxT, next: NextT) {
 
     await checkProjectLimit(userId)
 
-    // TODO limit check
     const lre = await User.findUserByIdwithLimit(userId)
     if (isErr(lre)) {
         log.error(lre.value)

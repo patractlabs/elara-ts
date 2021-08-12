@@ -4,8 +4,6 @@ import Router from 'koa-router'
 
 const R = new Router()
 
-type PNextT = Promise<NextT>
-
 function checkChain(chain: string) {
     if (isEmpty(chain)) {
         throw Resp.Fail(400, 'invalid chain' as Msg)
@@ -18,18 +16,6 @@ function checkPid(pid: string) {
     }
 }
 
-const total = async (ctx: KCtxT, next: NextT): PNextT => {
-    const re = await Stat.total()
-    ctx.body = Resp.Ok(re)
-    return next()
-}
-
-const daily = async (ctx: KCtxT, next: NextT) => {
-    let dash = await Stat.daily()
-    ctx.response.body = Resp.Ok(dash)
-    return next()
-}
-
 const latestErrReq = async (ctx: KCtxT, next: NextT) => {
     let { chain, pid, size, page } = ctx.request.body
     checkChain(chain)
@@ -39,16 +25,6 @@ const latestErrReq = async (ctx: KCtxT, next: NextT) => {
     }
     if (size < 1) { size = 1 }
     const re = await Stat.recentError(chain, pid, size, page)
-    ctx.body = Resp.Ok(re)
-    return next()
-}
-
-const lastHours = async (ctx: KCtxT, next: NextT) => {
-    const { hours } = ctx.request.body
-    if (!Number.isInteger(hours)) {
-        throw Resp.Fail(400, 'hours must be integer' as Msg)
-    }
-    const re = await Stat.lastHours(hours)
     ctx.body = Resp.Ok(re)
     return next()
 }
@@ -107,59 +83,9 @@ const proDailyCountryStatistic = async(ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-// elara
 /**
  *
- * @api {get} /stat/total totalStatis
- * @apiDescription total statistic
- * @apiGroup stat
- * @apiVersion  0.1.0
- * @apiSampleRequest off
- *
- * @apiSuccess {StatInfoT} Stat total statistic record with request & bandwidth
- * @apiSuccess {Integer} Stat.request  total request count
- * @apiSuccess {Integer} Stat.bandwidth total request bandwidth in byte
- */
-R.get('/total', total)
-/**
- *
- * @api {get} /stat/daily dayilyStatis
- * @apiDescription today statistic
- * @apiGroup stat
- * @apiVersion  0.1.0
- * @apiSampleRequest off
- *
- * @apiSuccess {StatT} Stat totay statistic record
- * @apiSuccess {Integer} Stat.reqCnt total request count
- * @apiSuccess {Integer} Stat.wsConn ws connection count
- * @apiSuccess {Integer} Stat.subCnt ws subscribe count
- * @apiSuccess {Integer} Stat.subResCnt ws response count in subscription
- * @apiSuccess {Integer} Stat.bw total bandwidth
- * @apiSuccess {Integer} Stat.delay average delay ms
- * @apiSuccess {Integer} Stat.inReqCnt invalid request count
- * @apiSuccess {Integer} Stat.timeoutDelay average timeout ms
- * @apiSuccess {Integer} Stat.timeoutCnt timeout count
- * @apiSuccess {Integer} Stat.ctMap request country map {'US': 3, 'CZ': 100 , 'unknow': 1}
- *
- */
-R.get('/daily', daily)
-
-/**
- *
- * @api {post} /stat/hours lastHoursOfAll
- * @apiDescription last hours statistic record of all
- * @apiGroup stat
- * @apiVersion  0.1.0
- * @apiSampleRequest off
- * 
- * @apiParam {Integer{>=1,<=24}} hours hours to view
- *
- * @apiSuccess {StatT[]} Stat statistic record list
- */
-R.post('/hours', lastHours)
-/**
- *
- * @api {post} /stat/most/:type requestRankByResource
+ * @api {post} /stat/project/rank requestRank
  * @apiDescription today statistic record of project
  * @apiGroup stat
  * @apiVersion  0.1.0
@@ -206,6 +132,11 @@ R.post('/project/rank', methodRank)
  * @apiSuccess {Integer} Object.page page offset
  * @apiSuccess {Integer} Object.pages total pages
  * @apiSuccess {Object[]} Object.list  record list
+ * @apiSuccess {String} Object.list.proto http | ws
+ * @apiSuccess {String} Object.list.mehtod  
+ * @apiSuccess {String} Object.list.delay
+ * @apiSuccess {String} Object.list.code
+ * @apiSuccess {String} Object.list.time    timestamp string YYYY-MM-DD HH:mm
  */
 R.post('/project/error', latestErrReq)
 
@@ -234,9 +165,13 @@ R.post('/project/daily', proDaily)
  * 
  * @apiParam {String} chain chain name
  * @apiParam {String} pid  project pid
- * @apiParam {Integer{>=1, <=24}} days  how many hours to view
+ * @apiParam {Integer{>=1, <=30}} days  how many days to view
  *
- * @apiSuccess {StatT[]} Stat statistic record list
+ * @apiSuccess {Object} Stat stat day duration info
+ * @apiSuccess {String[]} Stat.timeline
+ * @apiSuccess {StatInfoT[]} Stat.stats
+ * @apiSuccess {Integer} Stat.stats.request request count
+ * @apiSuccess {Integer} Stat.stats.bandwidth bandwidth in bytes
  */
 R.post('/project/days', proLastDays)
 
@@ -251,7 +186,11 @@ R.post('/project/days', proLastDays)
  * @apiParam {String} pid  project pid
  * @apiParam {Integer{>=1, <=24}} hours  how many hours to view
  *
- * @apiSuccess {StatT[]} Stat statistic record list
+ * @apiSuccess {Object} Stat stat hour duration info
+ * @apiSuccess {String[]} Stat.timeline
+ * @apiSuccess {StatInfoT[]} Stat.stats
+ * @apiSuccess {Integer} Stat.stats.request request count
+ * @apiSuccess {Integer} Stat.stats.bandwidth bandwidth in bytes
  */
 R.post('/project/hours', proLastHours)
 
@@ -268,7 +207,14 @@ R.post('/project/hours', proLastHours)
  * @apiParam {String} chain 
  * @apiParam {String} pid
  *
- * @apiSuccess {Object[]} Object page object
+ * @apiSuccess {Object} Object page object
+ * @apiSuccess {Integer} Object.total total records
+ * @apiSuccess {Integer} Object.size page size
+ * @apiSuccess {Integer} Object.page page offset
+ * @apiSuccess {Integer} Object.pages total pages
+ * @apiSuccess {Object[]} Object.list  record list
+ * @apiSuccess {String} Object.list.country 
+ * @apiSuccess {String} Object.list.request request count  
  */
 R.post('/project/country', proDailyCountryStatistic)
 

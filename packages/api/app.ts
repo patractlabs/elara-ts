@@ -10,9 +10,9 @@ import projectRouter from './src/routers/project'
 import statRouter from './src/routers/stat'
 import chainRouter from './src/routers/chain'
 import userRouter from './src/routers/user'
-import authRouter from './src/routers/auth'
-import chainConfigRouter from './src/routers/chain-config'
+import { authRouter } from './src/routers/auth'
 import Conf from './config'
+import publicRouter from './src/routers/public'
 
 import sequelize from './src/sequelize'
 
@@ -22,12 +22,12 @@ const router = new Router()
 const server = Conf.getServer()
 
 router.use('/auth', authRouter)
+router.use('/public', publicRouter)
 router.use('/limit', authCheck, limitRouter)
 router.use('/project', authCheck, projectRouter)
 router.use('/stat', authCheck, statRouter)
 router.use('/chain', authCheck, chainRouter)
 router.use('/user', authCheck, userRouter)
-router.use('/chain', authCheck, chainConfigRouter)
 
 export const log = getAppLogger('app')
 
