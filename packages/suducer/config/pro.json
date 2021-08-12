@@ -9,7 +9,7 @@
     },
     "redis": {
         "host": "47.111.179.222",
-        "port": 6379 
+        "port": 6379,
+        "password": "LlZ9L8zx13ASshRysD3bCQ"
     }   
-}
->>>>>>> pro env
+}>>>>>>> pro env
