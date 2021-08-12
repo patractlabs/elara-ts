@@ -3,7 +3,7 @@
         "host": "127.0.0.1",
         "port": 6379,
         "db": 0,
-        "password": "LlZ9L8zx13ASshRysD3bCQ"
+        "password": "LlZ9L8zx13ASshRysD3bCQls"
     },
     "db": {
         "host": "127.0.0.1",

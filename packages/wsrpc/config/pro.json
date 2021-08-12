@@ -1,5 +1,23 @@
 {
+    "server": {
+        "id": 1,
+        "port": 19944,
+        "maxWsConn": 10,
+        "maxReConn": 300,
+        "apiHost": "120.26.70.42",
+        "apiPort": 7000
+    },
     "redis": {
-        "host": "114.55.36.248"
+        "host": "47.111.179.222",
+        "port": 6379,
+        "db": 0,
+        "password":"LlZ9L8zx13ASshRysD3bCQ"
+    },
+
+    "wspool": {
+        "sub": 1,
+        "chan": 1,
+        "maxConn": 20,
+        "poolSize": 5
     }
 }

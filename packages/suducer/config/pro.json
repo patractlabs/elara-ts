@@ -1,1 +1,15 @@
+<<<<<<< HEAD
 {}
+=======
+{
+    "server": {
+        "id": 1,
+        "maxReconnTry": 60,
+        "cachePoolSize": 1
+    },
+    "redis": {
+        "host": "47.111.179.222",
+        "port": 6379 
+    }   
+}
+>>>>>>> pro env

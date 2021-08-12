@@ -1,1 +1,21 @@
+<<<<<<< HEAD
 {}
+=======
+{
+    "redis": {
+        "host": "47.111.179.222",
+        "port": 6379,
+        "db": 0,
+        "password": "LlZ9L8zx13ASshRysD3bCQ",
+        "expire": 30,
+        "statKeep": 2,
+        "expireFactor": 86400,
+        "expireUnit": "day"
+    },
+
+    "apiServer": {
+        "host": "120.26.70.42",
+        "port": 7000
+    }
+}
+>>>>>>> pro env

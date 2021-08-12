@@ -33,11 +33,11 @@
     },
 
     "user":{
-        "loginUrl": "http://47.111.179.222:8000/account/auth/github/home",
+        "loginUrl": "http://47.111.179.222:7000/auth/github/home",
         "github": {
             "clientID": "d67ed989933a697a9f9e",
             "clientSecret": "7dadbfa07c43571d9bfedbcca0fe9d59ccc6cf92",
-            "callbackUrl": "http://47.111.179.222:8000/account/auth/github/callback"
+            "callbackUrl": "http://47.111.179.222:7000/auth/github/callback"
         },
         "defaultLevel": "normal",
         "apiKey": "elara"
