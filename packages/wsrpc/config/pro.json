@@ -1,7 +1,7 @@
 {
     "server": {
         "id": 1,
-        "port": 19944,
+        "port": 7003,
         "maxWsConn": 10,
         "maxReConn": 300,
         "apiHost": "120.26.70.42",

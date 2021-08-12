@@ -1,6 +1,6 @@
 {
     "server": {
-        "port": 7001,
+        "port": 7000,
         "isTest": true
     },
     "redis": {
