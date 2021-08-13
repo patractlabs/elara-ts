@@ -131,19 +131,38 @@ async function hourlyHandler(): PVoidT {
 }
 
 async function dailyHandler(): PVoidT {
-    // const [start, _end] = lastTime('day', 1)    // for test
+    // const start = startStamp('day', 1)
     const start = startStamp('day', rconf.expire)
-    let keys: string[] = []
+    const keys: string[] = await SttRd.keys(`H_Stat_day_*_${start}`)
 
     // stat records
-    keys.push(...(await SttRd.keys(`H_Stat_day_*_${start}`)))
-
-    // method records
-    keys.push(...(await SttRd.keys(`Z_Method_*_${start}`)))
     log.debug(`clear expire daily statistic: %o`, keys)
     for (let k of keys) {
         log.debug('remove expire daily statistic: %o', k)
         SttRd.del(k)
+    }
+    // method records
+    const mkeys = await SttRd.keys(`Z_Method_*_${start}`)
+    for (let key of mkeys) {
+        const sp = key.split('_')
+        const typ = sp[2]
+        const chain = sp[3]
+        const pid = sp[4]
+        log.debug(`clear expire method statistic: ${typ} ${chain} ${pid}`)
+        if (typ === 'bw') {
+            const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
+            for (let i = 0; i < re.length; i += 2) {
+                log.debug(`decr total method bandwidth rank: ${re[i]} ${re[i+1]}`)
+                SttRd.zincrby(KEY.zProBw(chain, pid), -re[i+1], re[i])
+            }
+        } else {
+            const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
+            for (let i = 0; i < re.length; i += 2) {
+                log.debug(`decr total method request rank: ${re[i]} ${re[i+1]}`)
+                SttRd.zincrby(KEY.zProReq(chain, pid), -re[i+1], re[i])
+            }
+        }
+        SttRd.del(key)
     }
 
     // country map reset
@@ -207,6 +226,10 @@ class Service {
 
             // method statistic, keep 30 days
             const method = req.req.method
+            // 30 days statistic
+            SttRd.zincrby(KEY.zProBw(chain, pid), parseInt(req.bw?.toString() ?? '0'), method)
+            SttRd.zincrby(KEY.zProReq(chain, pid), 1, method)
+            // daily reord
             SttRd.zincrby(KEY.zProDailyBw(chain, pid, today), parseInt(req.bw?.toString() ?? '0'), method)
             SttRd.zincrby(KEY.zProDailyReq(chain, pid, today), 1, method)
 
