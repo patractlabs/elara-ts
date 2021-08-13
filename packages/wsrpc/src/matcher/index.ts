@@ -81,7 +81,7 @@ namespace Matcher {
         suber.pubers.add(puber.id)
         Suber.updateOrAddSuber(chain, SuberTyp.Node, suber)
 
-        
+
         // update puber.subId
         puber.subId = suber.id
         Puber.updateOrAdd(puber)
@@ -245,6 +245,7 @@ namespace Matcher {
     }
 
     export const isSubscribed = (chain: string, pid: IDT, data: WsData): boolean => {
+        if (pid === '00000000000000000000000000000000') { return false }
         const topics = GG.getSubTopics(chain, pid)
         log.info(`subscribed topics of chain[${chain}] pid[${pid}]: %o`, Object.keys(topics))
         for (let id in topics) {

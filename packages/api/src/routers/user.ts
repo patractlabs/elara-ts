@@ -120,11 +120,13 @@ async function getAllUser(ctx: KCtxT, next: NextT) {
 R.get('/detail', detail)
 
 /**
- * @api {get} /user/detail/statistic userDailyStatistic
+ * @api {post} /user/detail/statistic userDailyStatistic
  * @apiDescription user detail info
  * @apiGroup user
  * @apiVersion  0.1.0
  * @apiSampleRequest off
+ * 
+ * @apiParam {Integer} userId
  * 
  * @apiSuccess {StatT} Stat user statistic of all project
  */

@@ -29,12 +29,7 @@ async function resourceLimit(chain: string, pid: string): PBoolT {
     if (pid === '00000000000000000000000000000000') {
         return false
     }
-    // check request limit & bandwidth limit
-    // const res = await post(`http://${conf.apiHost}:${conf.apiPort}/auth/projectOk`, { chain, pid })
-    // const isOk = JSON.parse(res).data as boolean ?? true
-    // log.debug(`${chain} pid[${pid}] project-is-ok check result: ${isOk}`)
-    // return !isOk
-
+    
     const pstat = await Dao.getProjectStatus(chain, pid)
     log.debug(`project status ${pstat['status']}: %o`, pstat)
     if (pstat.status !== 'active') {
@@ -200,7 +195,6 @@ wss.on('connection', async (ws, req: any) => {
         reqStatis.chain = chain
         reqStatis.pid = pid
         reqStatis.header = stat.header
-
 
         try {
             let re = dataCheck(data.toString())

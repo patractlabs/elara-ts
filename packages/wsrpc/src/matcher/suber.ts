@@ -204,7 +204,7 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
         // subscribe request cache will be clear on unsubscribe event
         stat.delay = Util.traceDelay(stat.start)
         stat.bw = Util.strBytes(data.toString())
-        stat.code = 500
+        if (dat.error) {stat.code = 500}
         req.stat = stat
         GG.updateReqCache(req)
         GG.delReqCacheByPubStatis(req.id)
@@ -512,7 +512,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
 
     ws.on('message', (dat: WebSocket.Data) => {
         const start = Util.traceStart()
-        // log.debug(`new ${type} suber response: ${JSON.stringify(dat)}`)
+        log.debug(`new ${type} suber response: ${JSON.stringify(dat)}`)
         let re = dataParse(dat, type)
         const time = Util.traceEnd(start)
 
