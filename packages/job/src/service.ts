@@ -239,7 +239,7 @@ class Service {
             SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, req.header.ip.split(':')[0])
             SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, 'total')
 
-            const now = moment()
+            const now = moment().utc(true)
             const key = md5(data)
             if (req.code !== 200) {
                 // error statistic
@@ -250,22 +250,25 @@ class Service {
                     delay: req.delay ?? 0,
                     time: now
                 })
+                // keep oneday
                 SttRd.setex(KEY.errStat(req.chain, req.pid, key), rconf.expireFactor + 3600, errStat)
                 SttRd.zadd(KEY.zErrStatList(chain, pid), now.valueOf(), `${req.chain}_${req.pid}_${key}`)
-            } else {
-                // latest statistic
-                const reqStat = JSON.stringify({
-                    proto: req.proto,
-                    method: req.req.method,
-                    origin: req.header.origin,
-                    agent: req.header.agent,
-                    ip: req.header.ip,
-                    delay: req.delay ?? 0,
-                    time: now
-                })
-                SttRd.setex(KEY.stat(req.chain, req.pid, key), rconf.expireFactor + 3600, reqStat)
-                SttRd.zadd(KEY.zStatList(), now.valueOf(), `${req.chain}_${req.pid}_${key}`)
-            }
+            } 
+            // disalbe now
+            // else {
+            //     // latest statistic
+            //     const reqStat = JSON.stringify({
+            //         proto: req.proto,
+            //         method: req.req.method,
+            //         origin: req.header.origin,
+            //         agent: req.header.agent,
+            //         ip: req.header.ip,
+            //         delay: req.delay ?? 0,
+            //         time: now
+            //     })
+            //     SttRd.setex(KEY.stat(req.chain, req.pid, key), rconf.expireFactor + 3600, reqStat)
+            //     SttRd.zadd(KEY.zStatList(), now.valueOf(), `${req.chain}_${req.pid}_${key}`)
+            // }
             resourceCheck(chain, pid)
         } catch (err) {
             log.error(`dump request statistic [${req.chain}-${req.pid}] error: %o`, err)
