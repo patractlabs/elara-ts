@@ -131,6 +131,11 @@ interface ErrPageT {
     list: ErrStatT[]
 }
 
+interface CountryT {
+    country: string,
+    request: number
+}
+
 function getStatInfo(stat: StatT): StatInfoT {
     return {
         request: stat.reqCnt,
@@ -273,20 +278,23 @@ class Stat {
     // country request map
     static async countryMap(chain: string, pid: string, size: number, page: number) {
         const key = sKEY.zProDailyCtmap(chain, pid)
-        const total = parseInt(await Rd.zscore(key, 'total'))
+        const total = await Rd.zcard(key) - 1 
+        const totalRequest = parseInt(await Rd.zscore(key, 'total'))
         const pages = Math.floor(total / size) + 1
 
         const off = page * size
-        const ct = await Rd.zrevrange(key, off + 1, off + size)
-        const list = []
+        const ct = await Rd.zrevrange(key, off + 1, off + size, 'WITHSCORES')
+        log.debug(`get country map: %o`, ct)
+        const list: CountryT[] = []
         for (let i = 0; i < ct.length; i += 2) {
-            list.push({country: ct[i], request: ct[i+1]})
+            list.push({country: ct[i], request: parseInt(ct[i+1])})
         }
         return {
             total,
             size,
             page,
             pages,
+            totalRequest,
             list
         }
     }

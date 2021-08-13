@@ -61,20 +61,28 @@ const deleteChain = async (ctx: KCtxT, next: NextT) => {
 
 /**
  *
- * @api {get} /chain/list list
+ * @api {post} /chain/list list
  * @apiGroup chain
  * @apiVersion  0.1.0
  * @apiSampleRequest off
  * 
  * @apiParam {Integer} userId 
  * 
- * @apiSuccess {Object} Record chain list map by network,Record<String, ChainAttr[]>
+ * @apiSuccess {Object} Record chain list map by network,Record<String, ChainInfo[]>
  * @apiSuccessExample Success:
  *  {
  *      code: 0,
  *      msg: 'ok',
  *      data: { 
- *          'live': [{}, {}],
+ *          'live': [{
+ *              id: 1,
+ *              name: 'polkadot',
+ *              team: 'parity',
+ *              network: 'Polkadot',
+ *              status: 'active',   'active' | 'inactive' | 'empty'
+ *              count: 1    // project count
+ * 
+ *          }, {}],
  *          'test': []
  *      }
  *  }

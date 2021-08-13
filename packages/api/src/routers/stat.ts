@@ -130,23 +130,17 @@ R.get('/total', total)
  * @apiSampleRequest off
  *
  * @apiSuccess {StatT} Stat totay statistic record
- * @apiSuccess {Integer} Stat.wsReqNum ws request count
+ * @apiSuccess {Integer} Stat.reqCnt total request count
  * @apiSuccess {Integer} Stat.wsConn ws connection count
- * @apiSuccess {Integer} Stat.wsSubNum ws subscribe count
- * @apiSuccess {Integer} Stat.wsSubResNum ws response count in subscription
- * @apiSuccess {Integer} Stat.wsBw ws bandwidth
- * @apiSuccess {Integer} Stat.wsDelay ws average delay ms, ignore
- * @apiSuccess {Integer} Stat.wsInReqNum ws invalid request count
- * @apiSuccess {Integer} Stat.wsTimeout ws average timeout ms
- * @apiSuccess {Integer} Stat.wsTimeoutCnt ws timeout count
- * @apiSuccess {Integer} Stat.wsCt ws request country map {'US': 3, 'CZ': 100 , 'unknow': 1}
- * @apiSuccess {Integer} Stat.httpReqNum http request count
- * @apiSuccess {Integer} Stat.httpBw bandwidth bytes
- * @apiSuccess {Integer} Stat.httpDelay average response time ms
- * @apiSuccess {Integer} Stat.httpInReqNum invalid request count
- * @apiSuccess {Integer} Stat.httpTimeout http average timeout ms
- * @apiSuccess {Integer} Stat.httpTimeoutCnt timeout count
- * @apiSuccess {Integer} Stat.httpCt request country map
+ * @apiSuccess {Integer} Stat.subCnt ws subscribe count
+ * @apiSuccess {Integer} Stat.subResCnt ws response count in subscription
+ * @apiSuccess {Integer} Stat.bw total bandwidth
+ * @apiSuccess {Integer} Stat.delay average delay ms
+ * @apiSuccess {Integer} Stat.inReqCnt invalid request count
+ * @apiSuccess {Integer} Stat.timeoutDelay average timeout ms
+ * @apiSuccess {Integer} Stat.timeoutCnt timeout count
+ * @apiSuccess {Integer} Stat.ctMap request country map {'US': 3, 'CZ': 100 , 'unknow': 1}
+ *
  */
 R.get('/daily', daily)
 
@@ -202,7 +196,7 @@ R.post('/project/rank', methodRank)
  * @apiSampleRequest off
  * 
  * @apiParam {Integer{>=1}} size size of page
- * @apiParam {Integer{>=1}} page page offset
+ * @apiParam {Integer} page page offset
  * @apiParam {String} chain 
  * @apiParam {String} pid
  *
@@ -270,7 +264,7 @@ R.post('/project/hours', proLastHours)
  * @apiSampleRequest off
  * 
  * @apiParam {Integer{>=1}} size size of page
- * @apiParam {Integer{>=1}} page page offset
+ * @apiParam {Integer} page page offset
  * @apiParam {String} chain 
  * @apiParam {String} pid
  *
