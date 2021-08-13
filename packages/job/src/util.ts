@@ -1,4 +1,5 @@
 import Mom from 'moment'
+import Geoip from 'geoip-lite'
 import { getAppLogger, PVoidT } from '@elara/lib'
 import { StartT, DurationT, MomUnit, StatT, Statistics, StatRedisT } from './interface'
 import { SttRd } from './redis'
@@ -59,14 +60,15 @@ function accAverage(num: number, av: number, val: number, fixed: number = 2): nu
     return parseFloat((av / (num + 1) * num + val / (num + 1)).toFixed(fixed))
 }
 
-function ip2county(ip: string): string {
+export function ip2county(ip: string): string {
     // TODO
-    return ip
-    // const dat = geo.lookup(ip)
-    // if (dat) {
-    //     return dat.country
-    // }
-    // return 'unknow'
+    // return ip
+    if (ip === 'localhost' || '127.0.0.1') { return 'local' }
+    const dat = Geoip.lookup(ip)
+    if (dat) {
+        return dat.country ?? 'unknow'
+    }
+    return 'unknow'
 }
 
 export function asNum(val: number | string): number {

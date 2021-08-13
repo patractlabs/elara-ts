@@ -2,7 +2,7 @@ import Sche from 'node-schedule'
 import { getAppLogger, KEYS, PVoidT, isErr, md5 } from '@elara/lib'
 import { ProRd, SttRd, UserRd } from './redis'
 import { Statistics, UserAttr, ProAttr, StatT } from './interface'
-import { lastTime, todayStamp, currentHourStamp, startStamp, statisticDump, parseStatInfo } from './util'
+import { lastTime, todayStamp, currentHourStamp, startStamp, statisticDump, parseStatInfo, ip2county } from './util'
 import Conf from '../config'
 import Http from './http'
 import moment from 'moment'
@@ -220,7 +220,7 @@ class Service {
             SttRd.zincrby(KEY.zProDailyReq(chain, pid, today), 1, method)
 
             // country request map
-            SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, req.header.ip.split(':')[0])
+            SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, ip2county(req.header.ip.split(':')[0]))
             SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, 'total')
 
             const now = moment().utc(true)
