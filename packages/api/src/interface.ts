@@ -3,24 +3,20 @@ import { IDT } from '@elara/lib'
 
 export type Stats = Record<string, number | Record<string, number>>
 export interface StatT {
-    wsReqNum: number,
+    reqCnt: number,
+    bw: number,
     wsConn: number,
-    wsCt: Record<string, number>,
-    wsSubNum: number,
-    wsSubResNum: number,
-    wsBw: number,
-    wsDelay: number,
-    wsInReqNum: number,
-    wsTimeout: number,
-    wsTimeoutCnt: number,
+    subCnt: number,
+    subResCnt: number,
+    delay: number,
+    timeoutCnt: number,
+    timeoutDelay: number,
+    inReqCnt: number,
+    ctMap: string,
+}
 
-    httpReqNum: number,
-    httpCt: Record<string, number>,
-    httpBw: number,
-    httpDelay: number,
-    httpInReqNum: number,
-    httpTimeout: number,
-    httpTimeoutCnt: number,
+export interface StatRedisT extends StatT {
+    [key: string] : any
 }
 
 interface Header {

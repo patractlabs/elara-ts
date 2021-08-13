@@ -49,7 +49,6 @@ export function getAppLogger(label: string = '', opt?: { isJson: boolean, consol
         ],
         exceptionHandlers: [
             newRotateFile('exception', 'error', false)
-            // new transports.File({ filename: 'logs/exceptions.log' })
         ],
         exitOnError: false
     })

@@ -122,11 +122,13 @@ async function hourlyHandler(): PVoidT {
         SttRd.zrem(zlKey, k)
     }
 
-    const zelKey = KEY.zErrStatList()
-    keys = await SttRd.zrangebyscore(zelKey, start, end)
-    for (let k of keys) {
+    const ekeys = await SttRd.keys(`Z_Stat_Err_*_list`)
+    for (let k of ekeys) {
+        keys = await SttRd.zrangebyscore(k, start, end)
+        for (let ik of keys) {
+            SttRd.zrem(k, ik)
+        }
         log.debug('remove expire error request statistic: %o', k)
-        SttRd.zrem(zelKey, k)
     }
 }
 
@@ -235,6 +237,7 @@ class Service {
 
             // country request map
             SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, req.header.ip.split(':')[0])
+            SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, 'total')
 
             const now = moment()
             const key = md5(data)
@@ -248,7 +251,7 @@ class Service {
                     time: now
                 })
                 SttRd.setex(KEY.errStat(req.chain, req.pid, key), rconf.expireFactor + 3600, errStat)
-                SttRd.zadd(KEY.zErrStatList(), now.valueOf(), `${req.chain}_${req.pid}_${key}`)
+                SttRd.zadd(KEY.zErrStatList(chain, pid), now.valueOf(), `${req.chain}_${req.pid}_${key}`)
             } else {
                 // latest statistic
                 const reqStat = JSON.stringify({

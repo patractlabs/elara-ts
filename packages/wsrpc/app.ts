@@ -186,7 +186,7 @@ wss.on('connection', async (ws, req: any) => {
         return ws.terminate()
     }
     const puber = re.value as Puber
-    log.info(`New socket connection chain ${chain} pid[${pid}], current total connections `, wss.clients.size)
+    log.info(`New socket connection chain ${chain} pid[${pid}], current total connections: %o`, wss.clients.size)
     const id = puber.id
     stat.code = 200
     // publish statistics

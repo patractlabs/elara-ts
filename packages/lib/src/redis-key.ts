@@ -96,6 +96,7 @@ namespace Cache {
 namespace Stat {
     const S = 'Stat'
 
+    // stat statistic
     export const hTotal = (): string => {
         return `H_${S}_total`
     }
@@ -109,35 +110,42 @@ namespace Stat {
     }
 
     export const hProDaily = (chain: string, pid: string, timestamp: number): string => {
-        return `H_${S}_daily_${chain.toLowerCase()}_${pid}_${timestamp}`
+        return `H_${S}_day_${chain.toLowerCase()}_${pid}_${timestamp}`
     }
 
+    export const hProHourly = (chain: string, pid: string, timestamp: number): string => {
+        return `H_${S}_hour_${chain.toLowerCase()}_${pid}_${timestamp}`
+    }
+
+    // method statistic
+    export const zProBw = (chain: string, pid: string): string => {
+        return `Z_Method_bw_total_${chain.toLowerCase()}_${pid}`
+    }
+
+    export const zProReq = (chain: string, pid: string): string => {
+        return `Z_Method_req_total_${chain.toLowerCase()}_${pid}`
+    }
+
+    export const zProDailyBw = (chain: string, pid: string, timestamp: number): string => {
+        return `Z_Method_bw_${chain.toLowerCase()}_${pid}_${timestamp}`
+    }
+
+    export const zProDailyReq = (chain: string, pid: string, timestamp: number): string => {
+        return `Z_Method_req_${chain.toLowerCase()}_${pid}_${timestamp}`
+    }
+
+    // country request map
+    export const zProDailyCtmap = (chain: string, pid: string): string => {
+        return `Z_Country_daily_${chain.toLowerCase()}_${pid}`
+    }
+
+    // latest normal & error request
     export const zStatList = (): string => {
         return `Z_${S}_list`
     }
 
-    export const zErrStatList = (): string => {
-        return `Z_${S}_Err_list`
-    }
-
-    export const zExpireList = (): string => {
-        return `Z_${S}_expire_timestamp`
-    }
-
-    export const zDailyReq = (): string => {
-        return `Z_${S}_req_daily`
-    }
-
-    export const zDailyBw = (): string => {
-        return `Z_${S}_bw_daily`
-    }
-
-    export const zReq = (chain: string, pid: string, timestamp: number): string => {
-        return `Z_${S}_req_${chain.toLowerCase()}_${pid}_${timestamp}`
-    }
-
-    export const zBw = (chain: string, pid: string, timestamp: number): string => {
-        return `Z_${S}_bw_${chain.toLowerCase()}_${pid}_${timestamp}`
+    export const zErrStatList = (chain: string, pid: string): string => {
+        return `Z_${S}_Err_${chain.toLowerCase()}_${pid}_list`
     }
 
     export const stat = (chain: string, pid: string, key: string): string => {
@@ -146,13 +154,6 @@ namespace Stat {
 
     export const errStat = (chain: string, pid: string, key: string): string => {
         return `${S}_Err_${chain.toLowerCase()}_${pid}_${key}`
-    }
-
-    export const patStat = (chain?: string, pid?: string, key?: string): string => {
-        const C = chain?.toLowerCase() ?? '*'
-        const P = pid ?? '*'
-        const K = key ?? '*'
-        return `${S}_${C}_${P}_${K}`
     }
 }
 

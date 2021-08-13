@@ -30,34 +30,15 @@ const daily = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-const latestReq = async (ctx: KCtxT, next: NextT) => {
-    let { count } = ctx.request.body
-    if (!Number.isInteger(count)) {
-        throw Resp.Fail(400, 'count must be integer' as Msg)
-    }
-    if (count < 1) { count = 1 }
-    const re = await Stat.latestReq(count)
-    ctx.body = Resp.Ok(re)
-    return next()
-}
-
 const latestErrReq = async (ctx: KCtxT, next: NextT) => {
-    let { count } = ctx.request.body
-    if (!Number.isInteger(count)) {
-        throw Resp.Fail(400, 'count must be integer' as Msg)
+    let { chain, pid, size, page } = ctx.request.body
+    checkChain(chain)
+    checkPid(pid)
+    if (!Number.isInteger(size) || !Number.isInteger(page)) {
+        throw Resp.Fail(400, 'size & page must be integer' as Msg)
     }
-    if (count < 1) { count = 1 }
-    const re = await Stat.recentError(count)
-    ctx.body = Resp.Ok(re)
-    return next()
-}
-
-const lastDays = async (ctx: KCtxT, next: NextT) => {
-    const { days } = ctx.request.body
-    if (!Number.isInteger(days)) {
-        throw Resp.Fail(400, 'days must be integer' as Msg)
-    }
-    const re = await Stat.lastDays(days)
+    if (size < 1) { size = 1 }
+    const re = await Stat.recentError(chain, pid, size, page)
     ctx.body = Resp.Ok(re)
     return next()
 }
@@ -72,25 +53,11 @@ const lastHours = async (ctx: KCtxT, next: NextT) => {
     return next()
 }
 
-const mostResourceLastDays = async (ctx: KCtxT, next: NextT) => {
-    const { count, days } = ctx.request.body
-    const { type } = ctx.request.params
-    console.log('type: %o',type)
-    if (type !== 'bandwidth' && type !== 'request') {
-        throw Resp.Fail(400, 'invalid resource type' as Msg)
-    }
-    if (!Number.isInteger(days) || !Number.isInteger(count)) {
-        throw Resp.Fail(400, 'params must be integer' as Msg)
-    }
-    const re = await Stat.mostResourceLastDays(count, days, type)
-    ctx.body = Resp.Ok(re)
-    return next()
-}
-
-const chainTotal = async (ctx: KCtxT, next: NextT) => {
-    const { chain } = ctx.request.params
+const methodRank = async (ctx: KCtxT, next: NextT) => {
+    const { chain, pid } = ctx.request.body
     checkChain(chain)
-    const re = await Stat.chain(chain)
+    checkPid(pid)
+    const re = await Stat.latestMethods(chain, pid)
     ctx.body = Resp.Ok(re)
     return next()
 }
@@ -99,7 +66,7 @@ const proDaily = async (ctx: KCtxT, next: NextT) => {
     const { chain, pid } = ctx.request.body
     checkChain(chain)
     checkPid(pid)
-    const re = await Stat.proDaily(chain, pid)
+    const re = await Stat.proStatDaily(chain, pid)
     ctx.body = Resp.Ok(re)
     return next()
 }
@@ -111,18 +78,31 @@ const proLastDays = async (ctx: KCtxT, next: NextT) => {
     if (!Number.isInteger(days)) {
         throw Resp.Fail(400, 'days must be integer' as Msg)
     }
-    const re = await Stat.lastDays(days, chain, pid)
+    const re = await Stat.lastDaysOfProject(days, chain, pid)
     ctx.body = Resp.Ok(re)
     return next()
 }
 
 const proLastHours = async (ctx: KCtxT, next: NextT) => {
-    const { pid, hours } = ctx.request.body
+    const { chain, pid, hours } = ctx.request.body
     checkPid(pid)
-    if (!Number.isInteger(hours)) {
-        throw Resp.Fail(400, 'hours must be integer' as Msg)
+    checkChain(chain)
+    if (!Number.isInteger(hours) || hours > 24 || hours < 1) {
+        throw Resp.Fail(400, 'hours must be integer in[1, 24]' as Msg)
     }
-    const re = await Stat.lastHours(hours, pid)
+    const re = await Stat.lastHoursOfProject(hours, chain, pid)
+    ctx.body = Resp.Ok(re)
+    return next()
+}
+
+const proDailyCountryStatistic = async(ctx: KCtxT, next: NextT) => {
+    const {chain, pid, size, page} = ctx.request.body
+    checkChain(chain)
+    checkPid(pid)
+    if (!Number.isInteger(size) || !Number.isInteger(page) || size < 1) {
+        throw Resp.Fail(400, 'size & page must be integer [1, ?)' as Msg)
+    }
+    const re = await Stat.countryMap(chain, pid, size, page)
     ctx.body = Resp.Ok(re)
     return next()
 }
@@ -136,7 +116,9 @@ const proLastHours = async (ctx: KCtxT, next: NextT) => {
  * @apiVersion  0.1.0
  * @apiSampleRequest off
  *
- * @apiSuccess {StatT} Stat total statistic record
+ * @apiSuccess {StatInfoT} Stat total statistic record with request & bandwidth
+ * @apiSuccess {Integer} Stat.request  total request count
+ * @apiSuccess {Integer} Stat.bandwidth total request bandwidth in byte
  */
 R.get('/total', total)
 /**
@@ -167,46 +149,7 @@ R.get('/total', total)
  * @apiSuccess {Integer} Stat.httpCt request country map
  */
 R.get('/daily', daily)
-/**
- *
- * @api {post} /stat/project/latest latestRequest
- * @apiDescription latest request of all
- * @apiGroup stat
- * @apiVersion  0.1.0
- * @apiSampleRequest off
- * 
- * @apiParam {Integer{>=1}} count latest request count to view
- *
- * @apiSuccess {Statistics[]} Stat statistic record list
- * @apiSuccess {String{'http', 'ws}} Stat.proto  request protocol
- * @apiSuccess {String} Stat.chain 
- * @apiSuccess {String} Stat.pid    project pid
- * @apiSuccess {String{'POST','PUT','GET'}} Stat.method http request method
- * @apiSuccess {ReqType} Stat.req  jsonrpc request body,{id, jsonrpc, method, params}
- * @apiSuccess {Number}  Stat.code jsonrpc request result code, 200 success, 419 out of limit
- * @apiSuccess {Header} Stat.header request header {origin, agent, ip}
- * @apiSuccess {Number} Stat.start performance trace time, ignore
- * @apiSuccess {String} Stat.type [noder,kv, cacher, recorder, conn], conn for subscribe connection,ignore
- * @apiSuccess {Number} Stat.delay response time[ms]
- * @apiSuccess {Number} [Stat.bw] response package size in bytes
- * @apiSuccess {Boolean} [Stat.timeout] timeout or not
- * @apiSuccess {Integer} [Stat.reqCnt] request cnt, for subscribe 
- * 
- */
-R.post('/latest', latestReq)
-/**
- *
- * @api {post} /stat/days lastDaysOfAll
- * @apiDescription last days statistic record of all
- * @apiGroup stat
- * @apiVersion  0.1.0
- * @apiSampleRequest off
- * 
- * @apiParam {Integer{>=1}} days days to view
- *
- * @apiSuccess {StatT} Stat last days statistic record list
- */
-R.post('/days', lastDays)
+
 /**
  *
  * @api {post} /stat/hours lastHoursOfAll
@@ -228,35 +171,27 @@ R.post('/hours', lastHours)
  * @apiVersion  0.1.0
  * @apiSampleRequest off
  * 
- * @apiParam {String{'request','bandwidth'}} type resource type
- * @apiParam {Integer{>=1,<=30}} days to statistic
- * @apiParam {Integer{>=1}} count statistic count to view
+ * @apiParam {String} chain 
+ * @apiParam {String} pid 
  *
- * @apiSuccess {String[]} Stat resource rank list
- * @apiSuccessExample SuccessRequest:
+ * @apiSuccess {Object} Rank resource rank info
+ * @apiSuccessExample Success:
  * {
  *  code: 0,
  *  msg: 'ok',
- *  data: [
- *      'system_health',
- *      '10',       // request count
- *      'system_syncState',
- *      '8'
- *  ]
- * }
- * @apiSuccessExample SuccessBandwidth:
- * {
- *  code: 0,
- *  msg: 'ok',
- *  data: [
- *      'system_health',
- *      '10240012',     // bytes
- *      'system_syncState',
- *      '1278323'
- *  ]
+ *  data: {
+ *      bandwidth: {
+ *          total: 1000     // bandwidth bytes,
+ *          list: [{ method: 'systen_health', value: 100 }]
+ *      },
+ *      request: {
+ *          total: 1024    // request count,
+ *          list: [{ method: 'systen_health', value: 10 }]
+ *      }
+ *  }
  * }
  */
-R.post('/most/:type', mostResourceLastDays) // type request , bandwidth
+R.post('/project/rank', methodRank) 
 
 /**
  *
@@ -266,25 +201,19 @@ R.post('/most/:type', mostResourceLastDays) // type request , bandwidth
  * @apiVersion  0.1.0
  * @apiSampleRequest off
  * 
- * @apiParam {Integer{>=1}} count record count to view
+ * @apiParam {Integer{>=1}} size size of page
+ * @apiParam {Integer{>=1}} page page offset
+ * @apiParam {String} chain 
+ * @apiParam {String} pid
  *
- * @apiSuccess {Statistics[]} Stat statistic record list, see latestRequest
+ * @apiSuccess {Object} Object page object
+ * @apiSuccess {Integer} Object.total total records
+ * @apiSuccess {Integer} Object.size page size
+ * @apiSuccess {Integer} Object.page page offset
+ * @apiSuccess {Integer} Object.pages total pages
+ * @apiSuccess {Object[]} Object.list  record list
  */
-R.post('/latest/error', latestErrReq)
-
-/**
- *
- * @api {post} /stat/project/daily totalOfChain
- * @apiDescription total statistic record of chain
- * @apiGroup stat
- * @apiVersion  0.1.0
- * @apiSampleRequest off
- * 
- * @apiParam {String} chain chain name
- *
- * @apiSuccess {StatT} Stat total statistic record
- */
-R.get('/total/:chain', chainTotal)
+R.post('/project/error', latestErrReq)
 
 /**
  *
@@ -331,4 +260,22 @@ R.post('/project/days', proLastDays)
  * @apiSuccess {StatT[]} Stat statistic record list
  */
 R.post('/project/hours', proLastHours)
+
+
+/**
+ *
+ * @api {post} /stat/project/country countryRequestMap
+ * @apiGroup stat
+ * @apiVersion  0.1.0
+ * @apiSampleRequest off
+ * 
+ * @apiParam {Integer{>=1}} size size of page
+ * @apiParam {Integer{>=1}} page page offset
+ * @apiParam {String} chain 
+ * @apiParam {String} pid
+ *
+ * @apiSuccess {Object[]} Object page object
+ */
+R.post('/project/country', proDailyCountryStatistic)
+
 export default R.routes()

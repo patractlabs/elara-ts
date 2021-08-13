@@ -182,7 +182,7 @@ export default class User {
         const pros = re.value
         let stat = newStats()
         for (let pro of pros)  {
-            const re = await Stat.proDaily(pro.chain, pro.pid)
+            const re = await Stat.proStatDaily(pro.chain, pro.pid)
             stat = statAdd(stat, re)
         }
         return Ok(stat)
@@ -229,12 +229,8 @@ export default class User {
             return Err('inactive status')
         }
 
-        const stat = await Stat.proDaily(chain, pid)
-        const bw = stat.httpBw + stat.wsBw
-        // invalid request count
-        const reqCnt = stat.httpReqNum + stat.wsReqNum + stat.httpInReqNum + stat.wsInReqNum
+        const stat = await Stat.proStatDaily(chain, pid)
 
-        log.debug('project current resource usage: %o %o', bw, reqCnt)
         // user limit
         const limitRe = await Limit.findByLevel(pro.user.level)
         if (isErr(limitRe)) {
@@ -245,7 +241,7 @@ export default class User {
 
         const reqDayLimit = pro.reqDayLimit === -1 ? pro.reqDayLimit : limit.reqDayLimit
         const bwDayLimit = pro.bwDayLimit === -1 ? pro.bwDayLimit : limit.bwDayLimit
-        if (reqCnt < reqDayLimit && bw < bwDayLimit) {
+        if (stat.reqCnt < reqDayLimit && stat.bw < bwDayLimit) {
             return Ok(true)
         }
         // update user & project status

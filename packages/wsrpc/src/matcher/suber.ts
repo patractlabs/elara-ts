@@ -204,6 +204,9 @@ function dataParse(data: WebSocket.Data, subType: SuberTyp): ResultT<DParT> {
         // subscribe request cache will be clear on unsubscribe event
         stat.delay = Util.traceDelay(stat.start)
         stat.bw = Util.strBytes(data.toString())
+        stat.code = 500
+        req.stat = stat
+        GG.updateReqCache(req)
         GG.delReqCacheByPubStatis(req.id)
         log.info('delete request cache non-subscribe: %o %o', req.id, JSON.stringify(req))
     } else {

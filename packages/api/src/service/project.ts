@@ -5,9 +5,15 @@ import { Sequelize } from 'sequelize-typescript'
 import { FindOptions } from 'sequelize/types'
 import User from '../models/user'
 import { ProRd } from '../redis'
+import Stat from './stat'
+import { StatT } from '../interface'
 
 const KEY = KEYS.Project
 const log = getAppLogger('project-service')
+
+interface ProInfo extends ProAttr {
+    stat: StatT
+}
 
 class Project {
 
@@ -38,6 +44,7 @@ class Project {
                 },
                 force
             })
+            // TODO: clear all relate statistic keys ?
             return Ok(re === 1)
         } catch (err) {
             log.error(`delete project ${id} error: %o`, err)
@@ -107,16 +114,27 @@ class Project {
         }
     }
 
-    static async list(userId?: number, chain?: string): PResultT<ProAttr[]> {
+    static async list(userId?: number, chain?: string): PResultT<ProInfo[]> {
         try {
 
             const option: FindOptions<ProAttr> = {}
-            // if (userId) { option.where = { [Op.and]: [{ userId }] } }
-            // if (chain) { option.where = { [Op.and]: [{ ...option.where, chain }] } }
-            if (userId) { option.where = { userId } }
+            if (userId) {
+                option.where = { userId }
+            }
             if (chain) { option.where = { ...option.where, chain: chain.toLowerCase() } }
             const re = await ProjectModel.findAll(option)
-            return Ok(re)
+            let res: ProInfo[] = []
+            if (userId) {
+                for (let pro of re) {
+                    const re = await Stat.proStatDaily(pro.chain, pro.pid)
+                    let ptmp = { ...(pro as any)['dataValues'] } as ProInfo
+                    ptmp.stat = re
+                    log.debug(`project info temp: %o`, ptmp)
+                    res.push(ptmp)
+                }
+            }
+            log.debug(`project info list: %o`, res)
+            return Ok(res)
         } catch (err) {
             log.error(`find projects of user[${userId}] ${chain} error: %o`, err)
             return Err(errMsg(err, 'find error'))

@@ -141,19 +141,6 @@ async function findByChainPid(ctx: KCtxT, next: NextT) {
     return next()
 }
 
-async function statusByChainPid(ctx: KCtxT, next: NextT) {
-    let { chain, pid, includeUser } = ctx.request.body
-    log.debug('get project detail: %o %o', chain, pid)
-    checkChainPid(chain, pid)
-    if (includeUser !== true) { includeUser = false }
-    let project = await Project.statusByChainPid(chain, pid, includeUser)
-    if (isErr(project)) {
-        throw Resp.Fail(Code.Pro_Err, project.value as Msg)
-    }
-    ctx.body = Resp.Ok(project.value)
-    return next()
-}
-
 // project count list of chain by user
 async function countOfChain(ctx: KCtxT, next: NextT) {
     const { chain } = ctx.request.body
@@ -371,23 +358,6 @@ R.post('/detail/chainpid', findByChainPid)
  */
 R.post('/detail/id', findById)
 
-/**
- * @api {post} /project/detail/status projectStatus
- * @apiDescription get project status and resource limit
- * @apiVersion 0.1.0
- * @apiGroup project
- * @apiSampleRequest off
- * 
- * @apiParam {String} chain
- * @apiParam {String} pid
- * 
- * @apiSuccess {Object} Status project status
- * @apiSuccess {Integer} Status.bwDayLimit
- * @apiSuccess {Integer} Status.reqDayLimit
- * @apiSuccess {Integer} Status.reqSecLimit
- * @apiSuccess {String{'active','stop','suspend'}} Status.status
- */
-R.post('/detail/status', statusByChainPid)
 
 /**
  *
@@ -424,21 +394,6 @@ R.post('/update/limit', updateLimit)
 
 /**
  *
- * @api {post} /project/status/ updateStatus
- * @apiDescription update project status
- * @apiGroup project
- * @apiVersion  0.1.0
- * @apiSampleRequest off
- * 
- * @apiParam {Number} id  project id
- * @apiParam {String} status  new status in ['active', 'stop', 'suspend']
- * 
- * @apiSuccess {String} none new status
- */
-R.post('/update/status', updateStatus)
-
-/**
- *
  * @api {post} /project/create create
  * @apiGroup project
  * @apiVersion  0.1.0
@@ -454,9 +409,9 @@ R.post('/update/status', updateStatus)
  * 
  * @apiSuccess {ProAttr} none  project created
  */
-R.post('/create', create)
+ R.post('/create', create)
 
-/**
+ /**
  *
  * @api {post} /project/delete delete
  * @apiDescription logic delete
@@ -469,5 +424,8 @@ R.post('/create', create)
  * @apiSuccess {Boolean} none delte result, success or not
  */
 R.post('/delete', deleteProject)
+
+// for job service
+R.post('/update/status', updateStatus)
 
 export default R.routes()
