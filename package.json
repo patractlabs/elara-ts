@@ -10,8 +10,6 @@
     "api": "yarn workspace @elara/api",
     "wsrpc": "yarn workspace @elara/wsrpc",
     "suducer": "yarn workspace @elara/suducer",
-    "noder": "yarn workspace @elara/node",
-    "chain": "yarn workspace @elara/chain",
     "job": "yarn workspace @elara/job",
     "script": "yarn workspace @elara/scripts",
     "lib": "yarn workspace @elara/lib",

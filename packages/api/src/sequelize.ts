@@ -17,7 +17,7 @@ const sequelize =  new Sequelize(dconf.table, dconf.user, dconf.password, {
         acquire: 30000,
         idle: 10000
     },
-    models: [__dirname + '/models/*.ts'],
+    // models: [__dirname + '/models/*'],
     logging: process.env.NODE_ENV === 'dev' ? msg => log.debug(msg) : false
 })
 

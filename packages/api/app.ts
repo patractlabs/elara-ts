@@ -15,6 +15,11 @@ import Conf from './config'
 import publicRouter from './src/routers/public'
 
 import sequelize from './src/sequelize'
+import User from './src/models/user'
+import Project from './src/models/project'
+import Chain from './src/models/chain'
+import Limit from './src/models/limit'
+import ChainConfig from './src/models/chain-config'
 
 dotenvInit()   // init dot env
 const app = new Koa()
@@ -54,6 +59,7 @@ app.on('error', (err) => {
 })
 
 app.listen(server.port, async () => {
+    sequelize.addModels([User, Project, Chain, ChainConfig, Limit])
     await sequelize.sync()
     log.info('elara api service listen on port %o: %o',server.port, process.env.NODE_ENV)
 })

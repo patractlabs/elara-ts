@@ -48,7 +48,7 @@ Model<ChainConfigAttr, ChainConfigCreateOptionAttr> {
     kvPort?: number
 
     @ForeignKey(() => Chain)
-    @Column
+    @Column(DataType.BIGINT)
     chainId?: number
 
     @BelongsTo(() => Chain)
