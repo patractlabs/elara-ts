@@ -29,7 +29,7 @@ export function startStamp(off: number = 1, unit: MomUnit): number {
 }
 
 export function todayStamp(): number {
-    const today = Mom().startOf('day')
+    const today = Mom().utc(true).startOf('day')
     log.debug('today is: %o', today)
     return today.valueOf()
 }

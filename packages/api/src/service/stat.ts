@@ -136,10 +136,14 @@ interface CountryT {
     request: number
 }
 
+function toMb(bytes: number): number {
+    return parseFloat((bytes/1000000.0).toFixed(2))
+}
+
 function getStatInfo(stat: StatT): StatInfoT {
     return {
         request: stat.reqCnt,
-        bandwidth: stat.bw
+        bandwidth: toMb(stat.bw)
     }
 }
 
@@ -160,7 +164,7 @@ class Stat {
         const stat = parseStatInfo(await Rd.hgetall(sKEY.hTotal()))
         return {
             request: stat.reqCnt,
-            bandwidth: stat.bw
+            bandwidth: toMb(stat.bw)
         }
     }
 

@@ -198,9 +198,12 @@ class Service {
         try {
             const today = todayStamp()
 
-            const keys = [KEY.hTotal(), KEY.hChainTotal(req.chain), KEY.hDaily(today),
-            KEY.hProDaily(chain, pid, today),
-            KEY.hProHourly(chain, pid, currentHourStamp())
+            const keys = [
+                KEY.hTotal(),
+                KEY.hChainTotal(req.chain),
+                KEY.hDaily(today),
+                KEY.hProDaily(chain, pid, today),
+                KEY.hProHourly(chain, pid, currentHourStamp())
             ]
             let dat: StatT
             // stat statistic

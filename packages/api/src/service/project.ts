@@ -117,7 +117,9 @@ class Project {
     static async list(userId?: number, chain?: string): PResultT<ProInfo[]> {
         try {
 
-            const option: FindOptions<ProAttr> = {}
+            const option: FindOptions<ProAttr> = {
+                order: [Sequelize.col('id')]
+            }
             if (userId) {
                 option.where = { userId }
             }
