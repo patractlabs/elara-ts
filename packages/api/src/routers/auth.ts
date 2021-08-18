@@ -153,7 +153,7 @@ async function home(ctx: KCtxT, next: NextT) {
         <title>patract.io 授权</title>
     </head>
     <body>
-        <a href= '/auth/github'> 登录</a>
+        <a href= '/api/auth/github'> 登录</a>
     </body>
     </html>`;
     return next();
