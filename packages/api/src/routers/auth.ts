@@ -123,6 +123,7 @@ async function githubCallback(ctx: KCtxT, next: NextT) {
 
             ctx.response.type = "html";
             ctx.response.body = html_login_success;
+            // ctx.response.redirect(userConf.loginUrl)
             return next();
         }
     )(ctx, next);
@@ -169,8 +170,13 @@ const html_login_success = `
 </head>
 <body>
     授权成功
+    <script>
+        window.onload = function () {
+        window.close();
+    }
+    </script>
 </body>
-</html>`;
+</html>`
 
 R.get("/login", login);
 R.get("/logout", logout);
