@@ -6,9 +6,9 @@ import Suber, { SuberTyp } from './matcher/suber'
 
 const log = getAppLogger('util')
 
-const UrlReg = (() => {
-    return /^\/([a-zA-Z]{4,20})\/([a-z0-9]{32})$/
-})()
+// const UrlReg = (() => {
+    // return /^\/([a-zA-Z]{4,20})\/([a-z0-9]{32})$/
+// })()
 
 namespace Util {
     export function reqFastStr(obj: JSON): string {
@@ -45,23 +45,24 @@ namespace Util {
 
     export async function urlParse(url: string): PResultT<ChainPidT> {
         const start = traceStart()
-        if (UrlReg.test(url)) {
-            const parse = UrlReg.exec(url)
-            const chain = parse![1].toLowerCase()
-            // chain check
-            if (!Chain.hasChain(chain)) {
-                return Err(`invalid chain[${chain}]`)
+        log.debug('get new request url: %o', url)
+        const par = url.split('/')
+        const chain = par[1].toLowerCase()
+        let pid = '00000000000000000000000000000000'    // for public
+        // chain check
+        if (!Chain.hasChain(chain)) {
+            return Err(`invalid chain[${chain}]`)
+        }
+        if (par.length === 3) {
+            if (par[2].length === 32) {
+                pid = par[2]
+            } else {
+                return Err(`Invalid request path: ${url}`)
             }
-            // pid check
-            // TODO
-            return Ok({
-                chain,
-                pid: parse![2]
-            })
         }
         const time = traceEnd(start)
         log.debug(`url parse time: ${time}`)
-        return Err(`Invalid request path`)
+        return Ok({ chain, pid })
     }
 
     export function traceStart(): number {
