@@ -17,7 +17,8 @@ export interface ChainConfigAttr {
 interface ChainConfigCreateOptionAttr extends Optional<ChainConfigAttr, 'id'> {}
 
 @Table({
-    paranoid: true
+    paranoid: true,
+    tableName: 'chain-configs'
 })
 export default class ChainConfig extends 
 Model<ChainConfigAttr, ChainConfigCreateOptionAttr> {

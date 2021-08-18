@@ -27,7 +27,8 @@ export interface ProAttr {
 interface ProCreateOptionAttr extends Optional<ProAttr, 'id'> { }
 
 @Table({
-    paranoid: true
+    paranoid: true,
+    tableName: 'projects'
 })
 export default class Project extends Model<ProAttr, ProCreateOptionAttr> {
     @PrimaryKey

@@ -48,7 +48,9 @@ export interface UserAttr {
 
 interface UserCreateOptionAttr extends Optional<UserAttr, "id"> {}
 
-@Table
+@Table({
+    tableName: 'users'
+})
 export default class User extends Model<UserAttr, UserCreateOptionAttr> {
     @PrimaryKey
     @AutoIncrement

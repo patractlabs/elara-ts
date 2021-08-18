@@ -13,7 +13,9 @@ export interface LimitAttr {
 
 interface LimitCreateOptionAttr extends Optional<LimitAttr, 'id'> { }
 
-@Table
+@Table({
+    tableName: 'limits'
+})
 export default class Limit extends Model<LimitAttr, LimitCreateOptionAttr>
     implements LimitAttr {
     @PrimaryKey

@@ -21,7 +21,8 @@ export interface ChainAttr {
 interface ChainCreateOptionAttr extends Optional<ChainAttr, 'id'> {}
 
 @Table({
-    paranoid: true
+    paranoid: true,
+    tableName: 'chains'
 })
 export default class Chain extends Model<ChainAttr, ChainCreateOptionAttr> {
     @PrimaryKey
