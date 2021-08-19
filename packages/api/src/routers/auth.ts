@@ -55,6 +55,7 @@ async function login(ctx: KCtxT, next: NextT) {
             throw Resp.Fail(500, ure.value as Msg)
         }
         const user = ure.value
+        user.id = parseInt(user.id.toString())
         // project count
         const cntre = await Project.countOfUser(user.id)
         if (isErr(cntre)) {
