@@ -256,7 +256,9 @@ class Service {
             //     SttRd.setex(KEY.stat(req.chain, req.pid, key), rconf.expireFactor + 3600, reqStat)
             //     SttRd.zadd(KEY.zStatList(), now.valueOf(), `${req.chain}_${req.pid}_${key}`)
             // }
-            resourceCheck(chain, pid)
+            if (pid !== '00000000000000000000000000000000') {
+                resourceCheck(chain, pid)
+            }
         } catch (err) {
             log.error(`dump request statistic [${req.chain}-${req.pid}] error: %o`, err)
         }
