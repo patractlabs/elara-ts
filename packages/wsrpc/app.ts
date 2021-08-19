@@ -243,6 +243,9 @@ async function run(): PVoidT {
     unexpectListener()
 
     await Service.init()
+
+
+
     Server.listen(conf.port, () => {
         log.info(`Elara server listen on port: ${conf.port}`)
     })

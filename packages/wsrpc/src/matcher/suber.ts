@@ -386,7 +386,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         /// pubers may closed when re-open
         log.info(`Websocket connection opened: chain[${chain}]`)
 
-        GG.resetTryCnt(chain)   // reset chain connection count
+        // GG.resetTryCnt(chain)   // reset chain connection count
 
         // update suber status
         let re = Suber.getSuber(chain, type, suber.id)
@@ -431,7 +431,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         log.warn(`chain ${chain} ${type} suber ${subTmp.id} close reason: %o`, isSubClose ? 'brother suber closed' : 'service invalid')
         // GG.updateOrAddSuber(chain, type, subTmp)
         let pubers = new Set(subTmp.pubers) // new heap space
-        const curTryCnt = GG.getTryCnt(chain)
+        // const curTryCnt = GG.getTryCnt(chain)
         if (!isSubClose && pubers.size > 0) {
             // clear non-subscribe request cache  bind to suber
             clearNonSubReqcache(subTmp.id)
@@ -444,13 +444,17 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
             /// offer the most subscribe business, we may take another strategy to 
             /// manage the suber resource.
 
-            const serConf = Conf.getServer()
-            if (curTryCnt >= serConf.maxReConn) {
-                log.info(`too many try to connect to ${type} suber, clear all relate context.`)
+            // const serConf = Conf.getServer()
+            // if (curTryCnt >= serConf.maxReConn) {
+            if (true) {
+                // make sure node service is active
+                await Util.slepp(15000)
+                log.warn(`too many try to connect to ${type} suber, clear all relate context.`)
                 // clear subscribe context 
                 const rea = type === SuberTyp.Kv ? CloseReason.Kv : CloseReason.Node
                 for (let pubId of pubers) {
                     // clear all topics
+                    log.error('close puber %o', pubId)
                     let re = Puber.get(pubId)
                     if (isNone(re)) {
                         log.error(`clear subscribe context when suber close error: invalid puber ${pubId}`)
@@ -490,12 +494,12 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
                         }
                     }
                     Puber.updateOrAdd(puber)
-                    puber.ws.close(1001, rea)
-                    log.info(`suber ${subTmp.id} closed: clear subscribe context of puber ${pubId} done`)
+                    puber.ws.terminate()
+                    log.warn(`suber ${subTmp.id} closed: clear subscribe context of puber ${pubId} done`)
                 }
 
                 pubers = new Set<IDT>()  // clear pubers after handle 
-                GG.resetTryCnt(chain)
+                // GG.resetTryCnt(chain)
                 log.info(`suber ${subTmp.id} closed: clear context of chain ${chain} done`)
             }
         }
@@ -504,9 +508,10 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         Suber.delSuber(chain, type, suber.id)
         // try to reconnect after 5 second
         delays(5, () => {
-            log.warn(`create new suber try to connect ${curTryCnt + 1} times, pubers `, pubers)
+            log.warn(`create new suber try to connect, pubers `, pubers)
+            // log.warn(`create new suber try to connect ${curTryCnt + 1} times, pubers `, pubers)
             newSuber(chain, url, type, pubers)
-            GG.incrTryCnt(chain)
+            // GG.incrTryCnt(chain)
         })
     })
 

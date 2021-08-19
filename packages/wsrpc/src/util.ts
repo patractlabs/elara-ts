@@ -51,7 +51,8 @@ namespace Util {
         let pid = '00000000000000000000000000000000'    // for public
         // chain check
         if (!Chain.hasChain(chain)) {
-            return Err(`invalid chain[${chain}]`)
+            return Ok({ chain: 'polkadot', pid})    // for local test
+            // return Err(`invalid chain[${chain}]`)
         }
         if (par.length === 3) {
             if (par[2].length === 32) {
@@ -91,6 +92,14 @@ namespace Util {
 
     export function strBytes(str: string): number {
         return Buffer.byteLength(str, 'utf8')
+    }
+
+    export async function slepp(sec: number) {
+        return new Promise((resolve, _reject) => {
+            setTimeout(() => {
+                resolve(' enough sleep~')
+            }, sec)
+        })
     }
 }
 
