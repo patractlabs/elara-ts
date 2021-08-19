@@ -164,10 +164,13 @@ async function countOfUser(ctx: KCtxT, next: NextT) {
     return next()
 }
 
-async function list(ctx: KCtxT, next: NextT) {
+async function listWithStatus(ctx: KCtxT, next: NextT) {
     const { userId, chain } = ctx.request.body
-    log.debug(`get project list: ${userId}, ${chain}`)
-    let re = await Project.list(userId, chain)
+    log.debug(`get ${chain} project list with status of user: ${userId}`)
+    if (!Number.isInteger(userId)) {
+        throw Resp.Fail(400, 'userId must be integer' as Msg)
+    }
+    let re = await Project.listWithStatusByUser(userId, chain)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }
@@ -248,7 +251,6 @@ async function deleteProject(ctx: KCtxT, next: NextT) {
  * @apiVersion 0.1.0
  * 
  * @apiParam {Number} [userId]  integer userId, list of userId
- * @apiParam {String} [chain]   chain name, list of chain
  * 
  * @apiSuccess {ProAttr[]} project list of project
  * @apiSuccess {Number} project.id project id, integer
@@ -278,7 +280,7 @@ async function deleteProject(ctx: KCtxT, next: NextT) {
  * 
  * @apiSampleRequest off
  */
-R.post('/list', list)
+R.post('/list', listWithStatus)
 
 /**
  * @api {post} /project/count/chain countOfChain

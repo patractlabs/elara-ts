@@ -79,7 +79,7 @@ export function statAdd(l: StatT, r: StatT): StatT {
 export function parseStatInfo(stat: Record<string, string>): StatT {
     return {
         reqCnt: parseInt(stat.reqCnt ?? '0'),
-        bw: parseInt(stat.bw ?? '0'),
+        bw: toMb(parseInt(stat.bw ?? '0')),
         wsConn: parseInt(stat.wsConn ?? '0'),
         subCnt: parseInt(stat.subCnt ?? '0'),
         subResCnt: parseInt(stat.subResCnt ?? '0'),

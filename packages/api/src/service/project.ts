@@ -15,6 +15,10 @@ interface ProInfo extends ProAttr {
     stat: StatT
 }
 
+function toMb(bytes: number): number {
+    return parseFloat((bytes/1000000.0).toFixed(2))
+}
+
 class Project {
 
     static async create(pro: ProAttr): PResultT<ProAttr> {
@@ -114,31 +118,30 @@ class Project {
         }
     }
 
-    static async list(userId?: number, chain?: string): PResultT<ProInfo[]> {
+    static async listWithStatusByUser(userId: number, chain?: string): PResultT<ProInfo[]> {
         try {
-
             const option: FindOptions<ProAttr> = {
+                where: { userId },
                 order: [Sequelize.col('id')]
             }
-            if (userId) {
-                option.where = { userId }
+
+            if (chain) {
+                option.where = { ...option.where, chain}
             }
-            if (chain) { option.where = { ...option.where, chain: chain.toLowerCase() } }
             const re = await ProjectModel.findAll(option)
             let res: ProInfo[] = []
-            if (userId) {
-                for (let pro of re) {
-                    const re = await Stat.proStatDaily(pro.chain, pro.pid)
-                    let ptmp = { ...(pro as any)['dataValues'] } as ProInfo
-                    ptmp.stat = re
-                    log.debug(`project info temp: %o`, ptmp)
-                    res.push(ptmp)
-                }
+            for (let pro of re) {
+                const re = await Stat.proStatDaily(pro.chain, pro.pid)
+                re.bw = toMb(re.bw)
+                let ptmp = { ...(pro as any)['dataValues'] } as ProInfo
+                ptmp.stat = re
+                log.debug(`project info temp: %o`, ptmp)
+                res.push(ptmp)
             }
-            log.debug(`project info list: %o`, res)
+            log.debug(`${chain} project info list of user[${userId}]: %o`, res)
             return Ok(res)
         } catch (err) {
-            log.error(`find projects of user[${userId}] ${chain} error: %o`, err)
+            log.error(`find projects of user[${userId}] error: %o`, err)
             return Err(errMsg(err, 'find error'))
         }
     }
