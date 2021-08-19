@@ -54,15 +54,16 @@ async function login(ctx: KCtxT, next: NextT) {
         if (isErr(ure)) {
             throw Resp.Fail(500, ure.value as Msg)
         }
-        const user = ure.value
-        user.id = parseInt(user.id.toString())
+        let user = (ure.value as any)['dataValues']
+        user = {...user, id: parseInt(user.id.toString())}
+        // log.error(`user object: %o`, user)
         // project count
         const cntre = await Project.countOfUser(user.id)
         if (isErr(cntre)) {
             log.error('user login get project count error: %o', cntre.value)
             throw Resp.Fail(500, cntre.value as Msg)
         }
-        ctx.response.body = Resp.Ok({user, projectNum: cntre.value as Number});
+        ctx.body = Resp.Ok({user, projectNum: cntre.value as Number});
     } else {
         throw Resp.Fail(Code.Auth_Fail, Msg.Auth_Fail);
     }

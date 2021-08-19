@@ -135,7 +135,7 @@ class Project {
                 re.bw = toMb(re.bw)
                 let ptmp = { ...(pro as any)['dataValues'] } as ProInfo
                 ptmp.stat = re
-                log.debug(`project info temp: %o`, ptmp)
+                // log.debug(`project info temp: %o`, ptmp)
                 res.push(ptmp)
             }
             log.debug(`${chain} project info list of user[${userId}]: %o`, res)
@@ -183,7 +183,7 @@ class Project {
                 option.group = Sequelize.col('chain')
             }
             const re = await ProjectModel.findAll(option)
-            log.debug(`project count of user ${userId}: %o`, re)
+            // log.debug(`project count of user ${userId}: %o`, re)
             if (byChain) {
                 return Ok(re)
             }
