@@ -51,8 +51,8 @@ namespace Util {
         let pid = '00000000000000000000000000000000'    // for public
         // chain check
         if (!Chain.hasChain(chain)) {
-            // return Ok({ chain: 'polkadot', pid})    // for local test
-            return Err(`invalid chain[${chain}]`)
+            return Ok({ chain: 'polkadot', pid})    // for local test
+            // return Err(`invalid chain[${chain}]`)
         }
         if (par.length === 3) {
             if (par[2].length === 32) {

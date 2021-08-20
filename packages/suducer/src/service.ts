@@ -40,7 +40,7 @@ const sendWithoutParam = (chain: string, method: string, type: SuducerT) => {
 
 const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT, stratgy?: CacheStrategyT) => {
 
-    // TODO v0.2: extends & excludes list
+    // TODO : extends & excludes list
     // const extens: string[] = G.getExtends(chain, stratgy as any)
     // const nrpcs = [...rpcs, ...extens]
     // const excludes = G.getExcludes(chain)

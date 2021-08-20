@@ -1,29 +1,11 @@
 {
-    "redis": {
-        "host": "127.0.0.1",
-        "port": 6379,
-        "db": 0,
-        "password": ""
-    },
-    "db": {
-        "host": "127.0.0.1",
-        "port": 5432,
-        "table": "elara",
-        "user": "root",
-        "password": "root"
-    },
     
-    "limit": {
-        "maxProjectNum": 10
-    },
     "user":{
         "loginUrl": "http://47.111.179.222:7000/auth/github/home",
         "github": {
             "clientID": "d67ed989933a697a9f9e",
             "clientSecret": "62f03bbe91e679f8c819cd4763a44d6ab27308ce",
             "callbackUrl": "http://47.111.179.222:7000/auth/github/callback"
-        },
-        "defaultLevel": "normal",
-        "apiKey": "elara"
+        }
     }
 }

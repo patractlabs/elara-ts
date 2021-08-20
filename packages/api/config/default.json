@@ -1,45 +1,28 @@
 {
     "server": {
-        "port": 7000,
-        "isTest": true
+        "port": 7000
     },
+
     "redis": {
         "host": "127.0.0.1",
         "port": 6379,
-        "db": 0,
         "password": ""
     },
+
     "db": {
         "host": "127.0.0.1",
         "port": 5432,
         "table": "elara",
         "user": "root",
-        "password": "LlZ9L8zx13ASshRysD3bCQ"
-    },
-    "limit": {
-        "requestLimit": {
-            "develop": 1000000,
-            "team": 5000000
-        },
-        "projectLimit": {
-            "develop": 10,
-            "team": 50
-        },
-        "reqSecLimit": 10,
-        "bwDayLimit": 1024000000,   
-        "maxProjectNum": 10,
-        "timeout": 5000,
-        "maxReqKeep": 100
+        "password": "root"
     },
 
     "user":{
-        "loginUrl": "http://47.111.179.222:7000/auth/github/home",
+        "loginUrl": "your_login_url",
         "github": {
-            "clientID": "d67ed989933a697a9f9e",
-            "clientSecret": "7dadbfa07c43571d9bfedbcca0fe9d59ccc6cf92",
-            "callbackUrl": "http://47.111.179.222:7000/auth/github/callback"
-        },
-        "defaultLevel": "normal",
-        "apiKey": "elara"
+            "clientID": "your_github_clientId",
+            "clientSecret": "your_secret",
+            "callbackUrl": "your_github_callback_url"
+        }
     }
 }

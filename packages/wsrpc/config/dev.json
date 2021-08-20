@@ -2,9 +2,11 @@
     "redis": {
         "host": "127.0.0.1"
     },
+
     "wspool": {
         "poolSize": 5
     },
+    
     "server": {
         "port": 9944,
         "maxReConn": 1

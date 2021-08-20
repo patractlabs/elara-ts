@@ -5,7 +5,6 @@ import Config from 'config'
 interface ServerConf {
     id: number,
     port: number,
-    maxWsConn: number,
     maxReConn: number,
     apiHost: string,
     apiPort: number

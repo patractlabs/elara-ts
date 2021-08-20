@@ -1,7 +1,7 @@
 import Config from 'config'
 
 interface ServerConf {
-    id: number,
+    id: number,     // match the chain configure serverId
     maxReconnTry: number,
     cachePoolSize: number
 }
