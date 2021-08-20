@@ -2,4 +2,5 @@ logs
 node_modules
 .vscode
 dist
+config/pro.json
 .env

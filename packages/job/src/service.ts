@@ -193,8 +193,10 @@ class Service {
         const data = stream[1][1]
         const req = JSON.parse(data) as Statistics
         const { chain, pid } = req
-
         log.debug('dump new request statistic: %o', data)
+        if (chain === undefined || pid === undefined) {
+            return
+        }
         try {
             const today = todayStamp()
 
@@ -218,6 +220,7 @@ class Service {
             // 30 days statistic
             SttRd.zincrby(KEY.zProBw(chain, pid), parseInt(req.bw?.toString() ?? '0'), method)
             SttRd.zincrby(KEY.zProReq(chain, pid), 1, method)
+
             // daily reord
             SttRd.zincrby(KEY.zProDailyBw(chain, pid, today), parseInt(req.bw?.toString() ?? '0'), method)
             SttRd.zincrby(KEY.zProDailyReq(chain, pid, today), 1, method)

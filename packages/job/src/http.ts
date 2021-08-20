@@ -6,7 +6,7 @@ import { ProAttr, StatT, UserAttr } from './interface'
 const conf = Conf.getApiServer()
 const log = getAppLogger('http')
 
-const baseUrl = `http://${conf.host}:${conf.port}`
+const baseUrl = `http://${conf.host}:${conf.port}/api`
 
 export default class HttpUtil {
 
