@@ -215,15 +215,17 @@ class Service {
                 statisticDump(req, key, dat)
             }
 
-            // method statistic, keep 30 days
-            const method = req.req.method
-            // 30 days statistic
-            SttRd.zincrby(KEY.zProBw(chain, pid), parseInt(req.bw?.toString() ?? '0'), method)
-            SttRd.zincrby(KEY.zProReq(chain, pid), 1, method)
+            if (req.req !== undefined && req.req.method !== undefined) {
+                // method statistic, keep 30 days
+                const method = req.req.method
+                // 30 days statistic
+                SttRd.zincrby(KEY.zProBw(chain, pid), parseInt(req.bw?.toString() ?? '0'), method)
+                SttRd.zincrby(KEY.zProReq(chain, pid), 1, method)
 
-            // daily reord
-            SttRd.zincrby(KEY.zProDailyBw(chain, pid, today), parseInt(req.bw?.toString() ?? '0'), method)
-            SttRd.zincrby(KEY.zProDailyReq(chain, pid, today), 1, method)
+                // daily reord
+                SttRd.zincrby(KEY.zProDailyBw(chain, pid, today), parseInt(req.bw?.toString() ?? '0'), method)
+                SttRd.zincrby(KEY.zProDailyReq(chain, pid, today), 1, method)
+            }
 
             // country request map
             SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, ip2county(req.header.ip.split(':')[0]))
@@ -233,6 +235,7 @@ class Service {
             const key = md5(data)
             if (req.code !== 200) {
                 // error statistic
+                if (req.req === undefined || req.req.method === undefined) { return }
                 const errStat = JSON.stringify({
                     proto: req.proto,
                     method: req.req.method,
