@@ -147,13 +147,18 @@ function getStatInfo(stat: StatT): StatInfoT {
     }
 }
 
-async function methodStatic(lis: string[]): Promise<RankT> {
+async function methodStatic(lis: string[], isBandwidth: boolean = false): Promise<RankT> {
     let total = 0
     let list = []
     for (let i = 0; i < lis.length; i += 2) {
-        const cnt = parseInt(lis[i + 1])
-        total += cnt
-        list.push({ method: lis[i], value: cnt })
+
+        let val = parseInt(lis[i + 1])
+        if (isBandwidth) {
+            val = toMb(val)
+        }
+        
+        total += val
+        list.push({ method: lis[i], value: val })
     }
     return { total, list }
 }
@@ -263,7 +268,7 @@ class Stat {
         const req = await Rd.zrevrange(sKEY.zProReq(chain, pid), 0, 20 - 1, 'WITHSCORES')
         log.debug('rank list: %o \n %o', bw, req)
         return {
-            bandwidth: await methodStatic(bw),
+            bandwidth: await methodStatic(bw, true),
             request: await methodStatic(req)
         }
     }
