@@ -14,15 +14,23 @@ import sequelize from '../api/src/sequelize'
 // const get = Got.get
 // const post = Got.post
 const log = getAppLogger('migrate')
-const ProRd = new Redis(DBT.Project).getClient()
-const UserRd = new Redis(DBT.User).getClient()
+const ProRd = new Redis(DBT.Project, {
+    host: "127.0.0.1", port: 6379, options: {
+        password: "passw"
+    }
+}).getClient()
+const UserRd = new Redis(DBT.User, {
+    host: "127.0.0.1", port: 6379, options: {
+        password: "passw"
+    }
+}).getClient()
 
 // const url = 'http://localhost:7000/api'
 
 export async function migrateProjectCreate(pro: ProAttr): PVoidT {
     try {
         let chain = pro.chain.toLowerCase()
-        if (chain === 'moonbase') { chain = 'moonbasealpha'}
+        if (chain === 'moonbase') { chain = 'moonbasealpha' }
         if (chain === 'moonbeam') { chain = 'moonriver' }
         const cre = await Chain.findByName(chain)
         if (isErr(cre)) {
@@ -44,7 +52,7 @@ export async function migrateProjectCreate(pro: ProAttr): PVoidT {
         if (re === null) {
             log.error('create error')
         }
-        ProRd.hmset(KEYS.Project.hProjectStatus(chain, pro.pid), 'status', 'active', 'user', pro.userId)
+        await ProRd.hmset(KEYS.Project.hProjectStatus(chain, pro.pid), 'status', 'active', 'user', pro.userId)
     } catch (err) {
         log.error('create project error: %o', err)
     }
@@ -73,7 +81,7 @@ export async function migrateUserCreate(githubId: string, name: string) {
             log.error('create user error')
         }
         log.debug('UserModel create result: %o', re.id)
-        UserRd.hset(KEYS.User.hStatus(re.id), 'status', 'active')
+        await UserRd.hset(KEYS.User.hStatus(re.id), 'status', 'active')
         return Ok(re)
     } catch (err) {
         log.error('create user error: %o', err)
@@ -83,7 +91,7 @@ export async function migrateUserCreate(githubId: string, name: string) {
 }
 
 export async function parseData() {
-    const fil = JSON.parse(fs.readFileSync('C:\\Users\\Bruce\\Downloads\\data.json', 'utf-8').toString())
+    const fil = JSON.parse(fs.readFileSync('/root/data_test.json', 'utf-8').toString())
 
     // log.info('data: ', fil)
 
