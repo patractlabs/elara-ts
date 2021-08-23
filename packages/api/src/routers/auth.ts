@@ -99,10 +99,10 @@ async function githubCallback(ctx: KCtxT, next: NextT) {
             const sid = randomId(24)
 
             // find by github user name
-            const re = await User.findUserByGitName(userName)
+            const re = await User.findUserByGit(githubId)
             if (isErr(re)) {
                 // new user
-                const name = user.username;
+                const name = userName;
                 let cuser = await User.create({
                     githubId,
                     name,
@@ -116,18 +116,9 @@ async function githubCallback(ctx: KCtxT, next: NextT) {
                 ctx.login(githubId);
                 ctx.session["sid"] = sid;
             } else {
-                // const re = await User.findUserByGit(githubId)
                 const userModel = re.value as UserAttr;
                 if (userModel != null) {
-                    // user exist
-                    // user migrate from elara 1.0
-                    if (githubId !== userModel.githubId) {
-                        // update user githubID
-                        log.warn(`user[${userName}] migrate, new githubID[${githubId}] origin id[${userModel.githubId}]`)
-                        // TODO
-                        await User.updateGitIdByGitName(userName, githubId)
-                    }
-                    // set github login
+                    // user exist, set github login
                     ctx.login(githubId);
                     ctx.session["sid"] = sid;
                 }
