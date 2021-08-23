@@ -140,7 +140,7 @@ export async function mockChain(url: string) {
         },
         {
             name: 'Rococo',
-            Network: Network.Rococo,
+            network: Network.Rococo,
             team: 'Parity'
         },
         {
@@ -204,12 +204,13 @@ export async function mockChain(url: string) {
             team: 'Moonbeam'
         }
     ] as ChainAttr[]
-    chains.forEach(async chain => {
+    for(let chain of chains) {
+        log.info('create chain: ', chain)
         await post(url + '/chain/add', chain)
-    })
+    }
 }
 
-async function mockUser(url: string) {
+export async function mockUser(url: string) {
     const user = {
         name: 'Bruce',
         loginType: LoginType.Github,
@@ -219,7 +220,7 @@ async function mockUser(url: string) {
     post(url + '/user/create', user)
 }
 
-async function mockProject(url: string) {
+export async function mockProject(url: string) {
     const pros = [
         {
             name: 'web3',
@@ -237,18 +238,18 @@ async function mockProject(url: string) {
     })
 }
 
-async function auth(url: string) {
+export async function auth(url: string) {
     get(url + '/stat/total')
 }
 
 async function mockRun() {
-    const url = 'http://localhost:7000'
+    const url = 'http://localhost:7000/api'
     log.info('current url: ', url)
-    // await mockLimit(url)
+    await mockLimit(url)
     await mockChain(url)
     // await mockUser(url)
-    await auth(url)
-    await mockProject(url)
+    // await auth(url)
+    // await mockProject(url)
 }
 
 mockRun()

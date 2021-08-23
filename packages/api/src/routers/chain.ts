@@ -31,7 +31,7 @@ const addChain = async (ctx: KCtxT, next: NextT) => {
     const req: ChainAttr = ctx.request.body
     log.debug('add Chain request: %o', req)
     const { name, team, network } = ctx.request.body
-    if (!name || !network || !team || !name) {
+    if (!name || !network || !team) {
         throw Resp.Fail(400, 'invalid params' as Msg)
     }
 
