@@ -57,6 +57,7 @@ export default class User extends Model<UserAttr, UserCreateOptionAttr> {
     @Column(DataType.BIGINT)
     id!: number;
 
+    @Unique
     @Column(DataType.STRING)
     name!: string;
 

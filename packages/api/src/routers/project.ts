@@ -191,10 +191,31 @@ async function updateStatus(ctx: KCtxT, next: NextT) {
 
 async function updateLimit(ctx: KCtxT, next: NextT) {
     let { id, reqSecLimit, reqDayLimit, bwDayLimit } = ctx.request.body
+    if (!Number.isInteger(id)) {
+        throw Resp.Fail(400, 'project id must be integer' as Msg)
+    }
     const pro = { id } as ProAttr
-    if (reqSecLimit) { pro.reqSecLimit = reqSecLimit }
-    if (reqDayLimit) { pro.reqDayLimit = reqDayLimit }
-    if (bwDayLimit) { pro.bwDayLimit = bwDayLimit }
+    if (reqSecLimit) {
+        if (!Number.isInteger(reqSecLimit)) {
+            throw Resp.Fail(400, 'second request limit must be integer' as Msg)
+        }
+        reqSecLimit = reqSecLimit < 0 ? -1 : reqSecLimit
+        pro.reqSecLimit = reqSecLimit
+    }
+    if (reqDayLimit) {
+        if (!Number.isInteger(reqDayLimit)) {
+            throw Resp.Fail(400, 'daily request limit must be integer' as Msg)
+        }
+        reqDayLimit = reqDayLimit < 0 ? -1 : reqDayLimit
+        pro.reqDayLimit = reqDayLimit
+    }
+    if (bwDayLimit) {
+        if (!Number.isInteger(bwDayLimit)) {
+            throw Resp.Fail(400, 'daily bandwidth limit must be integer' as Msg)
+        }
+        bwDayLimit = bwDayLimit < 0 ? -1 : bwDayLimit
+        pro.bwDayLimit = bwDayLimit
+    }
 
     const re = await Project.update(pro)
     if (isErr(re)) {
@@ -410,20 +431,20 @@ R.post('/update/limit', updateLimit)
  * 
  * @apiSuccess {ProAttr} none  project created
  */
- R.post('/create', create)
+R.post('/create', create)
 
- /**
- *
- * @api {post} /project/delete delete
- * @apiDescription logic delete
- * @apiGroup project
- * @apiVersion  0.1.0
- * @apiSampleRequest off
- * 
- * @apiParam {Number} id  project id
- * 
- * @apiSuccess {Boolean} none delte result, success or not
- */
+/**
+*
+* @api {post} /project/delete delete
+* @apiDescription logic delete
+* @apiGroup project
+* @apiVersion  0.1.0
+* @apiSampleRequest off
+* 
+* @apiParam {Number} id  project id
+* 
+* @apiSuccess {Boolean} none delte result, success or not
+*/
 R.post('/delete', deleteProject)
 
 // for job service

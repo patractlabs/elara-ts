@@ -80,6 +80,16 @@ export default class User {
         })
     }
 
+    static async updateGitIdByGitName(name: string, githubId: string): PVoidT {
+        UserModel.update({
+            githubId
+        }, {
+            where: {
+                name,
+            }
+        })
+    }
+
     // if paranoid === false, will find deleted
     static async findUserByGit(githubId: string, paranoid: boolean = true): PResultT<UserAttr> {
         const user = await UserModel.findOne({
@@ -87,6 +97,18 @@ export default class User {
             paranoid
         })
         log.debug(`user of githubId[${githubId}]: ${user}`)
+        if (user === null) {
+            return Err('no this user')
+        }
+        return Ok(user)
+    }
+
+    static async findUserByGitName(name: string, paranoid: boolean = true): PResultT<UserAttr> {
+        const user = await UserModel.findOne({
+            where: { name },
+            paranoid
+        })
+        log.debug(`user of github [${name}]: ${user}`)
         if (user === null) {
             return Err('no this user')
         }

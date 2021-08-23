@@ -95,17 +95,13 @@ async function githubCallback(ctx: KCtxT, next: NextT) {
             }
 
             const githubId = user.id;
-            const re = await User.findUserByGit(githubId);
-            const sid = randomId(24);
-            const userModel = re as unknown as UserAttr;
-            if (userModel != null) {
-                //存在用户
-                //设置登陆
-                ctx.login(githubId);
-                ctx.session["sid"] = sid;
-            }
+            const userName = user.username
+            const sid = randomId(24)
 
+            // find by github user name
+            const re = await User.findUserByGitName(userName)
             if (isErr(re)) {
+                // new user
                 const name = user.username;
                 let cuser = await User.create({
                     githubId,
@@ -114,13 +110,27 @@ async function githubCallback(ctx: KCtxT, next: NextT) {
                 } as UserAttr);
 
                 if (isErr(cuser)) {
-                    //新建用户失败，重定向到登陆页
-                    //重定向到登陆页
                     ctx.response.redirect(userConf.loginUrl);
                     return next();
                 }
                 ctx.login(githubId);
                 ctx.session["sid"] = sid;
+            } else {
+                // const re = await User.findUserByGit(githubId)
+                const userModel = re.value as UserAttr;
+                if (userModel != null) {
+                    // user exist
+                    // user migrate from elara 1.0
+                    if (githubId !== userModel.githubId) {
+                        // update user githubID
+                        log.warn(`user[${userName}] migrate, new githubID[${githubId}] origin id[${userModel.githubId}]`)
+                        // TODO
+                        await User.updateGitIdByGitName(userName, githubId)
+                    }
+                    // set github login
+                    ctx.login(githubId);
+                    ctx.session["sid"] = sid;
+                }
             }
 
             ctx.response.type = "html";

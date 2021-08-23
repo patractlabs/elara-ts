@@ -4,7 +4,7 @@ import { errMsg } from '../util'
 import { Sequelize } from 'sequelize-typescript'
 import { FindOptions } from 'sequelize/types'
 import User from '../models/user'
-import { ProRd } from '../redis'
+import { ProRd, UserRd } from '../redis'
 import Stat from './stat'
 import { StatT } from '../interface'
 
@@ -16,7 +16,7 @@ interface ProInfo extends ProAttr {
 }
 
 function toMb(bytes: number): number {
-    return parseFloat((bytes/1000000.0).toFixed(2))
+    return parseFloat((bytes / 1000000.0).toFixed(2))
 }
 
 class Project {
@@ -58,7 +58,53 @@ class Project {
 
     static async update(pro: ProAttr): PResultT<[number, ProjectModel[]]> {
         try {
-            // update limit
+            const re = await ProjectModel.update(pro, {
+                where: { id: pro.id }
+            })
+            return Ok(re)
+        } catch (err) {
+            log.error(`update project ${pro.id} error: %o`, err)
+            return Err(errMsg(err, 'update error'))
+        }
+    }
+
+    static async updateLimit(pro: ProAttr): PResultT<[number, ProAttr[]]> {
+        try {
+            const prom = await ProjectModel.findOne({
+                where: { id: pro.id },
+                include: [User]
+            })
+            if (prom === null || prom.chain === undefined || prom.pid === undefined) {
+                log.error(`update limit error: invalid project [${pro.id}]`)
+                return Err(`invalid project [${pro.id}]`)
+            }
+
+            // fetch current usage
+            const stat = await Stat.proStatDaily(prom.chain, prom.pid)
+
+            if (prom.status === 'active') {
+                if ((pro.reqDayLimit && pro.reqDayLimit <= stat.reqCnt) ||
+                    (pro.bwDayLimit && pro.bwDayLimit <= stat.bw)) {
+                    // set suspend
+                    pro.status = 'suspend' as ProStatus
+                    // update redis cache
+                    ProRd.hset(KEY.hProjectStatus(pro.chain, pro.pid), 'status', 'suspend')
+                }
+            } else if (prom.status === 'suspend') {
+                // check if user status is ok
+                const ustat = await UserRd.hget(KEYS.User.hStatus(prom.userId), 'status')
+                log.debug(`user status of project[${pro.id}]: ${ustat}`)
+
+                const userStatOk = ustat === 'active'
+                if (userStatOk &&
+                    ((pro.reqDayLimit && pro.reqDayLimit >= stat.reqCnt) ||
+                        (pro.bwDayLimit && pro.bwDayLimit <= stat.bw))) {
+                    pro.status = 'active' as ProStatus
+                    // update cache
+                    ProRd.hset(KEY.hProjectStatus(pro.chain, pro.pid), 'status', 'active')
+                }
+            }
+
             const re = await ProjectModel.update(pro, {
                 where: { id: pro.id }
             })
@@ -126,7 +172,7 @@ class Project {
             }
 
             if (chain) {
-                option.where = { ...option.where, chain}
+                option.where = { ...option.where, chain }
             }
             const re = await ProjectModel.findAll(option)
             let res: ProInfo[] = []
