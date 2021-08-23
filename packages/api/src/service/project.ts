@@ -81,16 +81,19 @@ class Project {
 
             // fetch current usage
             const stat = await Stat.proStatDaily(prom.chain, prom.pid)
-
+            log.debug(`project user info: %o `, prom)
             if (prom.status === 'active') {
+                log.debug(`into projec limit update, current status active`)
                 if ((pro.reqDayLimit && pro.reqDayLimit <= stat.reqCnt) ||
                     (pro.bwDayLimit && pro.bwDayLimit <= stat.bw)) {
                     // set suspend
                     pro.status = 'suspend' as ProStatus
                     // update redis cache
-                    ProRd.hset(KEY.hProjectStatus(pro.chain, pro.pid), 'status', 'suspend')
+                    ProRd.hset(KEY.hProjectStatus(prom.chain, prom.pid), 'status', 'suspend')
                 }
             } else if (prom.status === 'suspend') {
+                log.debug(`into projec limit update, current status suspend`)
+
                 // check if user status is ok
                 const ustat = await UserRd.hget(KEYS.User.hStatus(prom.userId), 'status')
                 log.debug(`user status of project[${pro.id}]: ${ustat}`)
@@ -101,10 +104,10 @@ class Project {
                         (pro.bwDayLimit && pro.bwDayLimit <= stat.bw))) {
                     pro.status = 'active' as ProStatus
                     // update cache
-                    ProRd.hset(KEY.hProjectStatus(pro.chain, pro.pid), 'status', 'active')
+                    ProRd.hset(KEY.hProjectStatus(prom.chain, prom.pid), 'status', 'active')
                 }
             }
-
+            log.debug(`project limit to update: %o`, pro)
             const re = await ProjectModel.update(pro, {
                 where: { id: pro.id }
             })

@@ -140,10 +140,11 @@ function toMb(bytes: number): number {
     return parseFloat((bytes/1000000.0).toFixed(2))
 }
 
-function getStatInfo(stat: StatT): StatInfoT {
+function getStatInfo(stat: StatT, hasChanged: boolean = false): StatInfoT {
+    log.debug(`getStatInfo %o `, stat)
     return {
         request: stat.reqCnt,
-        bandwidth: toMb(stat.bw)
+        bandwidth: hasChanged ? stat.bw : toMb(stat.bw)
     }
 }
 
@@ -199,25 +200,7 @@ class Stat {
             const stamp = startStamp(i, 'day')
             timeline.push(Mom(stamp).utc(true).format('YYYY-MM-DD'))
             stat = parseStatInfo(await Rd.hgetall(sKEY.hDaily(stamp)))
-            stats.push(getStatInfo(stat))
-        }
-        return { timeline, stats }
-    }
-
-    static async lastHours(hour: number): PStatLineT {
-        if (hour < 1) { hour = 1 }
-        const timeline: string[] = []
-        const stats: StatInfoT[] = []
-        for (let h = 0; h < hour; h++) {
-            let stat = newStats()
-            const stamp = startStamp(h, 'hour')
-            timeline.push(Mom(stamp).utc(true).format('MM-DD HH:mm'))
-            //
-            const keys = await Rd.keys(`H_Stat_hour_*_${stamp}`)
-            for (let k of keys) {
-                stat = parseStatInfo(await Rd.hgetall(k))
-            }
-            stats.push(getStatInfo(stat))
+            stats.push(getStatInfo(stat, true))
         }
         return { timeline, stats }
     }
@@ -249,7 +232,7 @@ class Stat {
             const key = sKEY.hProHourly(chain, pid, stamp)
             const stat = parseStatInfo(await Rd.hgetall(key))
             timeline.push(Mom(stamp).utc(true).format('MM-DD HH:mm'))
-            stats.push(getStatInfo(stat))
+            stats.push(getStatInfo(stat, true))
         }
         return { timeline, stats }
     }

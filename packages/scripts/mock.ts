@@ -245,7 +245,7 @@ async function mockRun() {
     const url = 'http://localhost:7000'
     log.info('current url: ', url)
     // await mockLimit(url)
-    // await mockChain(url)
+    await mockChain(url)
     // await mockUser(url)
     await auth(url)
     await mockProject(url)

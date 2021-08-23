@@ -191,9 +191,9 @@ async function updateStatus(ctx: KCtxT, next: NextT) {
 
 async function updateLimit(ctx: KCtxT, next: NextT) {
     let { id, reqSecLimit, reqDayLimit, bwDayLimit } = ctx.request.body
-    if (!Number.isInteger(id)) {
-        throw Resp.Fail(400, 'project id must be integer' as Msg)
-    }
+    // if (!Number.isInteger(id)) {
+    //     throw Resp.Fail(400, 'project id must be integer' as Msg)
+    // }
     const pro = { id } as ProAttr
     if (reqSecLimit) {
         if (!Number.isInteger(reqSecLimit)) {
@@ -217,7 +217,7 @@ async function updateLimit(ctx: KCtxT, next: NextT) {
         pro.bwDayLimit = bwDayLimit
     }
 
-    const re = await Project.update(pro)
+    const re = await Project.updateLimit(pro)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Update_Err, re.value as Msg)
     }
