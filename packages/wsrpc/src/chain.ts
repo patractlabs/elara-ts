@@ -9,11 +9,14 @@ import { Redis, DBT } from '@elara/lib'
 const log = getAppLogger('chain')
 const rconf = Conf.getRedis()
 
-const pubsubRd = new Redis(DBT.Pubsub, { host: rconf.host, port: rconf.port})
+const pubsubRd = new Redis(DBT.Pubsub, { host: rconf.host, port: rconf.port ,options:{
+
+    password:rconf.password
+}})
 const chainPSub = pubsubRd.getClient()
 
 pubsubRd.onConnect(() => {
-    log.info(`redis db pubsub connection open: ${rconf.host}:${rconf.port}`)
+    log.info(`redis db pubsub connection open: ${rconf.host}:${rconf.port}  ${rconf.password}`)
 })
 
 pubsubRd.onError((err: string) => {
@@ -29,19 +32,19 @@ enum ChainEvt {
 
 // chain events
 const chainAddHandler = async (chain: string): PVoidT => {
-    log.info('Into chain add handler: ', chain)
+    log.info('Into chain add handler: %o', chain)
     // TODO: chain-init logic
     // update G.chain G.chainConf
     // 
 }
 
 const chainDelHandler = async (chain: string): PVoidT => {
-    log.info('Into chain delete handler: ', chain)
+    log.info('Into chain delete handler: %o', chain)
     // TODO
 }
 
 const chainUpdateHandler = async (chain: string): PVoidT => {
-    log.info('Into chain update handler: ', chain)
+    log.info('Into chain update handler: %o', chain)
     // TODO
     // update G.chain G.chainConf
 }
@@ -52,28 +55,28 @@ chainPSub.psubscribe('*', (err, topicNum) => {
 })
 
 chainPSub.on('pmessage', (_pattern, chan, chain: string) => {
-    log.info('received new topic message: ', chan)
+    log.info('received new topic message: %o', chan)
     switch (chan) {
         case ChainEvt.Add:
-            log.info('Topic chain message: ', chain)
+            log.info('Topic chain message: %o', chain)
             chainAddHandler(chain)
             break
         case ChainEvt.Del:
-            log.info('Chain delete message: ', chain)
+            log.info('Chain delete message: %o', chain)
             chainDelHandler(chain)
             break
         case ChainEvt.Update:
-            log.info('chain update message: ', chain)
+            log.info('chain update message: %o', chain)
             chainUpdateHandler(chain)
             break
         default:
-            log.info(`Unknown topic [${chan}] message: `, chain)
+            log.info(`Unknown topic [${chan}] message: %o`, chain)
             break
     }
 })
 
 chainPSub.on('error', (err) => {
-    log.error('Redis chain-server listener error: ', err)
+    log.error('Redis chain-server listener error: %o', err)
 })
 
 class Chain {
@@ -105,7 +108,7 @@ class Chain {
     static parseConfig = async (chain: string, serverId: number) => {
         const conf = await Dao.getChainConfig(chain)
         if (isErr(conf)) {
-            log.error(`Parse config of chain[${chain}] error: `, conf.value)
+            log.error(`Parse config of chain[${chain}] error: %o`, conf.value)
             return
         }
         const chainf = conf.value as ChainConfig
@@ -124,7 +127,7 @@ class Chain {
         }
         const chains = re.value
         let parses: Promise<void>[] = []
-        log.warn('fetch chain list: ', chains)
+        log.warn('fetch chain list: %o', chains)
 
         const server = Conf.getServer()
         for (let c of chains) {

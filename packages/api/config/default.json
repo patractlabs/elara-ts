@@ -1,0 +1,28 @@
+{
+    "server": {
+        "port": 7000
+    },
+
+    "redis": {
+        "host": "127.0.0.1",
+        "port": 6379,
+        "password": ""
+    },
+
+    "db": {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "table": "elara",
+        "user": "root",
+        "password": "root"
+    },
+
+    "user":{
+        "loginUrl": "your_login_url",
+        "github": {
+            "clientID": "your_github_clientId",
+            "clientSecret": "your_secret",
+            "callbackUrl": "your_github_callback_url"
+        }
+    }
+}

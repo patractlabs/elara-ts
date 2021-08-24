@@ -1,8 +1,10 @@
 import { Redis, DBT } from '@elara/lib'
 import { ChainConfig, ChainType, KEYS, Network } from '@elara/lib'
 
-const KEY = KEYS.Chain
-const Rd = new Redis(DBT.Chain).getClient()
+const cKEY = KEYS.Chain
+const pKEY = KEYS.Project
+const cRd = new Redis(DBT.Chain).getClient()
+const pRd = new Redis(DBT.Project).getClient()
 
 const newChain = async (chain: string) => {
     // const chain = 'Polkadot'
@@ -20,11 +22,18 @@ const newChain = async (chain: string) => {
         kvPort: 9002,
         kvBaseUrl: '127.0.0.1'
     }
-    await Rd.hmset(KEY.hChain(chain), polkadot)
-    let cnt = await Rd.incr(KEY.chainNum())
-    await Rd.zadd(KEY.zChainList(), cnt, chain.toLowerCase())
+    await cRd.hmset(cKEY.hChain(chain), polkadot)
+    let cnt = await cRd.incr(cKEY.chainNum())
+    await cRd.zadd(cKEY.zChainList(), cnt, chain.toLowerCase())
 }
 
+
+async function projectInit() {
+    await pRd.hmset(pKEY.hProjecConf(), {
+        maxWsConn: 20,       
+    })
+    return
+}
 const init = async () => {
     await newChain('Polkadot')
     // await newChain('Kusuma')

@@ -1,54 +1,72 @@
-import Application from 'koa'
-import * as Logger from 'koa-log4'
-import { Configuration } from 'koa-log4'
+import { createLogger, format, transports } from 'winston'
+import DailyRotateFile from 'winston-daily-rotate-file'
 import Dotenv from 'dotenv'
 Dotenv.config()
 
-const env = process.env.NODE_ENV || 'dev'
-const outFlag = env === 'dev'
+const { combine, colorize, timestamp, label, printf, json, splat } = format
 
-const config: Configuration = {
-    appenders: { out: { type: 'console' } },
-    categories: { default: { appenders: ['out'], level: 'info' } },
-    // pm2: process.env.NODE_ENV !== 'dev' ? true : false
-}
-const logSize = 10 * 1024 * 1024
-
-export function accessLogger(out: boolean = outFlag): Application.Middleware {
-    config.appenders['access'] = {
-        type: 'dateFile',
-        pattern: '-yyyy-MM-dd.log',
-        maxLogSize: logSize,
-        // filename: path.join(dir, 'logs/', 'access.log')
-        filename: './logs/access.log'
-    }
-
-    config.categories['access'] = {
-        appenders: out ? ['access', 'out'] : ['access'],
-        level: out ? 'debug' : 'info'
-    }
-    const log4j = Logger.configure(config)
-    return Logger.koaLogger(log4j.getLogger('access'))
+const printFormat = printf(msg => `${msg.timestamp} ${msg.label} ${msg.level}: ${msg.message}`)
+const logFormat = (labelStr?: string, isJson: boolean = false) => {
+    const common = combine(
+        timestamp({
+            format: 'YYYY-MM-DD HH:mm:ss'   // make sure localtime
+        }),
+        timestamp(),
+        label({ label: labelStr ?? '' }),
+        splat()
+    )
+    return combine(common, isJson ? json() : printFormat)
 }
 
-export function getAppLogger(head: string, out: boolean = outFlag): Logger.Logger {
-    let heads = `${head}`;
-    config.appenders[heads] = {
-        type: 'dateFile',
-        pattern: '-yyyy-MM-dd.log',
-        filename: './logs/app.log', // path.join(dir, 'logs/', 'app.log'),
-        maxLogSize: logSize,
-        backups: 5, // default 5
-        daysToKeep: 0,  // 大于0则删除x天之前的日志
-        compress: true,     // 开启gzip压缩
-        pm2: true,
-        replaceConsole: false,
-    }
+function newRotateFile(filename: string, level: string = 'info', isJson: boolean = true) {
+    return new DailyRotateFile({
+        level,
+        filename: `logs/${filename}-%DATE%.log`,
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: true,
+        handleExceptions: true,
+        json: isJson,
+        createSymlink: true,
+        symlinkName: `${filename}.log`,
+        maxSize: '20m',
+        maxFiles: '7d',
+    })
+}
 
-    config.categories[heads] = {
-        // appenders: out ? [heads, 'out'] : [heads], 
-        appenders: [heads, 'out'],
-        level: out ? 'debug' : 'info'
-    }
-    return Logger.configure(config).getLogger(heads)
+export function getAppLogger(label: string = '', opt?: { isJson: boolean, consoleLevel: string }) {
+    const isJson = opt?.isJson ?? true
+    const consoleLevel = opt?.consoleLevel ?? 'debug'
+    const format = logFormat(label, isJson)
+    return createLogger({
+        format,
+        transports: [
+            new transports.Console({
+                level: consoleLevel,
+                format: combine(colorize(), logFormat(label, false))
+            }),
+            newRotateFile('error', 'error'),
+            newRotateFile('app')
+        ],
+        exceptionHandlers: [
+            newRotateFile('exception', 'error', false)
+        ],
+        exitOnError: false
+    })
+}
+
+export function accessLogger() {
+    return createLogger({
+        format: logFormat('access', false),
+        transports: [
+            new transports.Console({
+                level: 'debug',
+                format: combine(colorize(), logFormat('access', false))
+            }),
+            newRotateFile('access', 'http')
+        ],
+        exceptionHandlers: [
+            newRotateFile('access-exception', 'error')
+        ],
+        exitOnError: false
+    })
 }

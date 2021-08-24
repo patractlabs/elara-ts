@@ -2,7 +2,7 @@
     "name": "@elara/lib",
     "version": "0.1.0",
     "description": "common library for elara-ts",
-    "main": "src/index.ts",
+    "main": "src/index",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "tsc"
@@ -13,13 +13,12 @@
     "dependencies": {
         "dotenv": "^10.0.0",
         "ioredis": "^4.27.2",
-        "kafkajs": "^1.15.0",
-        "koa-log4": "^2.3.2",
+        "winston": "^3.3.3",
+        "winston-daily-rotate-file": "^4.5.5",
         "ws": "^7.4.5"
     },
     "devDependencies": {
         "@types/ioredis": "^4.26.3",
-        "@types/koa-log4": "^2.3.2",
         "@types/ws": "^7.4.4"
     }
 }

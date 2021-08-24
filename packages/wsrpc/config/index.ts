@@ -5,12 +5,14 @@ import Config from 'config'
 interface ServerConf {
     id: number,
     port: number,
-    maxWsConn: number,
-    maxReConn: number
+    maxReConn: number,
+    apiHost: string,
+    apiPort: number
 }
 
 interface RedisConf {
     host: string,
+    password: string,
     port: number,
     db: number,
     options?: any

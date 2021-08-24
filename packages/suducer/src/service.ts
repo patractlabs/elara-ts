@@ -9,7 +9,7 @@ import { SuducerT } from './suducer'
 import { randomId } from '@elara/lib'
 import { CacheStrategyT, ReqT } from './interface'
 
-const log = getAppLogger('suducer', true)
+const log = getAppLogger('suducer')
 
 const buildReq = (id: string, method: string, params: any[]): ReqT => {
     return { id, jsonrpc: "2.0", method, params }
@@ -40,11 +40,11 @@ const sendWithoutParam = (chain: string, method: string, type: SuducerT) => {
 
 const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT, stratgy?: CacheStrategyT) => {
 
-    // TODO v0.2: extends & excludes list
+    // TODO : extends & excludes list
     // const extens: string[] = G.getExtends(chain, stratgy as any)
     // const nrpcs = [...rpcs, ...extens]
     // const excludes = G.getExcludes(chain)
-    // log.info(`Extends & excludes list of chain[${chain}]: `, extens, excludes)
+    // log.info(`Extends & excludes list of chain[${chain}]: %o %o`, extens, excludes)
     if (stratgy) { 
         // TODO 
     }

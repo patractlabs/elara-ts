@@ -4,7 +4,7 @@ import { None, Some, Option } from '@elara/lib'
 import { CacheT, ChainT, SuducerMap, SuducersT, PubsubT, CacheStrategyT, PsubStrategyT } from './interface'
 import Suducer, { SuducerT } from './suducer'
 
-const log = getAppLogger('global', true)
+const log = getAppLogger('global')
 
 const Intervals: {[key in string]: NodeJS.Timeout} = {}
 
@@ -257,14 +257,14 @@ export namespace G {
             return []
         }
         const extens = cconf['extends'] as RpcMapT
-        // log.error(`extens of chain[${chain}]: `, extens)
+        // log.error(`extens of chain[${chain}]: %o`, extens)
         let res: string[] = []
         for (let k in extens) {
             if (extens[k] === strategy) {
                 res.push(k)
             }
         }
-        log.warn(`Extends list of chain[${chain}]-[${strategy}]: `, res)
+        log.warn(`Extends list of chain[${chain}]-[${strategy}]: %o`, res)
         return res
     }
 

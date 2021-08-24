@@ -1,6 +1,7 @@
 import { getAppLogger, IDT } from '@elara/lib'
 import { ResultT, Err, Ok } from '@elara/lib'
-import { ReqT, SubscripT } from "./interface"
+import { ReqT, Statistics, SubscripT } from "./interface"
+import { Stat } from './statistic'
 const log = getAppLogger('global')
 
 export type SubscripMap = { [key in string]: SubscripT }
@@ -102,6 +103,16 @@ namespace G {
 
     export const delReqCache = (reqId: IDT): void => {
         delete ReqMap[reqId]
+    }
+
+    export const delReqCacheByPubStatis = (reqId: IDT, publish: (stat: Statistics) => void = Stat.publish): void => {
+        if (ReqMap[reqId]) {
+            const stat = ReqMap[reqId].stat
+            publish(stat)
+            delete ReqMap[reqId]
+        } else {
+            log.warn(`request cache ${reqId} invalid: %o`, ReqMap[reqId])
+        }
     }
 
     export const getReqCache = (reqId: IDT): ResultT<ReqT> => {

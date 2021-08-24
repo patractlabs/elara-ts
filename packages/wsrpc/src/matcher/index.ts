@@ -12,7 +12,7 @@ import WebSocket from 'ws'
 import EventEmitter from 'events'
 import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option, PBoolT } from '@elara/lib'
 import GG from '../global'
-import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason } from '../interface'
+import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason, Statistics } from '../interface'
 import Puber from '../puber'
 import Suber, { SuberTyp } from './suber'
 import { md5, randomId } from '@elara/lib'
@@ -81,29 +81,32 @@ namespace Matcher {
         suber.pubers.add(puber.id)
         Suber.updateOrAddSuber(chain, SuberTyp.Node, suber)
 
-        
+
         // update puber.subId
         puber.subId = suber.id
         Puber.updateOrAdd(puber)
 
         // side context set
         GG.incrConnCnt(chain, puber.pid)
-        log.info(`regist puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvOk ? kvSuber!.id : 'none'}]: `, Util.globalStat())
+        log.info(`regist puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvOk ? kvSuber!.id : 'none'}]: : %o`, Util.globalStat())
         return Ok(puber)
     }
 
-    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT): ResultT<ReqDataT> => {
+    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> => {
         const method = data.method!
         let type = ReqTyp.Rpc
-
+        let subsId
         if (isUnsubReq(method)) {
-            log.info(`pre handle unsubscribe request: ${method}: `, data.params, Suber.isSubscribeID(data.params![0]))
+            log.info(`pre handle unsubscribe request: ${method}: %o %o`, data.params, Suber.isSubscribeID(data.params![0]))
             type = ReqTyp.Unsub
+            subsId = data.params![0]
             if (data.params!.length < 1 || !Suber.isSubscribeID(data.params![0])) {
                 return Err(`invalid unsubscribe params: ${data.params![0]}`)
             }
         } else if (isSubReq(method)) {
             type = ReqTyp.Sub
+            stat.reqCnt = 1 // for first response
+            stat.bw = 0
         }
 
         const req = {
@@ -117,13 +120,15 @@ namespace Matcher {
             jsonrpc: data.jsonrpc,
             type,
             method,
-            params: data.params
+            params: data.params,
+            subsId,
+            stat
         } as ReqT
         log.debug(`new ${chain} ${pid} ${subType} request cache: ${JSON.stringify(req)}`)
         GG.addReqCache(req)
 
         data.id = req.id as string
-        log.info(`global stat after new request[${req.id}] : `, Util.globalStat())
+        log.info(`global stat after new request[${req.id}] : : %o`, Util.globalStat())
         return Ok(data)
     }
 
@@ -146,7 +151,7 @@ namespace Matcher {
         // add new subscribed topic
         GG.addSubTopic(puber.chain, puber.pid, { id: subsId, pubId: req.pubId, method: req.method, params: req.params })
 
-        log.info(`After set subscribe context requestId[${req.id}] global stat: `, Util.globalStat())    // for test
+        log.info(`After set subscribe context requestId[${req.id}] global stat: : %o`, Util.globalStat())    // for test
         return Ok(void (0))
     }
 
@@ -240,8 +245,9 @@ namespace Matcher {
     }
 
     export const isSubscribed = (chain: string, pid: IDT, data: WsData): boolean => {
+        if (pid === '00000000000000000000000000000000') { return false }
         const topics = GG.getSubTopics(chain, pid)
-        log.info(`subscribed topics of chain[${chain}] pid[${pid}]: `, Object.keys(topics))
+        log.info(`subscribed topics of chain[${chain}] pid[${pid}]: %o`, Object.keys(topics))
         for (let id in topics) {
             log.debug(`id: ${id}\n data: ${JSON.stringify(data)}, topic: ${JSON.stringify(topics[id])}`)
             const sub = topics[id]

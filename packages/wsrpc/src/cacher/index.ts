@@ -18,7 +18,7 @@ class Cacher {
         // sync when block update
         "system_syncState",
         "system_health",
-        "system_peers",
+        // "system_peers",
         "chain_getHeader",
         "chain_getBlock",
         "chain_getBlockHash",

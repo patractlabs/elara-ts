@@ -1,0 +1,8 @@
+{
+    "name": "elara",
+    "version": "0.1.0",
+    "description": "elara apiDoc",
+    "title": "elara api doc",
+    "url" : "http://localhost:7000",
+    "sampleUrl": "http://localhost:7000"
+  }

@@ -10,7 +10,7 @@ export class Subscriber extends Redis {
         super(db, arg)
     }
 
-    async subscribe(chan: string, cb: SubCbT, grp?: string, user?: string, ms: number = 5000): Promise<void> {
+    async subscribe(chan: string, cb: SubCbT, ms: number = 5000, grp?: string, user?: string): Promise<void> {
         let lastID = '>'
         let typ = 'group'
         let consumer = user
@@ -28,16 +28,18 @@ export class Subscriber extends Redis {
                     re = await this.client.xread('BLOCK', ms, 'STREAMS', chan, lastID)
                 }
                 if (!re) {
-                    log.info(`${consumer} no new ${typ} stream`)
+                    log.debug(`${consumer} no new ${typ} stream`)
                     continue
                 }
                 let res = re[0][1]
                 const { length } = re
-                log.info(`${typ} stream ${consumer} read result: `, res, length)
-                if (!length) { continue }
-                cb(res)
+                if (length !== 1) {
+                    log.error(`${typ} stream ${consumer} read result: %o`, res, length)
+                }
+                if (length < 1) { continue }
+                cb(res[0])
             } catch (err) {
-                log.error(`${typ} stram subscribe error: `, err)
+                log.error(`${typ} stram subscribe error: %o`, err)
             }
         }
     }
@@ -45,7 +47,7 @@ export class Subscriber extends Redis {
 
 export class Producer extends Redis {
     private grp: string
-    constructor({ db, grp, arg }: { db: DBT, grp?: string, arg?: RArgT }) {
+    constructor({ db = DBT.Pubsub, grp, arg }: { db: DBT, grp?: string, arg?: RArgT }) {
         super(db, arg)
         this.grp = grp ?? ''
     }
@@ -54,7 +56,7 @@ export class Producer extends Redis {
         return this.grp
     }
 
-    async publish(chan: string, kvs: string[], maxlen: number = 1, id: string = '*'): Promise<string> {
+    async publish(chan: string, kvs: string[], maxlen: number = 10, id: string = '*'): Promise<string> {
         return this.client.xadd(chan, 'MAXLEN', maxlen, id, kvs)
     }
 
@@ -128,7 +130,7 @@ class Mq extends Redis {
 
     async consumerInfo(grp: string, chan: string): Promise<ConsumerListT> {
         let re = await this.client.xinfo('CONSUMERS', chan, grp)
-        log.info('result of consumer: ', JSON.stringify(re))
+        log.info('result of consumer: %o',JSON.stringify(re))
         let res: ConsumerListT = []
         for (let c of re) {
             let cinfo = {

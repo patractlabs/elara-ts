@@ -3,5 +3,7 @@
 ./**/logs
 ./**/node_modules
 ./**/.vscode
+./**/config/pro.json
 yarn*.log
 node_modules
+doc

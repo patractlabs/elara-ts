@@ -7,12 +7,14 @@ import Conf from '../../config'
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
 
-const log = getAppLogger('redis', true)
+const log = getAppLogger('redis')
 const rdConf = Conf.getRedis()
 log.warn(`current env ${process.env.NODE_ENV}, redis configure: ${JSON.stringify(rdConf)}`)
 // TODO redis pool
 
-const chainRd = new Redis(DBT.Chain, {host: rdConf.host, port: rdConf.port})
+const chainRd = new Redis(DBT.Chain, {host: rdConf.host, port: rdConf.port, options:{
+    password:rdConf.password
+}})
 const chainRedis = chainRd.getClient()
 
 chainRd.onError((err: string) => {
@@ -23,7 +25,9 @@ chainRd.onConnect(() => {
     log.info('redis db chain connection open')
 })
 
-const cacheRd = new Redis(DBT.Cache, {host: rdConf.host, port: rdConf.port})
+const cacheRd = new Redis(DBT.Cache, {host: rdConf.host, port: rdConf.port,options:{
+    password:rdConf.password
+}})
 const cacheRedis = cacheRd.getClient()
 
 cacheRd.onConnect(() => {
@@ -59,7 +63,6 @@ namespace Rd {
             updateTime,
             result: JSON.stringify(result)
         } as CacheT
-        // log.error('data to be dump: ', latest)
         return cacheRedis.hmset(KCache.hCache(chain, method), latest)
     }
 

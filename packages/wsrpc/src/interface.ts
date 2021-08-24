@@ -20,6 +20,7 @@ export interface WsData extends ReqDataT {
     result?: any,
     data?: any
 }
+
 export type ChainPidT = {
     chain: string,
     pid: IDT
@@ -45,7 +46,8 @@ export interface ReqT {
     type: ReqTyp,
     jsonrpc: string,
     method: string,
-    params: any
+    params: any,
+    stat: Statistics,
 }
 
 export interface SubscripT {
@@ -68,4 +70,27 @@ export enum CloseReason {
     Kv = 'kv service unavailable',
     OutOfLimit = 'out of connect limit',
     SuberUnavail = 'suber unavailable'
+}
+
+interface Header {
+    origin: string,
+    agent: string,
+    ip: string,
+}
+
+export interface Statistics {
+    proto: string,   // http ws
+    chain: string,
+    pid: string,
+    method: string,
+    req: ReqDataT,
+    reqtime: number,     // request start time
+    code: number,        // 200 400 500
+    header?: Header,
+    start: number,
+    type?: string,       // noder kv cacher recorder
+    delay?: number,      // ms
+    bw?: number,         // bytes
+    timeout?: boolean,   // timeout threshold 1s
+    reqCnt?: number,     // for subscribe
 }

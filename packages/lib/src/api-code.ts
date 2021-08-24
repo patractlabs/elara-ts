@@ -8,7 +8,7 @@ export enum Code {
     Whocare,
     // 1000 - 1999 
     // NOTE: something system error, shouldn't post the Msg to customer
-
+    
     Pro_Err = 1001,
 
 
@@ -20,6 +20,7 @@ export enum Code {
     Pro_Num_Limit,
     Pro_Name_Err,
     Pro_Stat_Err,
+    Pro_Update_Err,
 
 
     Chain_Err,  // SBH
@@ -47,6 +48,7 @@ export enum Msg {
     Pro_Num_Limit = 'project created number out of limit',
     Pro_Name_Error = 'project name empty or invalid',
     Pro_Stat_Err = 'project status is inactive or unavailable',
+    Pro_Update_Err = 'project info update error',
 
     // chain
     Chain_Err = 'chain error',

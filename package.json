@@ -7,12 +7,10 @@
   ],
   "private": true,
   "scripts": {
+    "api": "yarn workspace @elara/api",
     "wsrpc": "yarn workspace @elara/wsrpc",
     "suducer": "yarn workspace @elara/suducer",
-    "stat": "yarn workspace @elara/stat",
-    "noder": "yarn workspace @elara/node",
-    "chain": "yarn workspace @elara/chain",
-    "account": "yarn workspace @elara/account",
+    "job": "yarn workspace @elara/job",
     "script": "yarn workspace @elara/scripts",
     "lib": "yarn workspace @elara/lib",
     "build": "ts-node packages/scripts/build.ts"

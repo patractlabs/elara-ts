@@ -56,6 +56,6 @@ npm i -S ../lib
 ts-node ./app.ts
 或者
 编译 tsc -b
-node ./dist/app.js
+node ./dist/src/app.js
 ```
 

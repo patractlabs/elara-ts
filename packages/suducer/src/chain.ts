@@ -5,11 +5,13 @@ import { isErr } from '@elara/lib'
 import Dao from './dao'
 import { G } from './global'
 import Conf from '../config'
-const log = getAppLogger('chain', true)
+const log = getAppLogger('chain')
 import { Redis, DBT } from '@elara/lib'
 
 const redisConf = Conf.getRedis()
-const pubsubRd = new Redis(DBT.Pubsub, {host: redisConf.host, port: redisConf.port})
+const pubsubRd = new Redis(DBT.Pubsub, {host: redisConf.host, port: redisConf.port, options:{
+    password:redisConf.password
+}})
 const PSuber = pubsubRd.getClient()
 
 pubsubRd.onConnect(() => {
@@ -29,19 +31,19 @@ enum Topic {
 
 // chain events
 const chainAddHandler = async (chain: string): PVoidT => {
-    log.info('Into chain add handler: ', chain)
+    log.info('Into chain add handler: %o', chain)
     // TODO: chain-init logic
     // update G.chain G.chainConf
     // 
 }
 
 const chainDelHandler = async (chain: string): PVoidT => {
-    log.info('Into chain delete handler: ', chain)
+    log.info('Into chain delete handler: %o', chain)
     // TODO
 }
 
 const chainUpdateHandler = async (chain: string): PVoidT => {
-    log.info('Into chain update handler: ', chain)
+    log.info('Into chain update handler: %o', chain)
     // TODO
     // update G.chain G.chainConf
 }
@@ -52,22 +54,22 @@ PSuber.psubscribe('*', (err, topicNum) => {
 })
 
 PSuber.on('pmessage', (_pattern, chan, chain: string) => {
-    log.info('received new topic message: ', chan)
+    log.info('received new topic message: %o', chan)
     switch(chan) {
         case Topic.ChainAdd:
-            log.info('Topic chain message: ', chain)
+            log.info('Topic chain message: %o', chain)
             chainAddHandler(chain)
             break
         case Topic.ChainDel:
-            log.info('Chain delete message: ', chain)
+            log.info('Chain delete message: %o', chain)
             chainDelHandler(chain)
             break
         case Topic.ChainUpdate:
-            log.info('chain update message: ', chain)
+            log.info('chain update message: %o', chain)
             chainUpdateHandler(chain)
             break
         default:
-            log.info(`Unknown topic [${chan}] message: `, chain)
+            log.info(`Unknown topic [${chan}] message: %o`, chain)
             break
     }
 })
@@ -77,7 +79,7 @@ namespace Chain {
     export const parseConfig = async (chain: string, serverId: number) => {
         const conf = await Dao.getChainConfig(chain)
         if (isErr(conf)) { 
-            log.error(`Parse config of chain[${chain}] error: `, conf.value)
+            log.error(`Parse config of chain[${chain}] error: %o`, conf.value)
             return 
         }
         const chainf = conf.value as ChainConfig
@@ -96,7 +98,7 @@ namespace Chain {
         }
         const chains = re.value
         let parses: Promise<void>[] = []
-        log.warn('fetch chain list: ', chains)
+        log.warn('fetch chain list: %o', chains)
 
         const server = Conf.getServer()
         for (let c of chains) {

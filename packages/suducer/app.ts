@@ -7,7 +7,7 @@ const env = process.env.NODE_ENV
 const log = getAppLogger('app');
 
 (async () => {
-    log.info(`Suducer server run, env=${env}`)
+    log.info(`Suducer server run, env = ${env}`)
     unexpectListener()
     Service.up(false)
 })()

@@ -1,0 +1,6 @@
+logs
+node_modules
+.vscode
+dist
+.env
+config/pro.json

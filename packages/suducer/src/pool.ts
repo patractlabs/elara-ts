@@ -32,7 +32,7 @@ const generateUrl = (url: string, port: number, sec: boolean = false) => {
 }
 
 const rdConf = Conf.getRedis()
-log.warn(`current env ${process.env.NODE_ENV} redis conf: `, JSON.stringify(rdConf))
+log.warn(`current env ${process.env.NODE_ENV} redis conf: %o`, JSON.stringify(rdConf))
 
 const SubReg = (() => {
     return /[0-9a-zA-Z]{16}/
@@ -79,11 +79,11 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
     })
 
     ws.on('error', (err: Error) => {
-        log.error(`Suducer err-evt ${sign}: `, err)
+        log.error(`Suducer err-evt ${sign}: %o`, err)
     })
 
     ws.on('close', (code: number, reason: string) => {
-        log.error(`Suducer close-evt ${sign}: `, code, reason, suducer.ws.readyState)
+        log.error(`Suducer close-evt ${sign}: %o %o %o`, code, reason, suducer.ws.readyState)
 
         if (type === SuducerT.Cache) {
             // G.delInterval(chain, CacheStrategyT.SyncAsBlock)
@@ -119,7 +119,7 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
                 const chain = pat[1]
                 const method = pat[2]
                 // 
-                log.debug(`new ${chain} cache message: ${method}`)
+                log.debug(`new ${chain} cache message: ${method}, `, dat.result)
                 Dao.updateChainCache(chain, method, dat.result)
             } else if (isSubID(dat.result)) {
                 // first subscribe response
