@@ -94,7 +94,7 @@ namespace Util {
         return Buffer.byteLength(str, 'utf8')
     }
 
-    export async function slepp(sec: number) {
+    export async function sleep(sec: number) {
         return new Promise((resolve, _reject) => {
             setTimeout(() => {
                 resolve(' enough sleep~')

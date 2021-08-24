@@ -448,7 +448,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
             // if (curTryCnt >= serConf.maxReConn) {
             if (true) {
                 // make sure node service is active
-                await Util.slepp(30000)
+                await Util.sleep(30000)
                 log.warn(`too many try to connect to ${type} suber, clear all relate context.`)
                 // clear subscribe context 
                 const rea = type === SuberTyp.Kv ? CloseReason.Kv : CloseReason.Node
