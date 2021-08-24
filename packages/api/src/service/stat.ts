@@ -208,7 +208,7 @@ class Stat {
     // project relate
     static async lastDaysOfProject(day: number, chain: string, pid: string): PStatLineT {
         log.debug(`last days ${chain} pid[${pid}]: ${day}`)
-        const today = Mom().utc(true).format('MM-DD')
+        const today = Mom().utc(true).format('YYYY-MM-DD')
         let stat: StatT = await Stat.proStatDaily(chain, pid)
         const timeline: string[] = [today]
         const stats: StatInfoT[] = [getStatInfo(stat)]
@@ -217,7 +217,7 @@ class Stat {
         }
         for (let i = 1; i < day; i++) {
             const stamp = startStamp(i, 'day')
-            timeline.push(Mom(stamp).utc(true).format('MM-DD'))
+            timeline.push(Mom(stamp).utc(true).format('YYYY-MM-DD'))
             stat = parseStatInfo(await Rd.hgetall(sKEY.hProDaily(chain, pid, stamp)))
             stats.push(getStatInfo(stat, true))
         }
@@ -231,7 +231,7 @@ class Stat {
             const stamp = startStamp(h, 'hour')
             const key = sKEY.hProHourly(chain, pid, stamp)
             const stat = parseStatInfo(await Rd.hgetall(key))
-            timeline.push(Mom(stamp).utc(true).format('HH:mm'))
+            timeline.push(Mom(stamp).utc(true).format('MM-DD HH:mm'))
             stats.push(getStatInfo(stat, true))
         }
         return { timeline, stats }
