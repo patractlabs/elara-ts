@@ -9,7 +9,6 @@ const rconf = Conf.getRedis()
 const log = getAppLogger('stat')
 const StatRd = new Redis(DBT.Stat, {
     host: rconf.host, port: rconf.port, options: {
-
         password: rconf.password
     }
 })
@@ -137,7 +136,8 @@ interface CountryT {
 }
 
 function toMb(bytes: number): number {
-    return parseFloat((bytes/1000000.0).toFixed(2))
+    return bytes
+    // return parseFloat((bytes/1000000.0).toFixed(2))
 }
 
 function getStatInfo(stat: StatT, hasChanged: boolean = false): StatInfoT {
@@ -170,7 +170,7 @@ class Stat {
         const stat = parseStatInfo(await Rd.hgetall(sKEY.hTotal()))
         return {
             request: stat.reqCnt,
-            bandwidth: toMb(stat.bw)
+            bandwidth: stat.bw
         }
     }
 
@@ -219,7 +219,7 @@ class Stat {
             const stamp = startStamp(i, 'day')
             timeline.push(Mom(stamp).utc(true).format('MM-DD'))
             stat = parseStatInfo(await Rd.hgetall(sKEY.hProDaily(chain, pid, stamp)))
-            stats.push(getStatInfo(stat))
+            stats.push(getStatInfo(stat, true))
         }
         return { timeline, stats }
     }
