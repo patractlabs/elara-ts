@@ -192,16 +192,6 @@ export async function mockChain(url: string) {
             name: 'Jupiter',
             network: Network.Test,
             team: 'Patract'
-        },
-        {
-            name: 'Mandala',
-            network: Network.Test,
-            team: 'Acala'
-        },
-        {
-            name: 'MoonbaseAlpha',
-            network: Network.Test,
-            team: 'Moonbeam'
         }
     ] as ChainAttr[]
     for(let chain of chains) {
