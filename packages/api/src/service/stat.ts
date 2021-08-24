@@ -133,7 +133,7 @@ interface ErrPageT {
 
 interface CountryT {
     country: string,
-    request: number
+    percentage: number
 }
 
 function toMb(bytes: number): number {
@@ -208,7 +208,7 @@ class Stat {
     // project relate
     static async lastDaysOfProject(day: number, chain: string, pid: string): PStatLineT {
         log.debug(`last days ${chain} pid[${pid}]: ${day}`)
-        const today = Mom().utc(true).format('YYYY-MM-DD')
+        const today = Mom().utc(true).format('MM-DD')
         let stat: StatT = await Stat.proStatDaily(chain, pid)
         const timeline: string[] = [today]
         const stats: StatInfoT[] = [getStatInfo(stat)]
@@ -217,7 +217,7 @@ class Stat {
         }
         for (let i = 1; i < day; i++) {
             const stamp = startStamp(i, 'day')
-            timeline.push(Mom(stamp).utc(true).format('YYYY-MM-DD'))
+            timeline.push(Mom(stamp).utc(true).format('MM-DD'))
             stat = parseStatInfo(await Rd.hgetall(sKEY.hProDaily(chain, pid, stamp)))
             stats.push(getStatInfo(stat))
         }
@@ -231,7 +231,7 @@ class Stat {
             const stamp = startStamp(h, 'hour')
             const key = sKEY.hProHourly(chain, pid, stamp)
             const stat = parseStatInfo(await Rd.hgetall(key))
-            timeline.push(Mom(stamp).utc(true).format('MM-DD HH:mm'))
+            timeline.push(Mom(stamp).utc(true).format('HH:mm'))
             stats.push(getStatInfo(stat, true))
         }
         return { timeline, stats }
@@ -296,14 +296,13 @@ class Stat {
         log.debug(`get country map: %o`, ct)
         const list: CountryT[] = []
         for (let i = 0; i < ct.length; i += 2) {
-            list.push({country: ct[i], request: parseInt(ct[i+1])})
+            list.push({country: ct[i], percentage: parseFloat((parseInt(ct[i+1]) * 100.0 / totalRequest).toFixed(2))})
         }
         return {
             total,
             size,
             page,
             pages,
-            totalRequest,
             list
         }
     }

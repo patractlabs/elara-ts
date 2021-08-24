@@ -101,7 +101,7 @@ class Chain {
             const chainInfo = pre.value
             log.info(`chain info of user[${userId}]: %o`, chainInfo)
             const re = await ChainModel.findAll({
-                order: [Sequelize.col('network')]
+                order: [Sequelize.col('network'), Sequelize.col('id')]
             })
 
             let network = ''

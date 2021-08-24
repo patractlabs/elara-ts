@@ -214,7 +214,7 @@ R.post('/project/hours', proLastHours)
  * @apiSuccess {Integer} Object.pages total pages
  * @apiSuccess {Object[]} Object.list  record list
  * @apiSuccess {String} Object.list.country 
- * @apiSuccess {String} Object.list.request request count  
+ * @apiSuccess {String} Object.list.percentage request count ratio
  */
 R.post('/project/country', proDailyCountryStatistic)
 
