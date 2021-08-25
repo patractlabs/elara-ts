@@ -44,7 +44,7 @@ function isUnsubReq(method: string): boolean {
 
 namespace Matcher {
 
-    export const regist = async (ws: WebSocket, chain: string, pid: IDT): PResultT<Puber> => {
+    export async function regist(ws: WebSocket, chain: string, pid: IDT): PResultT<Puber> {
         const isOut = await isConnOutOfLimit(ws, chain, pid)
         if (isOut) { return Err(`connection out of limit`) }
 
@@ -92,7 +92,7 @@ namespace Matcher {
         return Ok(puber)
     }
 
-    export const newRequest = (chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> => {
+    export function newRequest(chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> {
         const method = data.method!
         let type = ReqTyp.Rpc
         let subsId
@@ -128,12 +128,11 @@ namespace Matcher {
         GG.addReqCache(req)
 
         data.id = req.id as string
-        log.info(`global stat after new request[${req.id}] : : %o`, Util.globalStat())
         return Ok(data)
     }
 
     // according to message set the subscribe context
-    export const setSubContext = (req: ReqT, subsId: string): ResultT<void> => {
+    export function setSubContext(req: ReqT, subsId: string): ResultT<void> {
         // update subscribe request cache
         req.subsId = subsId
         GG.updateReqCache(req)
@@ -150,16 +149,14 @@ namespace Matcher {
 
         // add new subscribed topic
         GG.addSubTopic(puber.chain, puber.pid, { id: subsId, pubId: req.pubId, method: req.method, params: req.params })
-
-        log.info(`After set subscribe context requestId[${req.id}] global stat: : %o`, Util.globalStat())    // for test
         return Ok(void (0))
     }
 
-    const remSuberPubers = (chain: string, subType: SuberTyp, subId: IDT, pubId: IDT): void => {
+    function remSuberPubers(chain: string, subType: SuberTyp, subId: IDT, pubId: IDT): void {
         /// suber may be closed 
         let re = Suber.getSuber(chain, subType, subId)
         if (isNone(re)) {
-            log.error(`handle puber close error: invalid ${chain} suber ${subId} type ${subType}, may closed`)
+            log.error(`handle puber[${pubId}] close error: invalid ${chain} suber ${subId} type ${subType}, may closed`)
             // process.exit(2)
             return
         }
@@ -168,15 +165,17 @@ namespace Matcher {
         Suber.updateOrAddSuber(chain, subType, suber)
     }
 
-    const clearSubscribeContext = async (puber: Puber, reason: CloseReason) => {
+    async function clearSubscribeContext(puber: Puber, reason: CloseReason): PVoidT {
         const ptopics = puber.topics || new Set()
         if (reason === CloseReason.Node) {
             remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
         } else if (reason === CloseReason.Kv) {
-            remSuberPubers(puber.chain, SuberTyp.Node, puber.subId!, puber.id)
+            remSuberPubers(puber.chain, SuberTyp.Node, puber.subId, puber.id)
         } else {
-            remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
-            remSuberPubers(puber.chain, SuberTyp.Node, puber.subId!, puber.id)
+            if (puber.kvSubId !== undefined) {
+                remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
+            }
+            remSuberPubers(puber.chain, SuberTyp.Node, puber.subId, puber.id)
         }
 
         if (ptopics.size < 1) {
@@ -227,7 +226,7 @@ namespace Matcher {
         log.info(`handle puber close done: unsubscribe all topic`)
     }
 
-    export const unRegist = async (pubId: IDT, reason: CloseReason): PVoidT => {
+    export async function unRegist(pubId: IDT, reason: CloseReason): PVoidT {
         /// when puber error or close,
         /// if suber close or error, will emit puber close
 
@@ -244,7 +243,7 @@ namespace Matcher {
         clearSubscribeContext(puber, reason)
     }
 
-    export const isSubscribed = (chain: string, pid: IDT, data: WsData): boolean => {
+    export function isSubscribed(chain: string, pid: IDT, data: WsData): boolean {
         if (pid === '00000000000000000000000000000000') { return false }
         const topics = GG.getSubTopics(chain, pid)
         log.info(`subscribed topics of chain[${chain}] pid[${pid}]: %o`, Object.keys(topics))
@@ -261,7 +260,7 @@ namespace Matcher {
         return false
     }
 
-    export const init = async () => {
+    export async function init(): PVoidT {
         Suber.init()
     }
 }

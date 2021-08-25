@@ -17,7 +17,7 @@ interface Puber {
     chain: string,
     ws: WebSocket,
     topics: Set<string>,   // {subscribeId}
-    subId?: IDT,            // suber id
+    subId: IDT,            // suber id
     event?: EventEmitter
     kvSubId?: IDT,          // kv suber
 }
@@ -86,7 +86,7 @@ class Puber {
         }
         let subId = puber.subId
         if (type === SuberTyp.Kv) {
-            subId = puber.kvSubId
+            subId = puber.kvSubId!
         }
         log.debug(`new request suber[${subId}] type ${type}`)
         let re = Matcher.newRequest(chain, pid, id, type, subId!, data, stat)
