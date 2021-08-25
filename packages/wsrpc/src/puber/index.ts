@@ -77,11 +77,11 @@ class Puber {
         // topic bind to chain and params 
         if (Matcher.isSubscribed(chain, pid, data)) {
             log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)
-            const sres = JSON.stringify(res)
             res.error = { code: 1000, message: 'No need to subscribe twice' }
-            stat.code = 400
-            stat.bw = Util.strBytes(sres)
-            Stat.publish(stat)
+            const sres = JSON.stringify(res)
+            // stat.code = 400
+            // stat.bw = Util.strBytes(sres)
+            // Stat.publish(stat)
             return puber.ws.send(sres)
         }
         let subId = puber.subId
