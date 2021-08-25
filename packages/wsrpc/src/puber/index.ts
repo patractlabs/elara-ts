@@ -2,12 +2,11 @@ import WebSocket, { EventEmitter } from 'ws'
 import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT, isNone } from '@elara/lib'
 import { Option, None, Some } from '@elara/lib'
 import { randomId } from '@elara/lib'
-import { ReqDataT, Statistics, WsData } from '../interface'
+import { ReqDataT, Statistics } from '../interface'
 import Matcher from '../matcher'
 import Suber, { SuberTyp } from '../matcher/suber'
 import G from '../global'
 import { Stat } from '../statistic'
-import Util from '../util'
 
 const log = getAppLogger('puber')
 
@@ -72,18 +71,17 @@ class Puber {
 
     static async transpond(puber: Puber, type: SuberTyp, data: ReqDataT, stat: Statistics): PVoidT {
         const { id, chain, pid } = puber
-        const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
+
+        // polkadotapps will subscribe more than once
+        // const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
         log.debug('puber transpond statistics: %o', stat)
         // topic bind to chain and params 
-        if (Matcher.isSubscribed(chain, pid, data)) {
-            log.warn(`The topic [${data.method}] has been subscribed, no need to subscribe twice!`)
-            res.error = { code: 1000, message: 'No need to subscribe twice' }
-            const sres = JSON.stringify(res)
-            // stat.code = 400
-            // stat.bw = Util.strBytes(sres)
-            // Stat.publish(stat)
-            return puber.ws.send(sres)
-        }
+        // if (Matcher.isSubscribed(chain, pid, data)) {
+        //     log.warn(`The pid[${puber.pid}] puber[${puber.id}] has subscribed topic [${data.method}], no need to subscribe twice!`)
+        //     res.error = { code: 1000, message: 'No need to subscribe twice' }
+        //     const sres = JSON.stringify(res)
+        //     return puber.ws.send(sres)
+        // }
         let subId = puber.subId
         if (type === SuberTyp.Kv) {
             subId = puber.kvSubId!
