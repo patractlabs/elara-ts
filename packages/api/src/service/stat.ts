@@ -288,12 +288,12 @@ class Stat {
     // country request map
     static async countryMap(chain: string, pid: string, size: number, page: number) {
         const key = sKEY.zProDailyCtmap(chain, pid)
-        const total = await Rd.zcard(key) - 1 
+        const total = await Rd.zcard(key)
         const totalRequest = parseInt(await Rd.zscore(key, 'total'))
         const pages = Math.floor(total / size) + 1
 
         const off = page * size
-        const ct = await Rd.zrevrange(key, off + 1, off + size, 'WITHSCORES')
+        const ct = await Rd.zrevrange(key, off, off + size - 1, 'WITHSCORES')
         log.debug(`get country map: %o`, ct)
         const list: CountryT[] = []
         for (let i = 0; i < ct.length; i += 2) {
