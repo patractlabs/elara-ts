@@ -15,10 +15,6 @@ interface ProInfo extends ProAttr {
     stat: StatT
 }
 
-function toMb(bytes: number): number {
-    return parseFloat((bytes / 1000000.0).toFixed(2))
-}
-
 class Project {
 
     static async create(pro: ProAttr): PResultT<ProAttr> {
@@ -181,7 +177,6 @@ class Project {
             let res: ProInfo[] = []
             for (let pro of re) {
                 const re = await Stat.proStatDaily(pro.chain, pro.pid)
-                re.bw = toMb(re.bw)
                 let ptmp = { ...(pro as any)['dataValues'] } as ProInfo
                 ptmp.stat = re
                 // log.debug(`project info temp: %o`, ptmp)

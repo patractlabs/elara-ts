@@ -78,7 +78,7 @@ export function statAdd(l: StatT, r: StatT): StatT {
 export function parseStatInfo(stat: Record<string, string>): StatT {
     return {
         reqCnt: parseInt(stat.reqCnt ?? '0'),
-        bw: toMb(parseInt(stat.bw ?? '0')),
+        bw: parseInt(stat.bw ?? '0'),
         wsConn: parseInt(stat.wsConn ?? '0'),
         subCnt: parseInt(stat.subCnt ?? '0'),
         subResCnt: parseInt(stat.subResCnt ?? '0'),
@@ -132,7 +132,8 @@ interface ErrPageT {
 
 interface CountryT {
     country: string,
-    percentage: number
+    request: number,
+    percentage: string
 }
 
 function toMb(bytes: number): number {
@@ -296,7 +297,8 @@ class Stat {
         log.debug(`get country map: %o`, ct)
         const list: CountryT[] = []
         for (let i = 0; i < ct.length; i += 2) {
-            list.push({country: ct[i], percentage: parseFloat((parseInt(ct[i+1]) * 100.0 / totalRequest).toFixed(2))})
+            let reqCnt = parseInt(ct[i+1])
+            list.push({country: ct[i], request: reqCnt, percentage: (100.00 * reqCnt / totalRequest).toFixed(2) + '%'})
         }
         return {
             total,
