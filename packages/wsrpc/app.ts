@@ -95,12 +95,12 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         log.error(`request path check fail: ${re.value}`)
         return Response.Fail(res, re.value, 400, reqStatis)
     }
-    const cp = re.value as ChainPidT
+    const {chain, pid} = re.value as ChainPidT
 
     let data = ''
     let dstart = 0
-    reqStatis.chain = cp.chain
-    reqStatis.pid = cp.pid as string
+    reqStatis.chain = chain
+    reqStatis.pid = pid as string
 
     req.on('data', (chunk) => {
         if (data == '') {
@@ -111,26 +111,26 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
 
     req.on('end', async () => {
         const dtime = Util.traceEnd(dstart)
-        log.info(`new rpc request: ${data}, parse time[${dtime}]`)
+        log.info(`${chain} pid[${pid}] new rpc request: ${data}, parse time[${dtime}]`)
         let dat: ReqDataT
         try {
             let re = dataCheck(data)
             if (isErr(re)) {
-                log.error(`rpc request error: ${re.value}`)
+                log.error(`${chain} pid[${pid}] rpc request error: ${re.value}`)
                 return Response.Fail(res, re.value, 400, reqStatis)
             }
             dat = re.value
             reqStatis.req = dat
-            const isLimit = await resourceLimit(cp.chain, cp.pid as string)
+            const isLimit = await resourceLimit(chain, pid as string)
             if (isLimit) {
                 return Response.Fail(res, 'resource out of limit', 419, reqStatis)
             }
         } catch (err) {
-            log.error(`rpc request catch error: %o`, err)
+            log.error(`${chain} pid[${pid}] rpc request catch error: %o`, err)
             return Response.Fail(res, 'Invalid request, must be JSON {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}', 400, reqStatis)
         }
         // dispatch request 
-        dispatchRpc(cp.chain, dat, res, reqStatis)
+        dispatchRpc(chain, dat, res, reqStatis)
     })
 })
 
@@ -170,9 +170,9 @@ wss.on('connection', async (ws, req: any) => {
     const stat = req['stat']
     const re = await Matcher.regist(ws, chain, pid)
     if (isErr(re)) {
-        log.error(`socket connect error: ${re.value}`)
+        log.error(`${chain} pid[${pid}] socket connect error: ${re.value}`)
         if (re.value.includes('suber inactive')) {
-            log.error(`suber is unavailable`)
+            log.error(`${chain} pid[${pid}] suber is unavailable`)
             ws.send(`service unavailable now`)
         }
         stat.code = 500
@@ -188,7 +188,7 @@ wss.on('connection', async (ws, req: any) => {
     Stat.publish(stat)
 
     ws.on('message', async (data) => {
-        log.info(`new puber[${id}] request of chain ${chain}: %o`, data)
+        log.info(`${chain} pid[${pid}] new puber[${id}] request of chain ${chain}: %o`, data)
         let dat: ReqDataT
         let reqStatis = initStatistic('ws', '', {} as Http.IncomingHttpHeaders)
         reqStatis.code = 400
@@ -199,7 +199,7 @@ wss.on('connection', async (ws, req: any) => {
         try {
             let re = dataCheck(data.toString())
             if (isErr(re)) {
-                log.error(`${re.value}`)
+                log.error(`${chain} pid[${pid}] puber[${id}] data check error: ${re.value}`)
                 reqStatis.delay = Util.traceDelay(reqStatis.start)
                 Stat.publish(reqStatis)
                 return puber.ws.send(re.value)
@@ -215,7 +215,7 @@ wss.on('connection', async (ws, req: any) => {
                 return puber.ws.send('resource out of limit')
             }
         } catch (err) {
-            log.error('Parse request to JSON error')
+            log.error(`${chain} pid[${pid}] puber[${id}] parse request to JSON error`)
             // publis statistics
             reqStatis.delay = Util.traceDelay(reqStatis.start)
             reqStatis.code = 500
@@ -227,7 +227,7 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('close', async (code, reason) => {
-        log.error(`puber[${id}] close: ${reason}, code ${code}, reason[${reason}]\n \tcurrent total puber connections: %o`, wss.clients.size)
+        log.error(`${chain} pid[${pid}] puber[${id}] close: ${reason}, code ${code}, reason[${reason}]\n \tcurrent total puber connections: %o`, wss.clients.size)
         if (reason === CloseReason.OutOfLimit || reason === CloseReason.SuberUnavail) {
             return  // out of limit
         }
@@ -235,7 +235,7 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('error', (err) => {
-        log.error(`Puber[${id}] Connection error: %o`, err)
+        log.error(`${chain} pid[${pid}] Puber[${id}] Connection error: %o`, err)
     })
     return
 })
