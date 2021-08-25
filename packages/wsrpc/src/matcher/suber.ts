@@ -620,7 +620,7 @@ class Suber {
         const subers = Suber.getSubersByChain(chain, type)
         const keys = Object.keys(subers)
         if (!keys || keys.length < 1) {
-            log.error(`Select suber error: no valid ${type} subers of chain `, chain)
+            log.error(`Select suber error: no valid ${type} subers of chain ${chain} `)
             return Err(`No valid suber of chain[${chain}]`)
         }
         const ind = GG.getID() % keys.length

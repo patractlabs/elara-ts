@@ -218,6 +218,7 @@ wss.on('connection', async (ws, req: any) => {
             log.error('Parse request to JSON error')
             // publis statistics
             reqStatis.delay = Util.traceDelay(reqStatis.start)
+            reqStatis.code = 500
             Stat.publish(reqStatis)
             return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
         }

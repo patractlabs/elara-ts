@@ -63,7 +63,7 @@ function accAverage(num: number, av: number, val: number, fixed: number = 2): nu
 export function ip2county(ip: string): string {
     // TODO
     // return ip
-    if (ip === 'localhost' || '127.0.0.1') { return 'local' }
+    if (ip === 'localhost' || ip === '127.0.0.1') { return 'local' }
     const dat = Geoip.lookup(ip)
     if (dat) {
         return dat.country ?? 'unknow'
