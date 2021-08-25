@@ -245,11 +245,11 @@ class Stat {
         return stat
     }
 
-    // latest 20 request methods by rank
+    // latest 10 request methods by rank
     static async latestMethods(chain: string, pid: string): Promise<Record<string, RankT>> {
         // last 30 days record
-        const bw = await Rd.zrevrange(sKEY.zProBw(chain, pid), 0, 20 - 1, 'WITHSCORES')
-        const req = await Rd.zrevrange(sKEY.zProReq(chain, pid), 0, 20 - 1, 'WITHSCORES')
+        const bw = await Rd.zrevrange(sKEY.zProBw(chain, pid), 0, 10 - 1, 'WITHSCORES')
+        const req = await Rd.zrevrange(sKEY.zProReq(chain, pid), 0, 10 - 1, 'WITHSCORES')
         log.debug('rank list: %o \n %o', bw, req)
         return {
             bandwidth: await methodStatic(bw, true),
