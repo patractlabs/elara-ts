@@ -15,13 +15,13 @@ import sequelize from '../api/src/sequelize'
 // const post = Got.post
 const log = getAppLogger('migrate')
 const ProRd = new Redis(DBT.Project, {
-    host: "127.0.0.1", port: 6379, options: {
-        password: "passw"
+    host: "47.111.179.222", port: 6379, options: {
+        password: "LlZ9L8zx13ASshRysD3bCQ"
     }
 }).getClient()
 const UserRd = new Redis(DBT.User, {
-    host: "127.0.0.1", port: 6379, options: {
-        password: "passw"
+    host: "47.111.179.222", port: 6379, options: {
+        password: "LlZ9L8zx13ASshRysD3bCQ"
     }
 }).getClient()
 

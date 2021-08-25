@@ -194,7 +194,7 @@ export async function mockChain(url: string) {
             team: 'Patract'
         }
     ] as ChainAttr[]
-    for(let chain of chains) {
+    for (let chain of chains) {
         log.info('create chain: ', chain)
         await post(url + '/chain/add', chain)
     }
@@ -233,9 +233,9 @@ export async function auth(url: string) {
 }
 
 async function mockRun() {
-    const url = 'http://localhost:7000/api'
+    const url = 'http://127.0.0.1:7000/api'
     log.info('current url: ', url)
-    await mockLimit(url)
+    // await mockLimit(url)
     await mockChain(url)
     // await mockUser(url)
     // await auth(url)

@@ -88,10 +88,11 @@ const deleteChain = async (ctx: KCtxT, next: NextT) => {
  *  }
  */
 R.post('/list', chainList)
-
-if (process.env.NODE_ENV === 'dev') {
-    R.post('/add', addChain)
-    R.post('/delete', deleteChain)
-}
+R.post('/add', addChain)
+R.post('/delete', deleteChain)
+// if (process.env.NODE_ENV === 'dev') {
+//     R.post('/add', addChain)
+//     R.post('/delete', deleteChain)
+// }
 
 export default R.routes()
