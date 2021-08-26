@@ -235,7 +235,7 @@ class Service {
             SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, ip2county(req.header.ip.split(':')[0]))
             SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, 'total')
 
-            const now = moment().utc(true)
+            const now = moment()
             const key = md5(data)
             if (req.code !== 200) {
                 // error statistic

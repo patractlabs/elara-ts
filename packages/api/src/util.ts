@@ -13,7 +13,7 @@ export function lastTime(unit: MomUnit, off: number = 1): number[] {
 }
 
 export function todayStamp(): number {
-    const today = Mom().utc(true).startOf('day')
+    const today = Mom().startOf('day')
     log.debug('today is: %o', today)
     return today.valueOf()
 }
