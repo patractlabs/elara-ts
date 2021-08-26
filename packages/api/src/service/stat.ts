@@ -42,7 +42,7 @@ type MomUnit = 'day' | 'hour' | 'minute' | 'second'
 
 function startStamp(off: number, unit: MomUnit): number {
     const date = Mom().subtract(off, `${unit}s`).startOf(unit as Mom.unitOfTime.StartOf)
-    log.debug(`start time stamp of ${unit}: %o`, date)
+    log.debug(`start time stamp of ${unit}: ${date} ${date.valueOf()}`)
     return date.valueOf()
 }
 

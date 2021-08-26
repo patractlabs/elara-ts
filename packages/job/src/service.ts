@@ -18,6 +18,7 @@ async function userStatUpdate(): PVoidT {
     const users = await Http.getUserList()
     users.forEach(async (user: UserAttr) => {
         if (user.status === 'suspend') {
+            log.info(`reset user[${user.id}] status to [active]`)
             Http.updateUserStatus(user.githubId!, 'active')
             UserRd.hset(uKEY.hStatus(user.id), 'status', 'active')
             projectStatUpdate(user.id)
@@ -26,7 +27,7 @@ async function userStatUpdate(): PVoidT {
 }
 
 async function projectStatUpdate(userId: number): PVoidT {
-    log.debug(`ready to update projects status of user[${userId}]`)
+    log.info(`ready to set projects status[active] of user[${userId}]`)
     const pros = await Http.getProjecList(userId)
     pros.forEach(async (pro: ProAttr) => {
         if (pro.status === 'suspend') {
@@ -40,6 +41,7 @@ async function checkProjecLimit(dat: StatT, pro: ProAttr) {
     const reqLimit = pro.reqDayLimit !== -1 && dat.reqCnt >= pro.reqDayLimit
     const bwLimit = pro.bwDayLimit !== -1 && dat.bw >= pro.bwDayLimit
     if (reqLimit || bwLimit) {
+        log.warn(`${pro.chain} pid[${pro.pid}] project of user[${pro.userId}] out of request limit, set status[suspend]`)
         // set suspend
         Http.updateProjectStatus(pro.id, 'suspend')
 
@@ -48,7 +50,7 @@ async function checkProjecLimit(dat: StatT, pro: ProAttr) {
     }
 }
 
-async function checkUserLimit(userId: number) {
+async function checkUserLimit(userId: number): PVoidT {
     const ure = await Http.getUserWithLimit(userId)
     if (isErr(ure)) {
         log.error(`check user error: %o`, ure.value)
@@ -68,6 +70,8 @@ async function checkUserLimit(userId: number) {
     const stat = re.value
 
     if (stat.reqCnt >= limit.reqDayLimit || stat.bw >= limit.bwDayLimit) {
+        log.warn(`user[${userId}] out of request limit, set status[suspend]`)
+
         Http.updateUserStatus(user.githubId, 'suspend')
         // cache
         UserRd.hset(uKEY.hStatus(userId), 'status', 'suspend')
@@ -91,7 +95,7 @@ async function hourlyHandler(): PVoidT {
     // clear 24 hours expiration record
     const [start, end] = lastTime('hour', 24)
     let keys = await SttRd.keys(`H_Stat_hour_*_${start}`)
-    log.debug(`clear expire hourly statistic: %o`, keys)
+    log.info(`clear expire hourly statistic: %o`, keys)
     for (let k of keys) {
         log.debug('remove expire hourly statistic: %o', k)
         SttRd.del(`H_Stat_hour_${k}`)
@@ -110,7 +114,7 @@ async function hourlyHandler(): PVoidT {
         for (let ik of keys) {
             SttRd.zrem(k, ik)
         }
-        log.debug('remove expire error request statistic: %o', k)
+        log.info('remove expire error request statistic: %o', k)
     }
 }
 
@@ -123,9 +127,9 @@ async function dailyHandler(): PVoidT {
 
     // stat records
     const keys: string[] = await SttRd.keys(`H_Stat_day_*_${start}`)
-    log.debug(`clear expire daily statistic: %o`, keys)
+    log.info(`clear expire daily statistic: %o`, keys)
     for (let k of keys) {
-        log.debug('remove expire daily statistic: %o', k)
+        log.info('remove expire daily statistic: %o', k)
         SttRd.del(k)
     }
     // method records
@@ -135,17 +139,17 @@ async function dailyHandler(): PVoidT {
         const typ = sp[2]
         const chain = sp[3]
         const pid = sp[4]
-        log.debug(`clear expire method statistic: ${typ} ${chain} ${pid}`)
+        log.info(`clear expire method statistic: ${typ} ${chain} ${pid}`)
         if (typ === 'bw') {
             const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
             for (let i = 0; i < re.length; i += 2) {
-                log.debug(`decr total method bandwidth rank: ${re[i]} ${re[i + 1]}`)
+                log.info(`decr total method bandwidth rank: ${re[i]} ${re[i + 1]}`)
                 SttRd.zincrby(KEY.zProBw(chain, pid), -re[i + 1], re[i])
             }
         } else {
             const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
             for (let i = 0; i < re.length; i += 2) {
-                log.debug(`decr total method request rank: ${re[i]} ${re[i + 1]}`)
+                log.info(`decr total method request rank: ${re[i]} ${re[i + 1]}`)
                 SttRd.zincrby(KEY.zProReq(chain, pid), -re[i + 1], re[i])
             }
         }
@@ -163,7 +167,7 @@ class Service {
     static async init() {
         // hourly job
         const hourJob = Sche.scheduleJob('0 */1 * * *', () => {
-            log.debug('hourly job start')
+            log.info('hourly job start')
             hourlyHandler()
         })
 
@@ -172,7 +176,7 @@ class Service {
         })
 
         hourJob.on('canceled', (reason) => {
-            log.debug('hourly job canceled ', reason)
+            log.error('hourly job canceled ', reason)
         })
 
         const dayJob = Sche.scheduleJob('0 0 */1 * *', () => {
@@ -185,7 +189,7 @@ class Service {
         })
 
         dayJob.on('canceled', (reason) => {
-            log.debug('daily job canceled ', reason)
+            log.error('daily job canceled ', reason)
         })
     }
 
@@ -193,7 +197,7 @@ class Service {
         const data = stream[1][1]
         const req = JSON.parse(data) as Statistics
         const { chain, pid } = req
-        log.debug('dump new request statistic: %o', data)
+        log.info('start dump new request statistic: %o', data)
         if (chain === undefined || pid === undefined) {
             return
         }
