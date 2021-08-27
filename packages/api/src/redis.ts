@@ -16,6 +16,12 @@ const User = new Redis(DBT.User, {
     }
 })
 
+const Stat = new Redis(DBT.Stat, {
+    host: rconf.host, port: rconf.port, options: {
+        password: rconf.password
+    }
+})
+
 Pro.onConnect(() => {
     log.info('project redis connection open')
 })
@@ -32,5 +38,14 @@ User.onError((err) => {
     log.error('user redis connection error: %o', err)
 })
 
+Stat.onConnect(() => {
+    log.info('stat redis connection open')
+})
+
+Stat.onError((err) => {
+    log.error('stat redis connection error: %o', err)
+})
+
 export const ProRd = Pro.getClient()
 export const UserRd = User.getClient()
+export const StatRd = User.getClient()

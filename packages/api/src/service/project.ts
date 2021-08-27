@@ -4,11 +4,13 @@ import { errMsg } from '../util'
 import { Sequelize } from 'sequelize-typescript'
 import { FindOptions } from 'sequelize/types'
 import User from '../models/user'
-import { ProRd, UserRd } from '../redis'
+import { ProRd, UserRd, StatRd } from '../redis'
 import Stat from './stat'
 import { StatT } from '../interface'
 
 const KEY = KEYS.Project
+const sKEY = KEYS.Stat
+
 const log = getAppLogger('project-service')
 
 interface ProInfo extends ProAttr {
@@ -38,13 +40,40 @@ class Project {
 
     static async delete(id: number, force: boolean = false): PResultT<boolean> {
         try {
+            const pro = await ProjectModel.findOne({
+                where: { id },
+                paranoid: !force
+            })
+            if (pro === null) {
+                return Ok(true)
+            }
+
             const re = await ProjectModel.destroy({
                 where: {
                     id
                 },
                 force
             })
-            // TODO: clear all relate statistic keys ?
+            if (re === 1) {
+                const { chain, pid } = pro
+                // clear project status key
+                ProRd.del(KEY.hProjectStatus(pro.chain, pro.pid))
+
+                // clear statistic
+                // daily hourly 
+                // latest normal & err request
+                let keys = await StatRd.keys(`*_${chain.toLowerCase()}_${pid}_*`)
+                keys.forEach(key => {
+                    StatRd.del(key)
+                })
+
+                // request method rank
+                StatRd.del(sKEY.zProBw(chain, pid))
+                StatRd.del(sKEY.zProReq(chain, pid))
+                // country map
+                StatRd.del(sKEY.zProDailyCtmap(chain, pid))
+                StatRd.del(sKEY.zProDailyCtmap(chain, pid))
+            }
             return Ok(re === 1)
         } catch (err) {
             log.error(`delete project ${id} error: %o`, err)
