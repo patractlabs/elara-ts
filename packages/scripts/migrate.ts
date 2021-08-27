@@ -1,5 +1,6 @@
 import fs from 'fs'
 import Argparse from 'minimist'
+import Mom from 'moment'
 import { getAppLogger, randomId, KEYS, Redis, DBT, PVoidT, isErr, Ok, Err } from '@elara/lib'
 import ProjectModel, { ProAttr, ProStatus } from '../api/src/models/project'
 import Limit from '../api/src/service/limit'
@@ -19,7 +20,14 @@ const ProRd = new Redis(DBT.Project, {
         password: "LlZ9L8zx13ASshRysD3bCQ"
     }
 }).getClient()
+
 const UserRd = new Redis(DBT.User, {
+    host: "47.111.179.222", port: 6379, options: {
+        password: "LlZ9L8zx13ASshRysD3bCQ"
+    }
+}).getClient()
+
+const StatRd = new Redis(DBT.Stat, {
     host: "47.111.179.222", port: 6379, options: {
         password: "LlZ9L8zx13ASshRysD3bCQ"
     }
@@ -124,6 +132,25 @@ export async function parseData() {
         }
     }
     log.info('no project user count: %o', nouserCnt)
+}
+
+export async function migrateStat(): PVoidT {
+    const brio = 4096
+    const total = 3371960000
+    const days = [
+        20000000, 33378254, 29348368, 29210373,
+        21474461, 20435833, 21464380, 24482837,
+        24262119, 35270618, 37619695, 32578934,
+        25604408, 24437699, 33058490, 24242706,
+        25790072, 27814090, 27360400, 32993384,
+        37143149, 38297063, 35378722, 31685328,
+        28350828, 26995892, 27974337, 25921432,
+        27089562, 34275529]
+    StatRd.hmset(KEYS.Stat.hTotal(), 'bw', total * brio, 'reqCnt', total)
+    for (let i = 0; i < 30; i++) {
+        const stamp = Mom().subtract(i, 'days').startOf('day').valueOf()
+        StatRd.hmset(KEYS.Stat.hDaily(stamp), 'bw', days[i] * brio, 'reqCnt', days[i])
+    }
 }
 
 async function main() {
