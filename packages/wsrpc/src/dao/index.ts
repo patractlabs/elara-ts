@@ -1,4 +1,4 @@
-import { ChainConfig, Err, Ok, PResultT } from '@elara/lib'
+import { ChainConfig, Err, Ok, PResultT, PVoidT } from '@elara/lib'
 import Rd from './redis'
 
 class Dao {
@@ -6,8 +6,8 @@ class Dao {
         return Ok(await Rd.getChainList())
     }
 
-    static async getChainConfig(chain: string): PResultT<ChainConfig> {
-        const conf = await Rd.getChainConfig(chain) as ChainConfig
+    static async getChainConfig(chain: string, serverId: number): PResultT<ChainConfig> {
+        const conf = await Rd.getChainConfig(chain, serverId) as ChainConfig
         if (!conf.name) {
             return Err('Invalid chain config')
         }
@@ -30,6 +30,9 @@ class Dao {
         return Rd.getProStatus(chain, pid)
     }
 
+    static async clearProjectStatistic(chain: string, pid: string): PVoidT {
+        return Rd.clearProjectStatistic(chain, pid)
+    }
 }
 
 export default Dao

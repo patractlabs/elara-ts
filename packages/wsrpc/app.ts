@@ -251,6 +251,13 @@ wss.on('connection', async (ws, req: any) => {
             return  // out of limit
         }
         Matcher.unRegist(id, reason as CloseReason)
+
+        const projectIsOk = await projectOk(chain, pid)
+        if (!projectIsOk) {
+            // clear project statistic
+            log.warn(`${chain} project[${pid}] is deleted, clear statistic now`)
+            Dao.clearProjectStatistic(chain, pid)
+        }
     })
 
     ws.on('error', (err) => {

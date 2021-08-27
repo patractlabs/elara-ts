@@ -1,4 +1,4 @@
-import { Redis, DBT, getAppLogger, KEYS } from '@elara/lib'
+import { Redis, DBT, getAppLogger, KEYS, PVoidT } from '@elara/lib'
 import Conf from '../../config'
 
 const KCache = KEYS.Cache
@@ -9,27 +9,41 @@ const log = getAppLogger('redis')
 const rconf = Conf.getRedis()
 
 // TODO redis pool
-const chainRedis = new Redis(DBT.Chain, { host: rconf.host, port: rconf.port,options:{
+const chainRedis = new Redis(DBT.Chain, {
+    host: rconf.host, port: rconf.port, options: {
+        password: rconf.password
+    }
+})
 
-    password:rconf.password
-} })
-const userRedis = new Redis(DBT.User, { host: rconf.host, port: rconf.port ,options:{
+const userRedis = new Redis(DBT.User, {
+    host: rconf.host, port: rconf.port, options: {
+        password: rconf.password
+    }
+})
 
-    password:rconf.password
-}})
-const proRedis = new Redis(DBT.Project, { host: rconf.host, port: rconf.port ,options:{
+const proRedis = new Redis(DBT.Project, {
+    host: rconf.host, port: rconf.port, options: {
+        password: rconf.password
+    }
+})
 
-    password:rconf.password
-}})
-const cacheRedis = new Redis(DBT.Cache, { host: rconf.host, port: rconf.port ,options:{
+const cacheRedis = new Redis(DBT.Cache, {
+    host: rconf.host, port: rconf.port, options: {
+        password: rconf.password
+    }
+})
 
-    password:rconf.password
-}})
+const statRedis = new Redis(DBT.Stat, {
+    host: rconf.host, port: rconf.port, options: {
+        password: rconf.password
+    }
+})
 
 const cacheRd = cacheRedis.getClient()
 const chainRd = chainRedis.getClient()
 const userRd = userRedis.getClient()
 const proRd = proRedis.getClient()
+const StatRd = statRedis.getClient()
 
 chainRedis.onError((err: string) => {
     log.error(`redis db chain connectino error: ${err}`)
@@ -67,44 +81,61 @@ cacheRedis.onError((err: string) => {
     process.exit(2)
 })
 
-namespace Rd {
+statRedis.onConnect(() => {
+    log.info(`stat db cache connection open: ${rconf.host}:${rconf.port}  ${rconf.password}`)
+})
+
+statRedis.onError((err: string) => {
+    log.error(`stat redis cache connectino error: ${err}`)
+    process.exit(2)
+})
+
+class Rd {
 
     /// chain operation
-    export const getChainList = async () => {
+    static async getChainList() {
         return chainRd.zrange(KChain.zChainList(), 0, -1)
     }
 
-    export const getChainConfig = async (chain: string) => {
-        return chainRd.hgetall(KChain.hChain(chain))
+    static async getChainConfig(chain: string, serverId: number) {
+        return chainRd.hgetall(KChain.hChain(chain, serverId))
     }
 
 
     /// cache operation
 
-    export const setLatest = async (chain: string, method: string, result: any) => {
+    static async setLatest(chain: string, method: string, result: any) {
         // TODO whether expiration
         const updateTime = Date.now()
         const latest = {
             updateTime,
             result
         }
-        log.error('data to be dump: %o',latest)
+        log.error('data to be dump: %o', latest)
         return cacheRd.hmset(KCache.hCache(chain, method), latest)
     }
 
-    export const getLatest = async (chain: string, method: string) => {
+    static async getLatest(chain: string, method: string) {
         return cacheRd.hgetall(KCache.hCache(chain, method))
     }
 
     // user status
-    export const getUserStatus = async(userId: number): Promise<Record<string, string>> => {
+    static async getUserStatus(userId: number): Promise<Record<string, string>> {
         return userRd.hgetall(KEYS.User.hStatus(userId))
     }
     // project status
-    export const getProStatus = async (chain: string, pid: string): Promise<Record<string, string>> => {
+    static async getProStatus(chain: string, pid: string): Promise<Record<string, string>> {
         return proRd.hgetall(KEYS.Project.hProjectStatus(chain, pid))
     }
 
+    // clear project statistic
+    static async clearProjectStatistic(chain: string, pid: string): PVoidT {
+        let keys = await StatRd.keys(`*_${chain.toLowerCase()}_${pid}*`)
+        log.info(`${chain} project[${pid}] keys to clear: %o`, keys)
+        keys.forEach(async key => {
+            await StatRd.del(key)
+        })
+    }
 }
 
 export default Rd
