@@ -1,5 +1,5 @@
 import Sche from 'node-schedule'
-import { getAppLogger, KEYS, PVoidT, isErr, md5 } from '@elara/lib'
+import { getAppLogger, KEYS, PVoidT, isErr, md5, Rdt } from '@elara/lib'
 import { ProRd, SttRd, UserRd } from './redis'
 import { Statistics, UserAttr, ProAttr, StatT } from './interface'
 import { lastTime, todayStamp, currentHourStamp, startStamp, statisticDump, parseStatInfo, ip2county } from './util'
@@ -13,6 +13,24 @@ const KEY = KEYS.Stat
 const uKEY = KEYS.User
 const pKEY = KEYS.Project
 const log = getAppLogger('service')
+
+
+async function streamDel(rd: Rdt, pattern: string, label: string = ''): PVoidT {
+    const stream = rd.scanStream({
+        match: pattern
+    })
+
+    stream.on('data', (keys: string[]) => {
+        log.warn(`start to clear ${label} keys: %o`, keys)
+        keys.forEach(key => {
+            rd.unlink(key)
+        })
+    })
+
+    stream.on('end', () => {
+        log.info(`all ${label} keys has be cleared`)
+    })
+}
 
 async function userStatUpdate(): PVoidT {
     const users = await Http.getUserList()
@@ -94,15 +112,16 @@ async function resourceCheck(chain: string, pid: string) {
 async function hourlyHandler(): PVoidT {
     // clear 24 hours expiration record
     const [start, end] = lastTime('hour', 24)
-    let keys = await SttRd.keys(`H_Stat_hour_*_${start}`)
-    log.info(`clear expire hourly statistic: %o`, keys)
-    for (let k of keys) {
-        log.debug('remove expire hourly statistic: %o', k)
-        SttRd.del(`H_Stat_hour_${k}`)
-    }
+    streamDel(SttRd, `H_Stat_hour_*_${start}`, 'expire hourly statistic')
+    // let keys = await SttRd.keys(`H_Stat_hour_*_${start}`)
+    // log.info(`clear expire hourly statistic: %o`, keys)
+    // for (let k of keys) {
+    //     log.debug('remove expire hourly statistic: %o', k)
+    //     SttRd.del(`H_Stat_hour_${k}`)
+    // }
 
     const zlKey = KEY.zStatList()
-    keys = await SttRd.zrangebyscore(zlKey, start, end)
+    let keys = await SttRd.zrangebyscore(zlKey, start, end)
     for (let k of keys) {
         log.debug('remove expire request statistic: %o', k)
         SttRd.zrem(zlKey, k)
@@ -126,41 +145,54 @@ async function dailyHandler(): PVoidT {
     SttRd.del(KEY.hDaily(start))
 
     // stat records
-    const keys: string[] = await SttRd.keys(`H_Stat_day_*_${start}`)
-    log.info(`clear expire daily statistic: %o`, keys)
-    for (let k of keys) {
-        log.info('remove expire daily statistic: %o', k)
-        SttRd.del(k)
-    }
+    streamDel(SttRd, `H_Stat_day_*_${start}`, 'expire daily statistic')
+    // const keys: string[] = await SttRd.keys(`H_Stat_day_*_${start}`)
+    // log.info(`clear expire daily statistic: %o`, keys)
+    // for (let k of keys) {
+    //     log.info('remove expire daily statistic: %o', k)
+    //     SttRd.del(k)
+    // }
     // method records
-    const mkeys = await SttRd.keys(`Z_Method_*_${start}`)
-    for (let key of mkeys) {
-        const sp = key.split('_')
-        const typ = sp[2]
-        const chain = sp[3]
-        const pid = sp[4]
-        log.info(`clear expire method statistic: ${typ} ${chain} ${pid}`)
-        if (typ === 'bw') {
-            const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
-            for (let i = 0; i < re.length; i += 2) {
-                log.info(`decr total method bandwidth rank: ${re[i]} ${re[i + 1]}`)
-                SttRd.zincrby(KEY.zProBw(chain, pid), -re[i + 1], re[i])
+    const stream = SttRd.scanStream({
+        match: `Z_Method_*_${start}`
+    })
+
+    stream.on('data', async (keys: string[]) => {
+
+        // const mkeys = await SttRd.keys(`Z_Method_*_${start}`)
+        for (let key of keys) {
+            const sp = key.split('_')
+            const typ = sp[2]
+            const chain = sp[3]
+            const pid = sp[4]
+            log.info(`clear expire method statistic: ${typ} ${chain} ${pid}`)
+            if (typ === 'bw') {
+                const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
+                for (let i = 0; i < re.length; i += 2) {
+                    log.info(`decr total method bandwidth rank: ${re[i]} ${re[i + 1]}`)
+                    SttRd.zincrby(KEY.zProBw(chain, pid), -re[i + 1], re[i])
+                }
+            } else {
+                const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
+                for (let i = 0; i < re.length; i += 2) {
+                    log.info(`decr total method request rank: ${re[i]} ${re[i + 1]}`)
+                    SttRd.zincrby(KEY.zProReq(chain, pid), -re[i + 1], re[i])
+                }
             }
-        } else {
-            const re = await SttRd.zrange(key, 0, -1, 'WITHSCORES')
-            for (let i = 0; i < re.length; i += 2) {
-                log.info(`decr total method request rank: ${re[i]} ${re[i + 1]}`)
-                SttRd.zincrby(KEY.zProReq(chain, pid), -re[i + 1], re[i])
-            }
+            SttRd.del(key)
         }
-        SttRd.del(key)
-    }
+    })
+
+    stream.on('end', () => {
+        log.info(`all method record keys has been clear`)
+    })
 
     // country map reset
-    const ckeys = await SttRd.keys(`Z_Country_daily_*`)
-    for (let key of ckeys) {
-        SttRd.del(key)
-    }
+    streamDel(SttRd, `Z_Country_daily_*`, 'country daily statistic')
+    // const ckeys = await SttRd.keys(`Z_Country_daily_*`)
+    // for (let key of ckeys) {
+    //     SttRd.del(key)
+    // }
 }
 
 class Service {

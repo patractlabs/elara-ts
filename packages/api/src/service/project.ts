@@ -9,7 +9,6 @@ import Stat from './stat'
 import { StatT } from '../interface'
 
 const KEY = KEYS.Project
-const sKEY = KEYS.Stat
 
 const log = getAppLogger('project-service')
 
@@ -70,7 +69,7 @@ class Project {
                         StatRd.unlink(key)
                     })
                 })
-                
+
                 stream.on('end', () => {
                     log.info(`all statistic record be cleared of ${chain} project[${pid}]`)
                 })
