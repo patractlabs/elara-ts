@@ -25,19 +25,28 @@ async function pathOk(url: string, host: string): PResultT<ChainPidT> {
     return Util.urlParse(path)
 }
 
+async function projectOk(chain: string, pid: string): PBoolT {
+    const pstat = await Dao.getProjectStatus(chain, pid)
+    log.info(`get ${chain} project[${pid}] status resutl: %o`, pstat)
+    if (pstat.status === undefined) {
+        return false
+    }
+    return true
+}
+
 async function resourceLimit(chain: string, pid: string): PBoolT {
     if (pid === '00000000000000000000000000000000') {
         return false
     }
     
     const pstat = await Dao.getProjectStatus(chain, pid)
-    log.debug(`project status ${pstat['status']}: %o`, pstat)
+    log.info(`project status ${pstat['status']}: %o`, pstat)
     if (pstat.status !== 'active') {
         return true
     }
     const userId = parseInt(pstat.user)
     const ustat = await Dao.getUserStatus(userId)
-    log.debug(`user status: %o`, ustat)
+    log.info(`user status: %o`, ustat)
     
     if (ustat.status !== 'active') {
         return true
@@ -96,7 +105,10 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
         return Response.Fail(res, re.value, 400, reqStatis)
     }
     const {chain, pid} = re.value as ChainPidT
-
+    const projectIsOk = await projectOk(chain, pid as string)
+    if (!projectIsOk) {
+        return Response.Fail(res, 'invalid project', 400, reqStatis)
+    }
     let data = ''
     let dstart = 0
     reqStatis.chain = chain
@@ -152,6 +164,13 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
         return
     }
     const { chain, pid } = re.value
+    const projectIsOk = await projectOk(chain, pid as string)
+    if (!projectIsOk) {
+        Stat.publish(reqStatis)
+        await socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
+        socket.emit('close', true)
+        return
+    }
     reqStatis.chain = chain
     reqStatis.pid = pid as string
 
