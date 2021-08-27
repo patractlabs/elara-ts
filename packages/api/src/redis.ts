@@ -48,4 +48,4 @@ Stat.onError((err) => {
 
 export const ProRd = Pro.getClient()
 export const UserRd = User.getClient()
-export const StatRd = User.getClient()
+export const StatRd = Stat.getClient()

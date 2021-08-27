@@ -45,6 +45,7 @@ class Project {
                 paranoid: !force
             })
             if (pro === null) {
+                log.error(`delete project error: no this project ${id}`)
                 return Ok(true)
             }
 
@@ -56,23 +57,26 @@ class Project {
             })
             if (re === 1) {
                 const { chain, pid } = pro
+                log.warn(`start to clear ${chain} project[${pid}] statistic record`)
                 // clear project status key
-                ProRd.del(KEY.hProjectStatus(pro.chain, pro.pid))
+                await ProRd.del(KEY.hProjectStatus(pro.chain, pro.pid))
 
                 // clear statistic
                 // daily hourly 
                 // latest normal & err request
                 let keys = await StatRd.keys(`*_${chain.toLowerCase()}_${pid}_*`)
-                keys.forEach(key => {
-                    StatRd.del(key)
+                log.info(`${chain} project[${pid}] keys to clear: %o`, keys)
+                keys.forEach(async key => {
+                    log.info(`clear statistic key: ${key}`)
+                    await StatRd.del(key)
                 })
 
                 // request method rank
-                StatRd.del(sKEY.zProBw(chain, pid))
-                StatRd.del(sKEY.zProReq(chain, pid))
+                await StatRd.del(sKEY.zProBw(chain, pid))
+                await StatRd.del(sKEY.zProReq(chain, pid))
                 // country map
-                StatRd.del(sKEY.zProDailyCtmap(chain, pid))
-                StatRd.del(sKEY.zProDailyCtmap(chain, pid))
+                await StatRd.del(sKEY.zProDailyCtmap(chain, pid))
+                await StatRd.del(sKEY.zProDailyCtmap(chain, pid))
             }
             return Ok(re === 1)
         } catch (err) {
