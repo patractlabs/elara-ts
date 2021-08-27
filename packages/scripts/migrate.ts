@@ -148,7 +148,7 @@ export async function migrateStat(): PVoidT {
         27089562, 34275529]
     StatRd.hmset(KEYS.Stat.hTotal(), 'bw', total * brio, 'reqCnt', total)
     for (let i = 0; i < 30; i++) {
-        const stamp = Mom().subtract(i, 'days').startOf('day').valueOf()
+        const stamp = Mom().utcOffset('+08:00', false).subtract(i, 'days').startOf('day').valueOf()
         StatRd.hmset(KEYS.Stat.hDaily(stamp), 'bw', days[i] * brio, 'reqCnt', days[i])
     }
 }

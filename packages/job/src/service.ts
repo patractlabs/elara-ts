@@ -5,7 +5,7 @@ import { Statistics, UserAttr, ProAttr, StatT } from './interface'
 import { lastTime, todayStamp, currentHourStamp, startStamp, statisticDump, parseStatInfo, ip2county } from './util'
 import Conf from '../config'
 import Http from './http'
-import moment from 'moment'
+import Mom from 'moment'
 
 const rconf = Conf.getRedis()
 
@@ -235,7 +235,7 @@ class Service {
             SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, ip2county(req.header.ip.split(':')[0]))
             SttRd.zincrby(KEY.zProDailyCtmap(chain, pid), 1, 'total')
 
-            const now = moment()
+            const now = Mom().utcOffset('+08:00', false)
             const key = md5(data)
             if (req.code !== 200) {
                 // error statistic

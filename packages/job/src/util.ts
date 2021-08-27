@@ -7,7 +7,7 @@ import { SttRd } from './redis'
 const log = getAppLogger('util')
 
 export function lastTime(unit: MomUnit, off: number = 1): number[] {
-    const last = Mom().subtract(off, `${unit}s` as DurationT)
+    const last = Mom().utcOffset('+08:00', false).subtract(off, `${unit}s` as DurationT)
     const start = last.startOf(unit as StartT).clone()
     const end = last.endOf(unit as StartT)
     log.debug(`last start-end of ${off} ${unit}: %o %o`, start, end)
@@ -15,7 +15,7 @@ export function lastTime(unit: MomUnit, off: number = 1): number[] {
 }
 
 export function tillTime(unit: MomUnit, off: number = 1): number[] {
-    const cur = Mom()
+    const cur = Mom().utcOffset('+08:00', false)
     const last = cur.clone().subtract(off, `${unit}s` as DurationT)
     const start = last.startOf(unit as StartT).clone()
     const end = cur.startOf(unit as StartT)
@@ -24,18 +24,18 @@ export function tillTime(unit: MomUnit, off: number = 1): number[] {
 }
 
 export function startStamp(off: number = 1, unit: MomUnit): number {
-    const time = Mom().subtract(off, `${unit}s`).startOf(unit as StartT)
+    const time = Mom().utcOffset('+08:00', false).subtract(off, `${unit}s`).startOf(unit as StartT)
     return time.valueOf()
 }
 
 export function todayStamp(): number {
-    const today = Mom().startOf('day')
+    const today = Mom().utcOffset('+08:00', false).startOf('day')
     log.debug(`today is: ${today} ${today.valueOf()}`)
     return today.valueOf()
 }
 
 export function currentHourStamp(): number {
-    const curHour = Mom().startOf('hour')
+    const curHour = Mom().utcOffset('+08:00', false).startOf('hour')
     log.debug('current hour is: %o', curHour)
     return curHour.valueOf()
 }

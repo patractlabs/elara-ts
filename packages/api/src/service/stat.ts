@@ -41,7 +41,7 @@ export function newStats(): StatT {
 type MomUnit = 'day' | 'hour' | 'minute' | 'second'
 
 function startStamp(off: number, unit: MomUnit): number {
-    const date = Mom().subtract(off, `${unit}s`).startOf(unit as Mom.unitOfTime.StartOf)
+    const date = Mom().utcOffset('+08:00', false).subtract(off, `${unit}s`).startOf(unit as Mom.unitOfTime.StartOf)
     log.debug(`start time stamp of ${unit}: ${date} ${date.valueOf()}`)
     return date.valueOf()
 }
@@ -190,7 +190,7 @@ class Stat {
     }
 
     static async lastDays(day: number): PStatLineT {
-        const today = Mom().format('YYYY-MM-DD')
+        const today = Mom().utcOffset('+08:00', false).format('YYYY-MM-DD')
         let stat: StatT = await Stat.daily()
         const timeline: string[] = [today]
         const stats: StatInfoT[] = [getStatInfo(stat)]
@@ -209,7 +209,7 @@ class Stat {
     // project relate
     static async lastDaysOfProject(day: number, chain: string, pid: string): PStatLineT {
         log.debug(`last days ${chain} pid[${pid}]: ${day}`)
-        const today = Mom().format('YYYY-MM-DD')
+        const today = Mom().utcOffset('+08:00', false).format('YYYY-MM-DD')
         let stat: StatT = await Stat.proStatDaily(chain, pid)
         const timeline: string[] = [today]
         const stats: StatInfoT[] = [getStatInfo(stat)]

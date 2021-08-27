@@ -5,7 +5,7 @@ import { StartT, DurationT, MomUnit } from './interface'
 const log = getAppLogger('util')
 
 export function lastTime(unit: MomUnit, off: number = 1): number[] {
-    const last = Mom().subtract(off, `${unit}s` as DurationT)
+    const last = Mom().utcOffset('+08:00', false).subtract(off, `${unit}s` as DurationT)
     const start = last.startOf(unit as StartT).clone()
     const end = last.endOf(unit as StartT)
     log.debug(`last start-end of ${off} ${unit}: ${start}-${end}`)
@@ -13,7 +13,7 @@ export function lastTime(unit: MomUnit, off: number = 1): number[] {
 }
 
 export function todayStamp(): number {
-    const today = Mom().startOf('day')
+    const today = Mom().utcOffset('+08:00', false).startOf('day')
     log.debug('today is: %o', today)
     return today.valueOf()
 }
