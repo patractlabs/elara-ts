@@ -61,22 +61,19 @@ class Project {
                 // clear project status key
                 await ProRd.del(KEY.hProjectStatus(pro.chain, pro.pid))
 
-                // clear statistic
-                // daily hourly 
-                // latest normal & err request
-                let keys = await StatRd.keys(`*_${chain.toLowerCase()}_${pid}_*`)
-                log.info(`${chain} project[${pid}] keys to clear: %o`, keys)
-                keys.forEach(async key => {
-                    log.info(`clear statistic key: ${key}`)
-                    await StatRd.del(key)
+                const stream = StatRd.scanStream({
+                    match: `*${chain.toLowerCase()}_${pid}*`
                 })
-
-                // request method rank
-                await StatRd.del(sKEY.zProBw(chain, pid))
-                await StatRd.del(sKEY.zProReq(chain, pid))
-                // country map
-                await StatRd.del(sKEY.zProDailyCtmap(chain, pid))
-                await StatRd.del(sKEY.zProDailyCtmap(chain, pid))
+                stream.on('data', (keys: string[]) => {
+                    log.warn(`start to clear ${chain} project[${pid}] keys: %o`, keys)
+                    keys.forEach(key => {
+                        StatRd.unlink(key)
+                    })
+                })
+                
+                stream.on('end', () => {
+                    log.info(`all statistic record be cleared of ${chain} project[${pid}]`)
+                })
             }
             return Ok(re === 1)
         } catch (err) {

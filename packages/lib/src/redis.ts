@@ -27,7 +27,13 @@ export class Redis {
     private db: DBT
 
     constructor(db: DBT, arg?: RArgT) {
-        const options = { ...arg?.options, db }
+        const options: RedisOptions = {
+            ...arg?.options, db,
+            retryStrategy(times) {
+                const delay = Math.min(times * 50, 2000)
+                return delay
+            }
+        }
         this.client = new IORedis(arg?.port, arg?.host, options)
         this.db = db
     }

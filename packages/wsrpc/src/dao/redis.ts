@@ -1,5 +1,6 @@
 import { Redis, DBT, getAppLogger, KEYS, PVoidT } from '@elara/lib'
 import Conf from '../../config'
+import { Stat } from '../statistic'
 
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
@@ -11,7 +12,7 @@ const rconf = Conf.getRedis()
 // TODO redis pool
 const chainRedis = new Redis(DBT.Chain, {
     host: rconf.host, port: rconf.port, options: {
-        password: rconf.password
+        password: rconf.password,
     }
 })
 
@@ -130,10 +131,17 @@ class Rd {
 
     // clear project statistic
     static async clearProjectStatistic(chain: string, pid: string): PVoidT {
-        let keys = await StatRd.keys(`*_${chain.toLowerCase()}_${pid}*`)
-        log.info(`${chain} project[${pid}] keys to clear: %o`, keys)
-        keys.forEach(async key => {
-            await StatRd.del(key)
+        const stream = StatRd.scanStream({
+            match: `*_${chain.toLowerCase()}_${pid}*`
+        })
+        stream.on('data', (keys: string[]) => {
+            log.warn(`start to clear ${chain} project[${pid}] keys: %o`, keys)
+            keys.forEach(key => {
+                StatRd.unlink(key)
+            })
+        })
+        stream.on('end', () => {
+            log.info(`all statistic record be cleared of ${chain} project[${pid}]`)
         })
     }
 }
