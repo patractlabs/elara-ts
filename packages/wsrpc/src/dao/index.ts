@@ -6,8 +6,8 @@ class Dao {
         return Ok(await Rd.getChainList())
     }
 
-    static async getChainConfig(chain: string, serverId: number): PResultT<ChainConfig> {
-        const conf = await Rd.getChainConfig(chain, serverId) as ChainConfig
+    static async getChainConfig(chain: string): PResultT<ChainConfig> {
+        const conf = await Rd.getChainConfig(chain) as ChainConfig
         if (!conf.name) {
             return Err('Invalid chain config')
         }

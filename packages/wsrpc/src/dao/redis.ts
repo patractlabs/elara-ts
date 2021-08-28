@@ -1,6 +1,5 @@
 import { Redis, DBT, getAppLogger, KEYS, PVoidT } from '@elara/lib'
 import Conf from '../../config'
-import { Stat } from '../statistic'
 
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
@@ -98,8 +97,8 @@ class Rd {
         return chainRd.zrange(KChain.zChainList(), 0, -1)
     }
 
-    static async getChainConfig(chain: string, serverId: number) {
-        return chainRd.hgetall(KChain.hChain(chain, serverId))
+    static async getChainConfig(chain: string) {
+        return chainRd.hgetall(KChain.hChain(chain))
     }
 
 

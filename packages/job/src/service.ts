@@ -1,5 +1,5 @@
 import Sche from 'node-schedule'
-import { getAppLogger, KEYS, PVoidT, isErr, md5, Rdt } from '@elara/lib'
+import { getAppLogger, KEYS, PVoidT, isErr, md5, RdT } from '@elara/lib'
 import { ProRd, SttRd, UserRd } from './redis'
 import { Statistics, UserAttr, ProAttr, StatT } from './interface'
 import { lastTime, todayStamp, currentHourStamp, startStamp, statisticDump, parseStatInfo, ip2county } from './util'
@@ -15,7 +15,7 @@ const pKEY = KEYS.Project
 const log = getAppLogger('service')
 
 
-async function streamDel(rd: Rdt, pattern: string, label: string = ''): PVoidT {
+async function streamDel(rd: RdT, pattern: string, label: string = ''): PVoidT {
     const stream = rd.scanStream({
         match: pattern
     })
