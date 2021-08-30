@@ -26,6 +26,9 @@ async function pathOk(url: string, host: string): PResultT<ChainPidT> {
 }
 
 async function projectOk(chain: string, pid: string): PBoolT {
+    if (pid === '00000000000000000000000000000000') {
+        return true
+    }
     const pstat = await Dao.getProjectStatus(chain, pid)
     log.info(`get ${chain} project[${pid}] status resutl: %o`, pstat)
     if (pstat.status === undefined) {
