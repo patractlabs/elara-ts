@@ -293,10 +293,10 @@ class Stat {
         const pages = Math.floor(total / size) + 1
 
         const off = page * size
-        const ct = await Rd.zrevrange(key, off, off + size - 1, 'WITHSCORES')
+        const ct = await Rd.zrevrange(key, off, off + size, 'WITHSCORES')
         log.debug(`get country map: %o`, ct)
         const list: CountryT[] = []
-        for (let i = 0; i < ct.length; i += 2) {
+        for (let i = 2; i < ct.length; i += 2) {
             let reqCnt = parseInt(ct[i+1])
             list.push({country: ct[i], request: reqCnt, percentage: (100.00 * reqCnt / totalRequest).toFixed(2) + '%'})
         }
