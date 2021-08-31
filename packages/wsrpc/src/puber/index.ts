@@ -61,11 +61,14 @@ class Puber {
         }
         let puber = re.value as Puber
         puber.topics = puber.topics || new Set()
+        if (puber.topics.has(subsId)) {
+            log.error(`${puber.chain} puber[${puber.id}] has subscribed topic[${subsId}] existed!`)
+        }
         puber.topics.add(subsId)
 
         Puber.updateOrAdd(puber)
 
-        log.info(`update puber[${pubId}] topic [${subsId}] done: %o`, puber.topics)
+        log.info(`update puber[${pubId}] topic [${subsId}] done, current topic size: %o`, puber.topics.size)
         return Ok(puber)
     }
 

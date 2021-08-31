@@ -120,7 +120,7 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
         GG.remSubTopic(req.chain, req.pid, subsId)
 
         GG.delSubReqMap(subsId)
-        log.debug(`clear ${req.chain} pid[${req.pid}] subscribe context cache: subsId[${subsId}] reqId[${reqId}]`)
+        log.info(`clear ${req.chain} pid[${req.pid}] subscribe context cache: subsId[${subsId}] reqId[${reqId}]`)
 
         if (puber !== undefined) {
             puber.topics.delete(subsId)
