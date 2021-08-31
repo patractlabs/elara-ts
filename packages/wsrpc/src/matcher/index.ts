@@ -98,12 +98,12 @@ namespace Matcher {
         let type = ReqTyp.Rpc
         let subsId
         if (isUnsubReq(method)) {
-            log.info(`pre handle unsubscribe request: ${method}: %o %o`, data.params, Suber.isSubscribeID(data.params![0]))
-            type = ReqTyp.Unsub
-            subsId = data.params![0]
+            log.info(`${chain} pid[${pid}] pre handle unsubscribe request: ${method}: %o`, data.params)
             if (data.params!.length < 1 || !Suber.isSubscribeID(data.params![0])) {
                 return Err(`invalid unsubscribe params: ${data.params![0]}`)
             }
+            type = ReqTyp.Unsub
+            subsId = data.params![0]
         } else if (isSubReq(method)) {
             type = ReqTyp.Sub
             stat.reqCnt = 1 // for first response
