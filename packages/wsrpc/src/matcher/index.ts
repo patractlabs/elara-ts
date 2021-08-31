@@ -24,6 +24,7 @@ import Dao from '../dao'
 const log = getAppLogger('matcher')
 
 async function isConnOutOfLimit(ws: WebSocket, chain: string, pid: IDT): PBoolT {
+    if (pid === '00000000000000000000000000000000') { return false }
     const wsConf = Conf.getWsPool()
     const curConn = GG.getConnCnt(chain, pid)
     log.info(`current ws connection of chain ${chain} pid[${pid}]: ${curConn}/${wsConf.maxConn}`)

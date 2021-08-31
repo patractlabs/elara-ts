@@ -110,6 +110,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
     const {chain, pid} = re.value as ChainPidT
     const projectIsOk = await projectOk(chain, pid as string)
     if (!projectIsOk) {
+        log.error(`${chain} project[$${pid}] check failed, no this pid!`)
         return Response.Fail(res, 'invalid project', 400, reqStatis)
     }
     let data = ''
