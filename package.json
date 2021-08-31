@@ -1,6 +1,6 @@
 {
-  "name": "elara-ts",
-  "version": "0.2.0",
+  "name": "elara",
+  "version": "2.0.0",
   "description": "[中文](https://github.com/patractlabs/elara/blob/master/README-zh.md)",
   "workspaces": [
     "packages/*"
@@ -17,14 +17,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BruceChar/elara-ts.git"
+    "url": "git+https://github.com/patractlabs/elara-ts.git"
   },
   "author": "Bruce",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/BruceChar/elara-ts/issues"
+    "url": "https://github.com/patractlabs/elara-ts/issues"
   },
-  "homepage": "https://github.com/BruceChar/elara-ts#readme",
+  "homepage": "https://github.com/patractlabs/elara-ts#readme",
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "jest": "^26.6.3",

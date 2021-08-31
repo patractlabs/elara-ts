@@ -2,23 +2,21 @@ import { Redis, DBT } from '@elara/lib'
 import { ChainConfig, ChainType, KEYS, Network } from '@elara/lib'
 
 const cKEY = KEYS.Chain
-const pKEY = KEYS.Project
+
+// default localhost:6379, configure your own connection
+// NOTE: don't change DBT.Chain type
 const cRd = new Redis(DBT.Chain).getClient()
-const pRd = new Redis(DBT.Project).getClient()
 
 const newChain = async (chain: string) => {
-    // const chain = 'Polkadot'
     const polkadot: ChainConfig = {
         name: chain,
-        baseUrl: '127.0.0.1',
-        wsPort: 19944,
-        rpcPort: 19933,
-        network: Network.Live,        // test
-        chainType: ChainType.Relay,     // parallel
-        extends: JSON.stringify({}),
-        excludes: JSON.stringify(["system_peers", "state_subscribeStorage"]),
-        serverId: 0,
-        kvEnable: true,
+        baseUrl: '127.0.0.1',           // node url
+        wsPort: 19944,                  // websocket port
+        rpcPort: 19933,                 // http port
+        network: Network.Live,          // optional
+        chainType: ChainType.Relay,     //  optional
+        serverId: 0,                    // node instance id, when multi node deploy
+        kvEnable: false,                // if true, Elara-kv need
         kvPort: 9002,
         kvBaseUrl: '127.0.0.1'
     }
@@ -27,17 +25,8 @@ const newChain = async (chain: string) => {
     await cRd.zadd(cKEY.zChainList(), cnt, chain.toLowerCase())
 }
 
-
-async function projectInit() {
-    await pRd.hmset(pKEY.hProjecConf(), {
-        maxWsConn: 20,       
-    })
-    return
-}
-const init = async () => {
+async function init() {
     await newChain('Polkadot')
-    // await newChain('Kusuma')
     process.exit(0)
 }
-// test()
 init()
