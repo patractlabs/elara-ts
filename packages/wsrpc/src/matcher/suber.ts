@@ -66,6 +66,7 @@ function parseReq(dat: WsData, chain: string): ResultT<ReqT | boolean> {
         reqId = re.value
     } else if (isUnsubOnClose(dat, isSubscribeID(dat.id.toString()))) {
         // unsubscribe data when puber close
+        log.warn(`${chain} get unsubscribe resposne when puber close: %o`, dat)
         const re = GG.getReqId((dat.id)!.toString())
         if (isErr(re)) {
             log.error(`${chain} parse request id error when puber closed: ${re.value}`)
