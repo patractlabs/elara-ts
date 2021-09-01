@@ -1,4 +1,4 @@
-import WebSocket, { EventEmitter } from 'ws'
+import WebSocket from 'ws'
 import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT, isNone } from '@elara/lib'
 import { Option, None, Some } from '@elara/lib'
 import { randomId } from '@elara/lib'
@@ -18,7 +18,6 @@ interface Puber {
     ws: WebSocket,
     topics: Set<string>,   // {subscribeId}
     subId: IDT,            // suber id
-    event?: EventEmitter
     kvSubId?: IDT,          // kv suber
 }
 

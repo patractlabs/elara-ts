@@ -99,7 +99,8 @@ namespace Service {
             for (let chain of chains) {
                 
                 evt.once(`${chain}-open`, () => {
-                    log.error(`chain ${chain} subscribe pool event done type cache`)
+                    log.info(`chain ${chain} subscribe pool event done type cache`)
+                    evt.removeAllListeners(`${chain}-open`)
                     syncOnceService(chain)
                     syncAsBlockService(chain)
                     syncLowService(chain)
@@ -128,6 +129,7 @@ namespace Service {
                 
                 evt.once(`${chain}-open`, () => {
                     log.info(`chain ${chain} subscribe pool event done`)
+                    evt.removeAllListeners(`${chain}-open`)
                     subscribeService(chain)
                 })
             }

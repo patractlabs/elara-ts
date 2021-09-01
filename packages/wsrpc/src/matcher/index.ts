@@ -190,6 +190,7 @@ namespace Matcher {
         evt.once(`${puber.id}-done`, () => {
             // if suber closed, event need to emit on suber closed
             Puber.del(puber.id)
+            evt.removeAllListeners(`${puber.id}-done`)
             log.info(`clear ${puber.chain} pid[${puber.pid}] subscribe context of puber[${puber.id}] close done`)
         })
 
