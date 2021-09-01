@@ -77,7 +77,6 @@ class Puber {
 
         // polkadotapps will subscribe more than once
         // const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
-        log.debug('puber transpond statistics: %o', stat)
         // topic bind to chain and params 
         // if (Matcher.isSubscribed(chain, pid, data)) {
         //     log.warn(`The pid[${puber.pid}] puber[${puber.id}] has subscribed topic [${data.method}], no need to subscribe twice!`)
@@ -89,7 +88,6 @@ class Puber {
         if (type === SuberTyp.Kv) {
             subId = puber.kvSubId!
         }
-        log.debug(`new request suber[${subId}] type ${type}`)
         let re = Matcher.newRequest(chain, pid, id, type, subId!, data, stat)
         if (isErr(re)) {
             log.error(`create new request error: ${re.value}`)
@@ -120,7 +118,7 @@ class Puber {
         const suber: Suber = sre.value
         log.debug(`ready to send ${type} subscribe request: ${JSON.stringify(sendData)}`)
         // transpond requset
-        log.info(`Send new message to suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
+        log.info(`Send new message to ${type} suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
         return suber.ws.send(JSON.stringify(sendData))
     }
 }

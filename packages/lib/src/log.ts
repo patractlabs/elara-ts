@@ -3,6 +3,8 @@ import DailyRotateFile from 'winston-daily-rotate-file'
 import Dotenv from 'dotenv'
 Dotenv.config()
 
+console.info('node env in log library: ', process.env.NODE_ENV)
+
 const { combine, colorize, timestamp, label, printf, json, splat } = format
 
 const printFormat = printf(msg => `${msg.timestamp} ${msg.label} ${msg.level}: ${msg.message}`)
@@ -28,8 +30,15 @@ function newRotateFile(filename: string, level: string = 'info', isJson: boolean
         json: isJson,
         createSymlink: true,
         symlinkName: `${filename}.log`,
-        maxSize: '20m',
-        maxFiles: '7d',
+        maxSize: '500m',
+        maxFiles: '3d',
+    })
+}
+
+function consoleLog(label: string, consoleLevel: string) {
+    return new transports.Console({
+        level: consoleLevel,
+        format: combine(colorize(), logFormat(label, false))
     })
 }
 
@@ -37,16 +46,14 @@ export function getAppLogger(label: string = '', opt?: { isJson: boolean, consol
     const isJson = opt?.isJson ?? true
     const consoleLevel = opt?.consoleLevel ?? 'debug'
     const format = logFormat(label, isJson)
+    let trans: any[] = [newRotateFile('error', 'error'), newRotateFile('app')]
+    if (process.env.NODE_ENV === 'dev') {
+        trans.push(consoleLog(label, consoleLevel))
+    }
+
     return createLogger({
         format,
-        transports: [
-            new transports.Console({
-                level: consoleLevel,
-                format: combine(colorize(), logFormat(label, false))
-            }),
-            newRotateFile('error', 'error'),
-            newRotateFile('app')
-        ],
+        transports: trans,
         exceptionHandlers: [
             newRotateFile('exception', 'error', false)
         ],
@@ -55,15 +62,15 @@ export function getAppLogger(label: string = '', opt?: { isJson: boolean, consol
 }
 
 export function accessLogger() {
+
+    let trans: any[] = [newRotateFile('access', 'http')]
+    console.info('node env in log library: ', process.env.NODE_ENV)
+    if (process.env.NODE_ENV === 'dev') {
+        trans.push(consoleLog('access', 'debug'))
+    }
     return createLogger({
         format: logFormat('access', false),
-        transports: [
-            new transports.Console({
-                level: 'debug',
-                format: combine(colorize(), logFormat('access', false))
-            }),
-            newRotateFile('access', 'http')
-        ],
+        transports: trans,
         exceptionHandlers: [
             newRotateFile('access-exception', 'error')
         ],

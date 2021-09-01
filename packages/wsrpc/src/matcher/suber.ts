@@ -26,7 +26,6 @@ function delays(sec: number, cb: () => void) {
 }
 
 function isSubscribeID(id: string): boolean {
-    // log.debug(`test subscribe ID [${id}]`)
     const okLen = id?.length === 16 ?? false // make sure length equals 16
     if (!okLen) return false
     return SubReg.test(id)
@@ -97,6 +96,8 @@ function parseReq(dat: WsData, chain: string): ResultT<ReqT | boolean> {
 function handleUnsubscribe(req: ReqT, dres: boolean): void {
     // rem subed topic, update puber.topics del submap
     // emit done event when puber.topics.size == 0
+    log.info(`handle ${req.chain} pid[${req.pid}] unsubscribe response subscript id[${req.subsId}] params: %o`, req.params)
+
     const pubId = req.pubId
     const re = Puber.get(req.pubId)
     let puber
@@ -110,7 +111,6 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
     if (dres === false) {
         log.error(`${req.chain} pid[${req.pid}] puber[${pubId}] unsubscribe fail:  topic[${req.method}] params[${req.params}] id[${req.subsId}]`)
     } else {
-        log.debug(`unsubscribe ${req.chain} pid[${req.pid}] subsid params: %o %o`, req.subsId, req.params)
         const subsId = req.subsId!
         let re = GG.getReqId(subsId)
         if (isErr(re)) {
@@ -205,7 +205,10 @@ function dataParse(data: WebSocket.Data, chain: string, subType: SuberTyp): Resu
         // subscribe request cache will be clear on unsubscribe event
         stat.delay = Util.traceDelay(stat.start)
         stat.bw = Util.strBytes(data.toString())
-        if (dat.error) { stat.code = 500 }
+        if (dat.error) { 
+            log.error(`${chain} ${subType} suber get error data: %o`, dat)
+            stat.code = 500 
+        }
         req.stat = stat
         GG.updateReqCache(req)
         GG.delReqCacheByPubStatis(req.id)
@@ -397,7 +400,7 @@ function newSuber(chain: string, url: string, type: SuberTyp, pubers?: Set<IDT>)
         }
         const subTmp = re.value as Suber
         subTmp.stat = SuberStat.Active
-        log.debug(`on open ${chain} ${type} suber pubers: %o`, subTmp.pubers)
+        log.info(`on open ${chain} ${type} suber pubers: %o`, subTmp.pubers)
         Suber.updateOrAddSuber(chain, type, subTmp)
 
         if (!pubers || pubers.size < 1) {

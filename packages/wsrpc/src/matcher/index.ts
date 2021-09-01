@@ -29,6 +29,7 @@ async function isConnOutOfLimit(ws: WebSocket, chain: string, pid: IDT): PBoolT 
     const curConn = GG.getConnCnt(chain, pid)
     log.info(`current ws connection of chain ${chain} pid[${pid}]: ${curConn}/${wsConf.maxConn}`)
     if (curConn >= wsConf.maxConn) {
+        log.error(`${chain} pid[${pid}] out of connection limit`)
         ws.close(1002, 'Out of connection limit')
         return true
     }
@@ -62,7 +63,6 @@ namespace Matcher {
             log.error(`get chain ${chain} config error: ${kvre.value}`)
         } else {
             const conf = kvre.value
-            log.debug(`chain ${chain} kv enable: ${conf.kvEnable}`)
             if (conf.kvEnable.toString() === 'true') {
                 kvOk = true
             }
@@ -125,7 +125,7 @@ namespace Matcher {
             subsId,
             stat
         } as ReqT
-        log.debug(`new ${chain} ${pid} ${subType} request cache: ${JSON.stringify(req)}`)
+        log.info(`new ${chain} ${pid} ${subType} request cache: ${JSON.stringify(req)}`)
         GG.addReqCache(req)
 
         data.id = req.id as string
@@ -247,13 +247,10 @@ namespace Matcher {
     export function isSubscribed(chain: string, pid: IDT, data: WsData): boolean {
         if (pid === '00000000000000000000000000000000') { return false }
         const topics = GG.getSubTopics(chain, pid)
-        log.info(`subscribed topics of chain[${chain}] pid[${pid}]: %o`, Object.keys(topics))
         for (let id in topics) {
-            log.debug(`id: ${id}\n data: ${JSON.stringify(data)}, topic: ${JSON.stringify(topics[id])}`)
             const sub = topics[id]
             const sMthod = sub.method === data.method
             const sParams = md5(JSON.stringify(sub.params)) === md5(JSON.stringify(data.params))
-            log.debug(`params pair: ${data.params}--${sub.params}, ${sMthod} ${sParams}`)
             if (sMthod && sParams) {
                 return true
             }

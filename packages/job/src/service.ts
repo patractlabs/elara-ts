@@ -246,11 +246,9 @@ class Service {
             let dat: StatT
             // stat statistic
             for (let key of keys) {
-                log.debug(`statistic dump key: %o`, key)
                 dat = parseStatInfo(await SttRd.hgetall(key))
                 statisticDump(req, key, dat)
             }
-
             if (req.req !== undefined && req.req.method !== undefined) {
                 // method statistic, keep 30 days
                 const method = req.req.method

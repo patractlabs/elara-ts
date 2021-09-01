@@ -37,24 +37,22 @@ async function projectOk(chain: string, pid: string): PBoolT {
     return true
 }
 
-async function resourceLimit(chain: string, pid: string): PBoolT {
+async function resourceLimitOk(chain: string, pid: string): PResultT<boolean> {
     if (pid === '00000000000000000000000000000000') {
-        return false
+        return Ok(true)
     }
     
     const pstat = await Dao.getProjectStatus(chain, pid)
-    log.info(`project status ${pstat['status']}: %o`, pstat)
     if (pstat.status !== 'active') {
-        return true
+        return Err(`project status not valid`)
     }
     const userId = parseInt(pstat.user)
     const ustat = await Dao.getUserStatus(userId)
-    log.info(`user status: %o`, ustat)
     
     if (ustat.status !== 'active') {
-        return true
+        return Err(`user status not valid`)
     }
-    return false
+    return Ok(true)
 }
 
 function isPostMethod(method: string): boolean {
@@ -137,8 +135,9 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
             }
             dat = re.value
             reqStatis.req = dat
-            const isLimit = await resourceLimit(chain, pid as string)
-            if (isLimit) {
+            const isLimit = await resourceLimitOk(chain, pid as string)
+            if (isErr(isLimit)) {
+                log.error(`${chain} pid[${pid}] resource limit: %o`, isLimit.value)
                 return Response.Fail(res, 'resource out of limit', 419, reqStatis)
             }
         } catch (err) {
@@ -211,7 +210,6 @@ wss.on('connection', async (ws, req: any) => {
     Stat.publish(stat)
 
     ws.on('message', async (data) => {
-        log.info(`${chain} pid[${pid}] new puber[${id}] request of chain ${chain}: %o`, data)
         let dat: ReqDataT
         let reqStatis = initStatistic('ws', '', {} as Http.IncomingHttpHeaders)
         reqStatis.code = 400
@@ -222,28 +220,28 @@ wss.on('connection', async (ws, req: any) => {
         try {
             let re = dataCheck(data.toString())
             if (isErr(re)) {
-                log.error(`${chain} pid[${pid}] puber[${id}] data check error: ${re.value}`)
+                log.error(`${chain} pid[${pid}] puber[${id}] new request error: ${re.value}`)
                 reqStatis.delay = Util.traceDelay(reqStatis.start)
                 Stat.publish(reqStatis)
                 return puber.ws.send(re.value)
             }
             dat = re.value
             reqStatis.req = dat
-            const isLimit = await resourceLimit(chain, pid)
-            if (isLimit) {
-                log.error(`${chain} pid[${pid}] resource check failed`)
+            const isLimit = await resourceLimitOk(chain, pid)
+            if (isErr(isLimit)) {
+                log.error(`${chain} pid[${pid}] resource check failed: %o`, isLimit.value)
                 reqStatis.code = 419    // rate limit
                 reqStatis.delay = Util.traceDelay(reqStatis.start)
                 Stat.publish(reqStatis)
                 return puber.ws.send('resource out of limit')
             }
         } catch (err) {
-            log.error(`${chain} pid[${pid}] puber[${id}] parse request to JSON error`)
+            log.error(`${chain} pid[${pid}] puber[${id}] parse request to JSON error: %o`, data)
             // publis statistics
             reqStatis.delay = Util.traceDelay(reqStatis.start)
             reqStatis.code = 500
             Stat.publish(reqStatis)
-            return puber.ws.send('Invalid request, must be {"id": number, "jsonrpc": "2.0", "method": "your method", "params": []}')
+            return puber.ws.send('Invalid jsonrpc request')
         }
         reqStatis.code = 200
         dispatchWs(req.chain, dat, puber, reqStatis)

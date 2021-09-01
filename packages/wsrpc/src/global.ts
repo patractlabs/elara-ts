@@ -69,7 +69,6 @@ namespace G {
             process.exit(2)
         }
         SubMap[subsId] = id
-        log.debug(`add new subscribe Id map: ${subsId}`)
     }
 
     export const getReqId = (subsId: string): ResultT<IDT> => {
@@ -162,7 +161,6 @@ namespace G {
     export const getAllSubTopics = (): TopicSubedT => {
         return TopicSubed
     }
-
 }
 
 export default G

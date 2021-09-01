@@ -53,8 +53,9 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
                     res['result'] = JSON.parse(re.result)
                     return Response.Ok(resp, JSON.stringify(res), stat)
                 }
-                res.error = { code: 3000, message: 'error cache response' }
-                return Response.Fail(resp, JSON.stringify(res), 500, stat)
+                log.error(`${chain} cache response error: ${method}`)
+                // res.error = { code: 3000, message: 'error cache response' }
+                // return Response.Fail(resp, JSON.stringify(res), 500, stat)
             }
             // noder
             log.error(`chain ${chain} rpc cacher fail, transpond to noder method[${method}] params[${params}]`)
@@ -76,7 +77,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
     const typ = getRpcType(method, params!)
     stat.type = typ
     stat.code = 200
-    log.debug(`new ${typ} ws request ${method} of chain ${chain} params: %o`, params)
+    log.info(`new ${typ} ws request ${method} of chain ${chain} params: %o`, params)
     switch (typ) {
         case RpcTyp.Cacher:
             if (Cacher.statusOk(chain)) {// no need to clear puber.subid and suber.pubers
@@ -103,7 +104,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
             if (puber.kvSubId !== undefined) {
                 return Kver.send(puber, data, stat)
             }
-            log.debug(`chain ${chain} kv is not support, transpond to noder`)
+            log.warn(`chain ${chain} kv is not support, transpond to noder`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))
