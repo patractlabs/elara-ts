@@ -91,13 +91,14 @@ namespace Service {
     
         export const run = (chains: string[]) => {
             
+            const evt = G.getPoolEvt(SuducerT.Cache)
+            if (!evt) {
+                log.error(`subscribe cache pool event error`)
+                process.exit(2)
+            }
             for (let chain of chains) {
-                let evt = G.getPoolEvt(chain, SuducerT.Cache)
-                if (!evt) {
-                    log.error(`subscribe pool event error`)
-                    process.exit(2)
-                }
-                evt.once('open', () => {
+                
+                evt.once(`${chain}-open`, () => {
                     log.error(`chain ${chain} subscribe pool event done type cache`)
                     syncOnceService(chain)
                     syncAsBlockService(chain)
@@ -116,14 +117,16 @@ namespace Service {
         }
 
         export const run = async (chains: string[]) => {
+
+            let evt = G.getPoolEvt(SuducerT.Sub)
+            if (!evt) {
+                log.error(`subscribe pool event error`)
+                process.exit(2)
+            }
             for (let chain of chains) {
                 log.info(`run subscribe topic of chain ${chain}`)
-                let evt = G.getPoolEvt(chain, SuducerT.Sub)
-                if (!evt) {
-                    log.error(`subscribe pool event error`)
-                    process.exit(2)
-                }
-                evt.once('open', () => {
+                
+                evt.once(`${chain}-open`, () => {
                     log.info(`chain ${chain} subscribe pool event done`)
                     subscribeService(chain)
                 })

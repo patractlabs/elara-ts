@@ -9,7 +9,6 @@
 ///     - node fail longtime, clear all pubers and matchers
 
 import WebSocket from 'ws'
-import EventEmitter from 'events'
 import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option, PBoolT } from '@elara/lib'
 import GG from '../global'
 import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason, Statistics } from '../interface'
@@ -187,13 +186,11 @@ namespace Matcher {
             return
         }
         // clear puber when unscribe done
-        puber.event = new EventEmitter()
-        Puber.updateOrAdd(puber)
-
-        puber.event.once('done', () => {
+        const evt = GG.getPuberEvent()
+        evt.once(`${puber.id}-done`, () => {
             // if suber closed, event need to emit on suber closed
             Puber.del(puber.id)
-            log.info(`clear subercribe context of puber[${puber.id}] close done`)
+            log.info(`clear ${puber.chain} pid[${puber.pid}] subscribe context of puber[${puber.id}] close done`)
         })
 
         const { chain, pid } = puber
@@ -218,7 +215,7 @@ namespace Matcher {
             const req = reqRe.value
             const unre = await Suber.unsubscribe(chain, req.subType, req.subId, topic.method, subsId)
             if (isErr(unre)) {
-                puber.event.emit('done')
+                evt.emit(`${puber.id}-done`)
                 log.warn(`chain ${chain} ${req.subType} suber ${req.subId} has been closed, emit unsubscribe done`)
                 break
             }

@@ -68,13 +68,13 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
         G.decrPoolCnt(chain, type)
         if (G.getPoolCnt(chain, type) === 0) {
             // emit init done event
-            let evt = G.getPoolEvt(chain, type)
+            let evt = G.getPoolEvt(type)
             if (!evt) {
                 log.error(`get pool event of chain ${chain} type ${type} error`)
                 process.exit(2)
             }
-            evt.emit('open')
-            log.info(`emit pool event done of chain ${chain} type ${type}`)
+            evt.emit(`${chain}-open`)
+            log.info(`emit pool open event done of chain ${chain} type ${type}`)
         }
     })
 
@@ -92,17 +92,6 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
                 G.incrPoolCnt(chain, type)
             }
         }
-        // keep the topic try to recover
-
-        let evt = G.getPoolEvt(chain, type)
-        if (!evt) {
-            log.error(`get event error: chain ${chain} type[${type}]`)
-            process.exit(2)
-        }
-
-        let close = evt.listeners('close')
-        log.warn(`close event listener: ${close}`)
-
         Pool.del(chain, type, suducer.id!)
 
         // set pool subscribe status fail        
@@ -227,7 +216,6 @@ namespace Pool {
     const cachePoolInit = (chain: string, url: string) => {
         const type = SuducerT.Cache
         const size = Conf.getServer().cachePoolSize
-        G.setPoolEvt(chain, type, new EventEmitter())
         G.setPoolCnt(chain, type, size)
         add({ chain, url, type })
     }
@@ -236,7 +224,6 @@ namespace Pool {
         const type = SuducerT.Sub
         const topics = G.getSubTopics()
         G.setPoolCnt(chain, type, Object.keys(topics).length)
-        G.setPoolEvt(chain, type, new EventEmitter())
         for (let topic of topics) {
             add({ chain, url, type, topic })
         }
@@ -253,6 +240,9 @@ namespace Pool {
         }
         const chains = re.value
         const chainConf = cconf.value
+        G.setPoolEvt(SuducerT.Sub, new EventEmitter())
+        G.setPoolEvt(SuducerT.Cache, new EventEmitter())
+
         for (let chain of chains) {
             const conf = chainConf[chain] as ChainConfig
 

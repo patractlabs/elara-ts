@@ -1,5 +1,6 @@
 import { getAppLogger, IDT } from '@elara/lib'
 import { ResultT, Err, Ok } from '@elara/lib'
+import EventEmitter from 'events'
 import { ReqT, Statistics, SubscripT } from "./interface"
 import { Stat } from './statistic'
 const log = getAppLogger('global')
@@ -18,7 +19,13 @@ let ID_CNT: number = 0
 const TryCntMap: { [key in string]: number } = {}
 const ConnCntMap: { [key in string]: { [key in string]: number } } = {}
 
+const PuberEvt = new EventEmitter()
+
 namespace G {
+
+    export const getPuberEvent = (): EventEmitter => {
+        return PuberEvt
+    }
 
     export const getID = (): number => {
         return ID_CNT++

@@ -1,7 +1,7 @@
 import Http from 'http'
 import Net from 'net'
 import WebSocket from 'ws'
-import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT, unexpectListener, PBoolT } from '@elara/lib'
+import { getAppLogger, Ok, isErr, PResultT, Err, ResultT, PVoidT, PBoolT, unexpectListener } from '@elara/lib'
 import Util from './src/util'
 import { ChainPidT, ReqDataT, CloseReason, Statistics } from './src/interface'
 import Conf, { UnsafeMethods } from './config'

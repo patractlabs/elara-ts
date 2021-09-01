@@ -93,14 +93,20 @@ export namespace G {
     }
 
     // pool event
-    export const setPoolEvt = (chain: string, type: SuducerT, evt: EventEmitter) => {
-        const key = `${chain.toLowerCase()}-${type}`
-        PoolEvt[key] = evt
+    export const setPoolEvt = (type: SuducerT, evt: EventEmitter) => {
+        PoolEvt[type] = evt
     }
 
-    export const getPoolEvt = (chain: string, type: SuducerT): EventEmitter => {
-        const key = `${chain.toLowerCase()}-${type}`
-        return PoolEvt[key]
+    export const delPoolEvt = (type: SuducerT) => {
+        delete PoolEvt[type]
+    }
+
+    export const getPoolEvt = (type: SuducerT): EventEmitter => {
+        return PoolEvt[type]
+    }
+
+    export const getAllPoolEvt = () => {
+        return PoolEvt
     }
 
     // strategy 

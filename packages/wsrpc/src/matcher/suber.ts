@@ -99,7 +99,7 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
     log.info(`handle ${req.chain} pid[${req.pid}] unsubscribe response subscript id[${req.subsId}] params: %o`, req.params)
 
     const pubId = req.pubId
-    const re = Puber.get(req.pubId)
+    const re = Puber.get(pubId)
     let puber
     if (isNone(re)) {
         log.error(`handle ${req.chain} pid[${req.pid}] unsubscribe error: invalid puber ${req.pubId}, may closed`)
@@ -128,9 +128,10 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
         if (puber !== undefined) {
             puber.topics.delete(subsId)
             Puber.updateOrAdd(puber)
-            log.info(`${req.chain} pid[${req.pid}] current topic size ${puber.topics?.size}, has event: ${puber.event !== undefined} of puber[${puber.id}]`)
-            if (puber.topics?.size === 0 && puber.event) {
-                puber.event?.emit('done')
+            log.info(`${req.chain} pid[${req.pid}] puber[${pubId}] current topic size ${puber.topics?.size}`)
+            if (puber.topics?.size === 0) {
+                const evt = GG.getPuberEvent()
+                evt.emit(`${pubId}-done`)
                 log.info(`all topic unsubescribe of ${req.chain} pid[${req.pid}] puber[${puber.id}], emit puber clear done.`)
             }
         }
