@@ -77,7 +77,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
     const typ = getRpcType(method, params!)
     stat.type = typ
     stat.code = 200
-    log.info(`new ${typ} ws request ${method} of chain ${chain} params: %o`, params)
+    log.info(`new ${typ} ws request ${method} of chain ${chain} params: %o\n handle msg delay: ${Util.traceEnd(stat.start)}`, params)
     switch (typ) {
         case RpcTyp.Cacher:
             if (Cacher.statusOk(chain)) {// no need to clear puber.subid and suber.pubers
@@ -96,7 +96,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
                 stat.code = 500
                 stat.delay = Util.traceDelay(stat.start)
                 Stat.publish(stat)
-                return puber.ws.send(JSON.stringify(res))
+                // return puber.ws.send(JSON.stringify(res))
             }
             log.error(`chain ${chain} ws cacher fail, transpond to noder method[${method}] params[${params}]`)
             return Noder.sendWs(puber, data, stat)

@@ -151,6 +151,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
 
 // WebSocket request 
 Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head): PVoidT => {
+    const start = Util.traceStart()
     const path = req.url!
     const re = await Util.urlParse(path)
     let reqStatis = initStatistic('ws', req.method!, req.headers)
@@ -169,6 +170,7 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
     const { chain, pid } = re.value
     const projectIsOk = await projectOk(chain, pid as string)
     if (!projectIsOk) {
+        log.error(`${chain} project[$${pid}] check failed, no this pid!`)
         Stat.publish(reqStatis)
         await socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
         socket.emit('close', true)
@@ -182,19 +184,21 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
         req['chain'] = chain
         req['pid'] = pid
         req['stat'] = reqStatis
+        req['trace'] = start
         wss.emit('connection', ws, req)
     })
 })
 
 // WebSocket connection event handle
 wss.on('connection', async (ws, req: any) => {
-    const { chain, pid } = req
+    const { chain, pid, trace } = req
     const stat = req['stat']
     const re = await Matcher.regist(ws, chain, pid)
     if (isErr(re)) {
         log.error(`${chain} pid[${pid}] socket connect error: ${re.value}`)
         if (re.value.includes('suber inactive')) {
-            log.error(`${chain} pid[${pid}] suber is unavailable`)
+            const delay = Util.traceEnd(trace)
+            log.error(`${chain} pid[${pid}] suber is unavailable, connection delay ${delay}`)
             ws.send(`service unavailable now`)
         }
         stat.code = 500
@@ -208,6 +212,8 @@ wss.on('connection', async (ws, req: any) => {
     stat.code = 200
     // publish statistics
     Stat.publish(stat)
+    const delay = Util.traceEnd(trace)
+    log.info(`${chain} pid[${pid}] websocket connection delay: ${delay}`)
 
     ws.on('message', async (data) => {
         let dat: ReqDataT
@@ -220,27 +226,27 @@ wss.on('connection', async (ws, req: any) => {
         try {
             let re = dataCheck(data.toString())
             if (isErr(re)) {
-                log.error(`${chain} pid[${pid}] puber[${id}] new request error: ${re.value}`)
                 reqStatis.delay = Util.traceDelay(reqStatis.start)
                 Stat.publish(reqStatis)
+                log.error(`${chain} pid[${pid}] puber[${id}] new request error: ${re.value}, handle msg delay: ${reqStatis.delay}`)
                 return puber.ws.send(re.value)
             }
             dat = re.value
             reqStatis.req = dat
             const isLimit = await resourceLimitOk(chain, pid)
             if (isErr(isLimit)) {
-                log.error(`${chain} pid[${pid}] resource check failed: %o`, isLimit.value)
                 reqStatis.code = 419    // rate limit
                 reqStatis.delay = Util.traceDelay(reqStatis.start)
                 Stat.publish(reqStatis)
+                log.error(`${chain} pid[${pid}] resource check failed: %o, handle msg delay: ${reqStatis.delay}`, isLimit.value)
                 return puber.ws.send('resource out of limit')
             }
         } catch (err) {
-            log.error(`${chain} pid[${pid}] puber[${id}] parse request to JSON error: %o`, data)
             // publis statistics
             reqStatis.delay = Util.traceDelay(reqStatis.start)
             reqStatis.code = 500
             Stat.publish(reqStatis)
+            log.error(`${chain} pid[${pid}] puber[${id}] parse request to JSON error: %o, handle msg delay: ${reqStatis.delay}`, data)
             return puber.ws.send('Invalid jsonrpc request')
         }
         reqStatis.code = 200
@@ -272,9 +278,6 @@ async function run(): PVoidT {
     unexpectListener()
 
     await Service.init()
-
-
-
     Server.listen(conf.port, () => {
         log.info(`Elara server listen on port: ${conf.port}`)
     })

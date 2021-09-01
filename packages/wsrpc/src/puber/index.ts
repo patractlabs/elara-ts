@@ -7,6 +7,7 @@ import Matcher from '../matcher'
 import Suber, { SuberTyp } from '../matcher/suber'
 import G from '../global'
 import { Stat } from '../statistic'
+import Util from '../util'
 
 const log = getAppLogger('puber')
 
@@ -73,6 +74,7 @@ class Puber {
     }
 
     static async transpond(puber: Puber, type: SuberTyp, data: ReqDataT, stat: Statistics): PVoidT {
+        const start = Util.traceStart()
         const { id, chain, pid } = puber
 
         // polkadotapps will subscribe more than once
@@ -118,7 +120,7 @@ class Puber {
         const suber: Suber = sre.value
         log.debug(`ready to send ${type} subscribe request: ${JSON.stringify(sendData)}`)
         // transpond requset
-        log.info(`Send new message to ${type} suber[${suber.id}] of chain ${chain}, request ID: ${dat.id}`)
+        log.info(`Send new message to ${type} suber[${suber.id}] of chain ${chain} request ID[${dat.id}], transpond delay: ${Util.traceEnd(start)}`)
         return suber.ws.send(JSON.stringify(sendData))
     }
 }
