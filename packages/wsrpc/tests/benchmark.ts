@@ -2,6 +2,8 @@ import Ws from 'ws'
 import { randomId } from '@elara/lib'
 const log = console
 
+const port = 9944
+
 async function sleeps(s: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, s * 1000))
 }
@@ -10,7 +12,7 @@ const newConn = (url: string, port: number, path: string): Ws => {
     return new Ws(`ws://${url}:${port}/${path}`)
 }
 
-const formatstr = (i: number) => {
+export const formatstr = (i: number) => {
     const istr = i.toString()
     const len = istr.length
     return ('0000000' + istr).substr(len-1, 8)
@@ -18,10 +20,9 @@ const formatstr = (i: number) => {
 
 const connBuild = (cnt: number, url: string, port: number) => {
     let wss = []
-    let pat = 'jupiter/qwertyuiopasdfghjklzxcvb'
+    let pat = 'polkadot/00000000000000000000000000000000'
     for (let i = 0; i < cnt; i++) { 
-        const id = formatstr(i)
-        const ws = newConn(url, port, `${pat}${id}`)
+        const ws = newConn(url, port, `${pat}`)
         wss.push(ws)
     }
     return wss
@@ -88,7 +89,7 @@ enum WsTyp {
 }
 
 export const wsTestRunner = async (loop: number, newConn: boolean, conn: number, type: WsTyp) => {
-    let wss = connBuild(conn, '127.0.0.1', 7001)
+    let wss = connBuild(conn, '127.0.0.1', port)
     let lis = topics
     if (type === WsTyp.Rpc) {
         lis = methods
@@ -98,7 +99,7 @@ export const wsTestRunner = async (loop: number, newConn: boolean, conn: number,
     if (loop <= 0) { loop = Number.MAX_VALUE } 
     for (let i = 0; i < loop; i++) {
         if (wss.length === 0) {
-            wss = connBuild(conn, '127.0.0.1', 7001)
+            wss = connBuild(conn, '127.0.0.1', port)
         }
 
         for (let w of wss) {
@@ -121,10 +122,9 @@ const clearConn = (wss: any[]) => {
 
 const connTestRunner = async (conn: number, delay: number) => {
     let wss = []
-    let pat = 'polkadot/qwertyuiopasdfghjklzxcvb'
+    let pat = 'polkadot/'
     for (let i = 0; i < conn; i++) { 
-        const id = formatstr(i)
-        const ws = newConn('127.0.0.1', 7001, `${pat}${id}`)
+        const ws = newConn('127.0.0.1', port, `${pat}00000000000000000000000000000000`)
         ws.on('open', () => {
             log.info('open ws id: %o', i)
         })
