@@ -16,7 +16,7 @@ import Dao from './src/dao'
 const conf = Conf.getServer()
 const log = getAppLogger('app')
 const Server = Http.createServer()
-const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
+const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: true })
 
 async function pathOk(url: string, host: string): PResultT<ChainPidT> {
     let nurl = new URL(url, `http://${host}`)
