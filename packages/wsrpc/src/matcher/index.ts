@@ -18,7 +18,6 @@ import { md5, randomId } from '@elara/lib'
 import Util from '../util'
 import Conf from '../../config'
 import Topic from './topic'
-import Dao from '../dao'
 
 const log = getAppLogger('matcher')
 
