@@ -110,6 +110,7 @@ class Chain {
             // group by network
             re.forEach(async (chain: ChainAttr) => {
                 const info = { ...((chain as any)['dataValues']) } as ChainInfo
+                info.name = info.name.charAt(0).toUpperCase() + info.name.slice(1)  // capitalize
                 if (chainInfo[chain.name]) {
                     info.status = chainInfo[chain.name].status
                     info.count = chainInfo[chain.name].count

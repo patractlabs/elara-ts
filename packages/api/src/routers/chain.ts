@@ -19,6 +19,9 @@ function checkName(name: string): void {
 }
 const chainList = async (ctx: KCtxT, next: NextT) => {
     const { userId } = ctx.request.body
+    if (userId === undefined) {
+        throw Resp.Fail(400, 'invalid userId' as Msg)
+    }
     const re = await Chain.chainsInfoList(userId)
     if (isErr(re)) {
         throw Resp.Fail(400, re.value as Msg)
