@@ -643,14 +643,16 @@ class Suber {
         }
         const conf = re.value as ChainConfig
         const urls = geneUrl(conf)
-        log.info(`Url of chain [${chain}] is: ${urls} kv enable [${conf.kvEnable}]`)
+        const kvOpen = conf.kvEnable.toString().toLowerCase() === 'true'
+        // set kv status
+        // NOTE: all chain instances must support kv or not
+        GG.setKvStatus(chain, kvOpen)
+        log.info(`Url of chain [${chain}] is: ${urls} kv enable [${kvOpen}]`)
         for (let i = 0; i < poolSize; i++) {
 
             newSuber(chain, urls[0], SuberTyp.Node, new Set())
-
             // kv Suber
-            if ((conf.kvEnable.toString()) === 'true') {
-                log.debug(`chain ${chain} kv subscribe enable: %o`, conf.kvEnable)
+            if (kvOpen) {
                 newSuber(chain, urls[1], SuberTyp.Kv, new Set())
             }
         }

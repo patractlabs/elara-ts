@@ -57,16 +57,9 @@ namespace Matcher {
         const puber = Puber.create(ws, chain, pid)
         let kvOk = false
         let kvSuber: Suber
-        const kvre = await Dao.getChainConfig(chain)
-        if (isErr(kvre)) {
-            log.error(`get chain ${chain} config error: ${kvre.value}`)
-        } else {
-            const conf = kvre.value
-            if (conf.kvEnable.toString() === 'true') {
-                kvOk = true
-            }
-        }
-        if (kvOk) {
+        const kvOpen = GG.getKvStatus(chain)
+
+        if (kvOpen) {
             let rek = await Suber.selectSuber(chain, SuberTyp.Kv)
             if (isErr(rek)) { return rek }
             kvSuber = rek.value as Suber

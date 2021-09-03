@@ -20,9 +20,20 @@ const TryCntMap: { [key in string]: number } = {}
 const ConnCntMap: { [key in string]: { [key in string]: number } } = {}
 
 const PuberEvt = new EventEmitter()
+const KVStatus: Record<string, boolean> = {}
 
 namespace G {
 
+    // kv status
+    export const setKvStatus = (chain: string, status: boolean) => {
+        KVStatus[`${chain.toLowerCase()}`] = status
+    }
+
+    export const getKvStatus = (chain: string): boolean => {
+        return KVStatus[`${chain.toLowerCase()}`]
+    }
+
+    // puber event
     export const getPuberEvent = (): EventEmitter => {
         return PuberEvt
     }
