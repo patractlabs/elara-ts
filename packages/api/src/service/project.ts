@@ -208,6 +208,7 @@ class Project {
                 const re = await Stat.proStatDaily(pro.chain, pro.pid)
                 let ptmp = { ...(pro as any)['dataValues'] } as ProInfo
                 ptmp.stat = re
+                ptmp.chain = ptmp.chain.charAt(0).toUpperCase() + ptmp.chain.slice(1)
                 // log.debug(`project info temp: %o`, ptmp)
                 res.push(ptmp)
             }

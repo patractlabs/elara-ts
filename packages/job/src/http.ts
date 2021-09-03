@@ -90,7 +90,7 @@ export default class HttpUtil {
         }
     }
 
-    static async getProjecList(userId: number): Promise<ProAttr[]> {
+    static async getProjectList(userId: number): Promise<ProAttr[]> {
         try {
             const re = JSON.parse(await this.post(baseUrl + '/project/list', {
                 userId

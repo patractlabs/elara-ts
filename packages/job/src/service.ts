@@ -46,7 +46,7 @@ async function userStatUpdate(): PVoidT {
 
 async function projectStatUpdate(userId: number): PVoidT {
     log.info(`ready to set projects status[active] of user[${userId}]`)
-    const pros = await Http.getProjecList(userId)
+    const pros = await Http.getProjectList(userId)
     pros.forEach(async (pro: ProAttr) => {
         if (pro.status === 'suspend') {
             Http.updateProjectStatus(pro.id, 'active')
