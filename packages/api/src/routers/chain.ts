@@ -31,17 +31,14 @@ const chainList = async (ctx: KCtxT, next: NextT) => {
 }
 
 const addChain = async (ctx: KCtxT, next: NextT) => {
-    const req: ChainAttr = ctx.request.body
-    log.debug('add Chain request: %o', req)
     const { name, team, network } = ctx.request.body
     if (!name || !network || !team) {
         throw Resp.Fail(400, 'invalid params' as Msg)
     }
 
     checkName(name)
-    checkName(team)
 
-    const re = await Chain.newChain(req)
+    const re = await Chain.newChain({name: name.toLowerCase(), team, network} as ChainAttr)
     if (isErr(re)) {
         log.debug('add Chain error: %o', re.value)
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
@@ -54,7 +51,7 @@ const addChain = async (ctx: KCtxT, next: NextT) => {
 const deleteChain = async (ctx: KCtxT, next: NextT) => {
     let { id, name, force } = ctx.request.body
     if (force !== true) { force = false }
-    const re = await Chain.deleteChain(id, name, force)
+    const re = await Chain.deleteChain(id, name.toLowerCase(), force)
     if (isErr(re)) {
         throw Resp.Fail(Code.Pro_Err, re.value as Msg)
     }

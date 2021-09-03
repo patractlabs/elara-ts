@@ -200,7 +200,7 @@ class Project {
             }
 
             if (chain) {
-                option.where = { ...option.where, chain }
+                option.where = { ...option.where, chain: chain.toLowerCase() }
             }
             const re = await ProjectModel.findAll(option)
             let res: ProInfo[] = []
