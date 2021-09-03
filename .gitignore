@@ -7,3 +7,4 @@
 yarn*.log
 node_modules
 doc
+logs

@@ -2,7 +2,8 @@ import Ws from 'ws'
 import { randomId } from '@elara/lib'
 const log = console
 
-const port = 9944
+const host = '127.0.0.1'
+const port = 9000
 
 async function sleeps(s: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, s * 1000))
@@ -89,7 +90,7 @@ enum WsTyp {
 }
 
 export const wsTestRunner = async (loop: number, newConn: boolean, conn: number, type: WsTyp) => {
-    let wss = connBuild(conn, '127.0.0.1', port)
+    let wss = connBuild(conn, host, port)
     let lis = topics
     if (type === WsTyp.Rpc) {
         lis = methods
@@ -99,13 +100,13 @@ export const wsTestRunner = async (loop: number, newConn: boolean, conn: number,
     if (loop <= 0) { loop = Number.MAX_VALUE } 
     for (let i = 0; i < loop; i++) {
         if (wss.length === 0) {
-            wss = connBuild(conn, '127.0.0.1', port)
+            wss = connBuild(conn, host, port)
         }
 
         for (let w of wss) {
             listenHandle(w, lis, loop, newConn)           
         }
-        await sleeps(10)
+        await sleeps(6)
         if (newConn) {
             clearConn(wss)
             wss = []
@@ -124,7 +125,7 @@ const connTestRunner = async (conn: number, delay: number) => {
     let wss = []
     let pat = 'polkadot/'
     for (let i = 0; i < conn; i++) { 
-        const ws = newConn('127.0.0.1', port, `${pat}00000000000000000000000000000000`)
+        const ws = newConn(host, port, `${pat}00000000000000000000000000000000`)
         ws.on('open', () => {
             log.info('open ws id: %o', i)
         })
@@ -153,7 +154,7 @@ const connTest = async (loop: number) => {
 
 (async () => {
     if (true) {
-        wsTestRunner(0, true, 100, WsTyp.All)
+        wsTestRunner(0, true, 500, WsTyp.All)
         
     } else {
         // wsTestRunner(0, false, 100)
