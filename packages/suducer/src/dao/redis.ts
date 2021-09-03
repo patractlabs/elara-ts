@@ -1,6 +1,7 @@
 import { Redis, DBT } from '@elara/lib'
 import { getAppLogger, KEYS } from '@elara/lib'
 import { dotenvInit } from '@elara/lib'
+import Mom from 'moment'
 dotenvInit()
 import Conf from '../../config'
 
@@ -58,7 +59,7 @@ namespace Rd {
 
     export const setLatest = async (chain: string, method: string, result: any) => {
         // TODO whether expiration
-        const updateTime = Date.now()
+        const updateTime = Mom().utcOffset('+08:00', false).valueOf()
         const latest = {
             updateTime,
             result: JSON.stringify(result)

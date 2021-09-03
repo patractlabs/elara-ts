@@ -1,3 +1,4 @@
+import Mom from 'moment'
 import Cacher from "./cacher"
 import Chain from "./chain"
 import Matcher from "./matcher"
@@ -17,11 +18,12 @@ async function statusCheck(chain: string): PVoidT {
     const time = new Date(parseInt(updateTime))
     const { currentBlock } = JSON.parse(result)
     if (stat === undefined) {
-        stat = {block: 0, acc: 0}
+        stat = { block: 0, acc: 0 }
     }
     let { block, acc } = stat
     let status = true
-    if (currentBlock <= block) {
+    const diff = Mom().utcOffset('+08:00', false).valueOf() - Mom(time).valueOf()
+    if (currentBlock <= block && diff > 5000) {
         log.warn(`chain ${chain} cacher hasn't been update: ${block}-${currentBlock}, last update time: ${time}`)
         acc += 1
         if (acc > 3) {
@@ -40,7 +42,7 @@ function cacherMoniter(): NodeJS.Timeout {
         for (let chain of chains) {
             statusCheck(chain)
         }
-    }, 5000)
+    }, 6000)
 }
 
 namespace Service {
