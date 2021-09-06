@@ -8,13 +8,13 @@ const redis = Conf.getRedis()
 const log = getAppLogger('app')
 
 const subws = new Subscriber(DBT.Pubsub, {
-    host: redis.host, options: {
+    host: redis.host, port: redis.port, options: {
         password: redis.password
     }
 })
 
 const subhttp = new Subscriber(DBT.Pubsub, {
-    host: redis.host, options: {
+    host: redis.host, port: redis.port, options: {
         password: redis.password
     }
 });
