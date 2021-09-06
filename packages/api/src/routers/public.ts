@@ -1,6 +1,8 @@
 import Router from 'koa-router'
 import { getAppLogger, KCtxT, NextT, Resp, Msg } from '@elara/lib'
 import Stat from '../service/stat'
+import Limit from '../service/limit'
+import { UserLevel } from '../models/user'
 
 const R = new Router()
 const log = getAppLogger('router')
@@ -26,6 +28,12 @@ async function lastDays(ctx: KCtxT, next: NextT) {
     const re = await Stat.lastDays(days)
     ctx.body = Resp.Ok(re)
     return next()
+}
+
+async function getNormalLimit(ctx: KCtxT, next: NextT) {
+    const re = await Limit.findByLevel(UserLevel.Normal)
+    ctx.body = Resp.Ok(re.value)
+    return next
 }
 /**
  *
@@ -82,5 +90,8 @@ R.get('/daily', daily)
  * @apiSuccess {Integer} Stat.stats.bandwidth bandwidth in bytes
  */
 R.post('/days', lastDays)
+
+
+R.get('/limit', getNormalLimit)
 
 export default R.routes()
