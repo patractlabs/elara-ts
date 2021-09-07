@@ -47,7 +47,7 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
         case RpcTyp.Cacher:
             if (Cacher.statusOk(chain)) {
                 let tmethod = method
-                if (method === 'chain_getBlockHash' && params === [0]) {
+                if (method === 'chain_getBlockHash' && (params?.length === 1 && params[0] === 0)) {
                     log.debug(`${chain} get rpc initial block hash`)
                     tmethod = `${method}_0`
                 }
@@ -88,7 +88,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
             if (Cacher.statusOk(chain)) {// no need to clear puber.subid and suber.pubers
                 const res = { id, jsonrpc } as WsData
                 let tmethod = method
-                if (method === 'chain_getBlockHash' && params === [0]) {
+                if (method === 'chain_getBlockHash' && (params?.length === 1 && params[0] === 0)) {
                     log.debug(`${chain} get ws initial block hash`)
                     tmethod = `${method}_0`
                 }
