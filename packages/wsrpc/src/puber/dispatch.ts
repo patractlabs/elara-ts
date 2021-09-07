@@ -20,8 +20,8 @@ enum RpcTyp {
     Noder = 'node'
 }
 
-function getRpcType(method: string, params: string[]): RpcTyp {
-    if (params.length === 0 && Cacher.Rpcs.includes(method)) {
+function getRpcType(method: string, params: any[]): RpcTyp {
+    if ((params[0] === 0 || params.length === 0) && Cacher.Rpcs.includes(method)) {
         return RpcTyp.Cacher
     } else if (Kver.Rpcs.includes(method)) {
         return RpcTyp.Kver
@@ -46,7 +46,12 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
     switch (typ) {
         case RpcTyp.Cacher:
             if (Cacher.statusOk(chain)) {
-                const re: any = await Cacher.send(chain, method)
+                let tmethod = method
+                if (method === 'chain_getBlockHash' && params === [0]) {
+                    log.debug(`${chain} get rpc initial block hash`)
+                    tmethod = `${method}_0`
+                }
+                const re: any = await Cacher.send(chain, tmethod)
                 // log.info(`receive cacher result: ${JSON.stringify(re)}`)
                 // TODO: updateTime check
                 if (re.result) {
@@ -82,7 +87,12 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
         case RpcTyp.Cacher:
             if (Cacher.statusOk(chain)) {// no need to clear puber.subid and suber.pubers
                 const res = { id, jsonrpc } as WsData
-                const re = await Cacher.send(chain, method)
+                let tmethod = method
+                if (method === 'chain_getBlockHash' && params === [0]) {
+                    log.debug(`${chain} get ws initial block hash`)
+                    tmethod = `${method}_0`
+                }
+                const re = await Cacher.send(chain, tmethod)
                 if (re.result) {
                     res['result'] = JSON.parse(re.result)
                     const ress = JSON.stringify(res)

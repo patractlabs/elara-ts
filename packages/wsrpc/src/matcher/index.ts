@@ -183,7 +183,7 @@ namespace Matcher {
             // if suber closed, event need to emit on suber closed
             Puber.del(puber.id)
             evt.removeAllListeners(`${puber.id}-done`)
-            log.info(`clear ${puber.chain} pid[${puber.pid}] subscribe context of puber[${puber.id}] close done`)
+            log.info(`unsubsribe event done: clear ${puber.chain} pid[${puber.pid}] subscribe context of puber[${puber.id}] close done`)
         })
 
         const { chain, pid } = puber
@@ -214,7 +214,7 @@ namespace Matcher {
             }
             log.info(`unsubscribe topic[${topic.method}] id[${subsId}] of chain ${chain} pid[${pid}] suber[${req.subId}] ${req.subType}`)
         }
-        log.info(`handle puber close done: unsubscribe all topic`)
+        log.info(`handle ${chain} pid[${pid}] puber[${puber.id}] close done: unsubscribe all topics`)
     }
 
     export async function unRegist(pubId: IDT, reason: CloseReason): PVoidT {

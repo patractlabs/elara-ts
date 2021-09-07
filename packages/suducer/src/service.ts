@@ -19,7 +19,7 @@ const buildReq = (id: string, method: string, params: any[]): ReqT => {
 const sendWithoutParam = (chain: string, method: string, type: SuducerT) => {
     let id: string
 
-    switch(type) {
+    switch (type) {
         case SuducerT.Sub:
             // topic - subscribe id
             id = randomId().toString()
@@ -45,9 +45,6 @@ const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT, strat
     // const nrpcs = [...rpcs, ...extens]
     // const excludes = G.getExcludes(chain)
     // log.info(`Extends & excludes list of chain[${chain}]: %o %o`, extens, excludes)
-    if (stratgy) { 
-        // TODO 
-    }
 
     for (let r of rpcs) {
         sendWithoutParam(chain, r, type)
@@ -60,44 +57,46 @@ namespace Service {
     export namespace Cacheable {
 
         const runSyncJob = (chain: string, second: number, strategy: CacheStrategyT): void => {
-            const rpcs = G.getCacheByType(strategy) 
+            const rpcs = G.getCacheByType(strategy)
             if (rpcs.length < 1) {
                 log.warn(`no item to excute in chain ${chain} cache strategy: ${strategy}`)
                 return
             }
-      
+
             const interval = setInterval(() => {
                 log.info(`run chain ${chain} strategy ${strategy} cache job`)
                 excuteStrategyList(rpcs, chain, SuducerT.Cache)
             }, second * 1000)
             G.addInterval(chain, strategy, interval)
         }
-    
+
         const syncAsBlockService = async (chain: string) => {
             log.info(`run syncAsBlock service interval: 5s`)
             runSyncJob(chain, 5, CacheStrategyT.SyncAsBlock)
         }
-    
+
         const syncLowService = (chain: string) => {
             log.info(`run syncLow service interval: 60s`)
             runSyncJob(chain, 10 * 60, CacheStrategyT.SyncLow)
         }
-    
+
         export const syncOnceService = (chain: string) => {
             log.info(`run syncOnce service chain ${chain}`)
             const rpcs = G.getCacheByType(CacheStrategyT.SyncOnce)
+            const req = buildReq(`chain-${chain}-chain_getBlockHash_0`, "chain_getBlockHash", [0])
+            Pool.send(chain, SuducerT.Cache, req)
             excuteStrategyList(rpcs, chain, SuducerT.Cache)
         }
-    
+
         export const run = (chains: string[]) => {
-            
+
             const evt = G.getPoolEvt(SuducerT.Cache)
             if (!evt) {
                 log.error(`subscribe cache pool event error`)
                 process.exit(2)
             }
             for (let chain of chains) {
-                
+
                 evt.once(`${chain}-open`, () => {
                     log.info(`chain ${chain} subscribe pool event done type cache`)
                     evt.removeAllListeners(`${chain}-open`)
@@ -109,7 +108,7 @@ namespace Service {
         }
     }
 
-    
+
     export namespace Subscribe {
 
         export const subscribeService = async (chain: string) => {
@@ -126,7 +125,7 @@ namespace Service {
             }
             for (let chain of chains) {
                 log.info(`run subscribe topic of chain ${chain}`)
-                
+
                 evt.once(`${chain}-open`, () => {
                     log.info(`chain ${chain} subscribe pool event done`)
                     evt.removeAllListeners(`${chain}-open`)
@@ -144,9 +143,9 @@ namespace Service {
         await Pool.init(secure)
 
         const re = G.getAllChains()
-        if (isNone(re)) { 
+        if (isNone(re)) {
             log.error(`no chains valid`)
-            process.exit(2) 
+            process.exit(2)
         }
         const chains = re.value
 
