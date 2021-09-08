@@ -10,12 +10,12 @@ const log = getAppLogger('service')
 async function statusCheck(chain: string): PVoidT {
     let { result, updateTime } = await Dao.getChainCache(chain, 'system_syncState')
     let stat = Cacher.getPrestat(chain)
+    const time = new Date(parseInt(updateTime))
     if (result === undefined || result === '') {
-        log.error(`chain ${chain} cacher hasn't been sync: ${result} ${updateTime}`)
+        log.error(`chain ${chain} cacher hasn't been sync: ${result} ${time}`)
         Cacher.updatePrestat(chain, { block: 0, acc: 0 })
         return Cacher.updateStatus(chain, false)
     }
-    const time = new Date(parseInt(updateTime))
     const { currentBlock } = JSON.parse(result)
     if (stat === undefined) {
         stat = { block: 0, acc: 0 }
