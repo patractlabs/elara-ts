@@ -110,7 +110,7 @@ Server.on('request', async (req: Http.IncomingMessage, res: Http.ServerResponse)
     const {chain, pid} = re.value as ChainPidT
     const projectIsOk = await projectOk(chain, pid as string)
     if (!projectIsOk) {
-        log.error(`${chain} project[$${pid}] check failed, no this pid!`)
+        log.error(`${chain} project[${pid}] check failed, no this pid!`)
         return Response.Fail(res, 'invalid project', 400, reqStatis)
     }
     let data = ''
@@ -172,7 +172,7 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
     const { chain, pid } = re.value
     const projectIsOk = await projectOk(chain, pid as string)
     if (!projectIsOk) {
-        log.error(`${chain} project[$${pid}] check failed, no this pid!`)
+        log.error(`${chain} [${pid}] check failed, no this pid!`)
         Stat.publish(reqStatis)
         await socket.end(`HTTP/1.1 400 ${re.value} \r\n\r\n`, 'ascii')
         socket.emit('close', true)
