@@ -59,13 +59,56 @@ const params_3 = [
     ["0x1a736d37504c2e3fb73dad160c55b2918ee7418a6531173d60d1f6a82d8f4d51", 1000, "0x1a736d37504c2e3fb73dad160c55b2918ee7418a6531173d60d1f6a82d8f4d51"],
     [["0x2aeddc77fe58c98d50bd37f1b90840f91f7f3f3eb1c2a69978da998d19f74ec5"]],
     [["0x5f3e4907f716ac89b6347d15ececedcaac0a2cbf8e355f5ea6cb2de8727bfb0c"]],
-    [["0x2aeddc77fe58c98d50bd37f1b90840f9cd7f37317cd20b61e9bd46fab87047140b81ae860ae1f2884877511245f8954e48858da743b9eb3544681c27ffd8802c8ea1669e961a2b61","0x2aeddc77fe58c98d50bd37f1b90840f943a953ac082e08b6527ce262dbd4abf29b6c7d30389e104491c2397c994076d94877511245f8954e48858da743b9eb3544681c27ffd8802c8ea1669e961a2b61"]]
+    [["0x2aeddc77fe58c98d50bd37f1b90840f9cd7f37317cd20b61e9bd46fab87047140b81ae860ae1f2884877511245f8954e48858da743b9eb3544681c27ffd8802c8ea1669e961a2b61", "0x2aeddc77fe58c98d50bd37f1b90840f943a953ac082e08b6527ce262dbd4abf29b6c7d30389e104491c2397c994076d94877511245f8954e48858da743b9eb3544681c27ffd8802c8ea1669e961a2b61"]]
+]
+
+const system_evt_methods = [
+    "state_subscribeStorage",
+    "state_getStorage",
+    "state_getStorage",
+    "state_subscribeStorage"
+]
+
+const system_evt_params = [
+    [["0x5f3e4907f716ac89b6347d15ececedca308ce9615de0775a82f8a94dc3d285a1"]],
+    ["0xcec5070d609dd3497f72bde07fc96ba0e0cdd062e6eaf24295ad4ccfc41d4609"],
+    ["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9ff0f22492f44bac4c4b30ae58d0e8daa0000000000000000000000000000000000000000000000000000000000000000"],
+    [["0x26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7"]]
 ]
 
 let conncnt = 0
 
 export async function sleeps(s: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, s * 1000))
+}
+
+async function listenEvent(url: string, evts: string[], params: any[]): Promise<void> {
+    try {
+        const wss = new Ws(url)
+        wss.on("close", (code, reason) => {
+            conncnt -= 1
+            log.error('ws connection close: ', code, reason, conncnt)
+            if (code === 1006) {
+                process.exit(1)
+            }
+        })
+
+        wss.on("open", async () => {
+            conncnt += 1
+            log.info('ws event connection open: ', conncnt)
+            send(wss, evts, params, 1000)
+        })
+
+        wss.on("error", (err) => {
+            log.error('ws event connection error: ', err)
+        })
+
+        wss.on("message", (data) => {
+            log.info('new event data: ', JSON.parse(data.toString()).id)
+        })
+    } catch (err) {
+        log.error('event error: ', err)
+    }
 }
 
 async function send(ws: Ws, methods: string[], params: any[], start: number) {
@@ -91,7 +134,6 @@ async function run(url: string, options: { mode?: number, batch?: boolean, id?: 
         let id_1 = new Set([1, 2, 3, 4, 5, 6])
         let id_2 = new Set([7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
         let id_3 = new Set([18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29])
-
         wss.on("close", (code, reason) => {
             conncnt -= 1
             log.error('ws connection close: ', code, reason, conncnt)
@@ -128,16 +170,17 @@ async function run(url: string, options: { mode?: number, batch?: boolean, id?: 
 
             if (id_2.size === 0) {
                 log.info('stage 2 rpc done')
-                if (mode !== 0) { 
+                if (mode !== 0) {
                     log.error('mode 0, to close ws socket connection')
-                    wss.close(1001) 
+                    wss.close(1001)
                 }
                 send(wss, methods_3, params_3, 18)
                 id_2.add(0)
             }
 
             if (id_3.size === 0) {
-                log.info('stage 3 rpc done')
+                log.info('stage 3 rpc done, start event listen')
+                listenEvent(url, system_evt_methods, system_evt_params)
                 id_3.add(0)
             }
         })
@@ -156,11 +199,12 @@ const url = "wss://test-pro.pub.elara2.patract.cn/kusama"
 
 async function main(url: string, loop: number = 0) {
     if (loop === 0) {
-        run(url, {mode: 0, batch: true})
+        run(url, { mode: 0, batch: true })
+
     }
     for (let i = 0; i < loop; i++) {
         run(url, { mode: 0, batch: true, id: i + 1 })
     }
 }
 
-main(url, 1000)
+main(url, 10)
