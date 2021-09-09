@@ -18,12 +18,10 @@ class Cacher {
         // sync when block update
         "system_syncState",
         "system_health",
-        // "system_peers",
         "chain_getHeader",
         "chain_getBlock",
         "chain_getBlockHash",
         "chain_getFinalizedHead",
-        "author_pendingExtrinsics",
 
         // sync once
         "rpc_methods",

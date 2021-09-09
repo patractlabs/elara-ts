@@ -20,7 +20,6 @@ class Kver {
 
         "state_subscribeRuntimeVersion",    // state_runtimeVersion
         "state_subscribeStorage",           // state_storage
-        // "author_submitAndWatchExtrinsic",   // author_extrinsicUpdate    // kv not support
 
         "chain_unsubscribeAllHeads",          // chain_allHead
         "chain_unsubscribeFinalisedHeads",    // chain_finalizedHead
@@ -32,8 +31,7 @@ class Kver {
         "grandpa_unsubscribeJustifications",  // grandpa_justifications
 
         "state_unsubscribeRuntimeVersion",    // state_runtimeVersion
-        "state_unsubscribeStorage",           // state_storage
-        // "author_unwatchExtrinsic",            // author_extrinsicUpdate
+        "state_unsubscribeStorage"           // state_storage
     ]
 
     static send(puber: Puber, data: ReqDataT, stat: Statistics): void {
