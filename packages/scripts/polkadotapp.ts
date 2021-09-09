@@ -146,13 +146,13 @@ async function run(url: string, options: { mode?: number, batch?: boolean, id?: 
     }
 }
 
-// run("wss://test-pro.pub.elara2.patract.cn/kusama/00000000000000000000000000000000")
+// const url = "wss://test-pro.service.elara2.patract.cn/kusama/00000000000000000000000000000000"
 // run("ws://localhost:9944/Polkadot/00000000000000000000000000000000")
 // run("wss://pub.elara.patract.io/Polkadot/00000000000000000000000000000000")
 // run("wss://pub.elara.patract.io/kusama")
 // 
-// const url = "wss://pub.elara.patract.io/kusama"
 const url = "wss://test-pro.pub.elara2.patract.cn/kusama"
+// const url = "wss://test-pro.pub.elara2.patract.cn/kusama/00000000000000000000000000000000"
 
 async function main(url: string, loop: number = 0) {
     if (loop === 0) {
@@ -163,4 +163,4 @@ async function main(url: string, loop: number = 0) {
     }
 }
 
-main(url, 100)
+main(url, 1000)
