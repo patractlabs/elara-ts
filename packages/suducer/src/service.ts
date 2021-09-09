@@ -38,17 +38,9 @@ const sendWithoutParam = (chain: string, method: string, type: SuducerT) => {
     Pool.send(chain, type, req)
 }
 
-const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT, stratgy?: CacheStrategyT) => {
-
-    // TODO : extends & excludes list
-    // const extens: string[] = G.getExtends(chain, stratgy as any)
-    // const nrpcs = [...rpcs, ...extens]
-    // const excludes = G.getExcludes(chain)
-    // log.info(`Extends & excludes list of chain[${chain}]: %o %o`, extens, excludes)
-
+const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT) => {
     for (let r of rpcs) {
         sendWithoutParam(chain, r, type)
-        // log.info(`new ${chain} request type[cache] method[${r}]`)
     }
 }
 
@@ -148,6 +140,7 @@ namespace Service {
             process.exit(2)
         }
         const chains = re.value
+        log.debug(`chain config lsit: %o`, chains)
 
         // cache service
         Cacheable.run(chains)

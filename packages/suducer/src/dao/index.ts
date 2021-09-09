@@ -2,20 +2,25 @@ import { Err, Ok, PResultT } from '@elara/lib'
 import Rd from './redis'
 
 // TODO result
-namespace Dao {
-    export const getChainList = async (): PResultT<string[]> => {
+class Dao {
+    static async getChainList(): PResultT<string[]> {
         return Ok(await Rd.getChainList())
     }
 
-    export const getChainConfig = async (chain: string): PResultT<Record<string, string>> => {
-        const conf = await Rd.getChainConfig(chain)
+    static async getChainIds(chain: string) {
+        return Rd.getChainIds(chain)
+    }
+
+    static async getChainConfig(chain: string, serverId: number): PResultT<Record<string, string>> {
+        const conf = await Rd.getChainConfig(chain, serverId)
         if (!conf.name) {
             return Err('Invalid chain config')
         }
         return Ok(conf)
     }
 
-    export const updateChainCache = async (chain: string, method: string, data: any): PResultT<"OK"> => {
+    static async updateChainCache(chain: string, method: string, data: any): PResultT<"OK"> {
+        chain = chain.split('-')[0]
         return Ok(await Rd.setLatest(chain, method, data))
     }
 }

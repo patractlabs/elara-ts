@@ -1,5 +1,5 @@
 import Http from 'http'
-import { ChainConfig, getAppLogger, isErr, PVoidT } from '@elara/lib'
+import { ChainConfig, getAppLogger, isErr, PVoidT, randomReplaceId } from '@elara/lib'
 import Dao from '../dao'
 import { ReqDataT, Statistics } from "../interface"
 import Util from '../util'
@@ -46,16 +46,44 @@ function post(chain: string, url: string, data: ReqDataT, resp: Http.ServerRespo
     req.end()
 }
 
+async function selectNoder(chain: string): Promise<Noder> {
+    const ids = await Dao.getChainIds(chain)
+    if (ids.length === 0) {
+        log.error(`select noder error: node instance id empty`)
+        process.exit(1)
+    }
+    const rnd = randomReplaceId(8)
+    const serverId = rnd % ids.length
+
+    const re = await Dao.getChainConfig(chain, serverId)
+    if (isErr(re)) {
+        log.error(`send node rpc request error: ${re.value}`)
+        process.exit(2)
+    }
+    const cconf = re.value as ChainConfig
+    return {
+        chain,
+        serverId,
+        host: cconf.baseUrl,
+        port: cconf.rpcPort
+    }
+}
+
+interface Noder {
+    chain: string,
+    serverId: number,
+    host: string,
+    port: number
+}
+
 class Noder {
+
     static async sendRpc(chain: string, data: ReqDataT, resp: Http.ServerResponse, stat: Statistics): PVoidT {
-        log.info(`new node rpc requst, chain ${chain} method ${data.method} params ${data.params}`)
-        const re = await Dao.getChainConfig(chain)
-        if (isErr(re)) {
-            log.error(`send node rpc request error: ${re.value}`)
-            process.exit(2)
-        }
-        const cconf = re.value as ChainConfig
-        const url = `http://${cconf.baseUrl}:${cconf.rpcPort}`
+
+        const noder = await selectNoder(chain)
+        log.info(`new node rpc requst, chain ${chain} method ${data.method} params ${data.params}, select noder: ${noder.serverId}-${noder.host}-${noder.port}`)
+
+        const url = `http://${noder.host}:${noder.port}`
         stat.type = 'node'
         return post(chain, url, data, resp, stat)
     }

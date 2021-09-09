@@ -45,8 +45,12 @@ namespace Rd {
         return chainRedis.zrange(KChain.zChainList(), 0, -1)
     }
 
-    export const getChainConfig = async (chain: string) => {
-        return chainRedis.hgetall(KChain.hChain(chain))
+    export const getChainIds = async (chain: string) => {
+        return chainRedis.zrange(KChain.zChainIds(chain), 0, -1)
+    }
+
+    export const getChainConfig = async (chain: string, serverId: number) => {
+        return chainRedis.hgetall(KChain.hChain(chain, serverId))
     }
 
 

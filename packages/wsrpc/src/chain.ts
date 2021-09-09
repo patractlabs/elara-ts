@@ -103,21 +103,6 @@ class Chain {
     static hasChain(chain: string): boolean {
         return Chain.chains.has(chain)
     }
-    // }
-
-    static parseConfig = async (chain: string, serverId: number) => {
-        const conf = await Dao.getChainConfig(chain)
-        if (isErr(conf)) {
-            log.error(`Parse config of chain[${chain}] error: %o`, conf.value)
-            return
-        }
-        const chainf = conf.value as ChainConfig
-        if (chainf.serverId != serverId) {
-            log.warn(`chain ${chain} serveId[${chainf.serverId}] not match, current server ID ${serverId}`)
-            return
-        }
-        Chain.addChain(chain)
-    }
 
     static init = async () => {
         let re = await Dao.getChainList()
@@ -126,14 +111,11 @@ class Chain {
             process.exit(2)
         }
         const chains = re.value
-        let parses: Promise<void>[] = []
         log.warn('fetch chain list: %o', chains)
 
-        const server = Conf.getServer()
         for (let c of chains) {
-            parses.push(Chain.parseConfig(c, server.id))
+            Chain.addChain(c)
         }
-        return Promise.all(parses)
     }
 }
 

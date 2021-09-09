@@ -25,12 +25,12 @@ const KVStatus: Record<string, boolean> = {}
 namespace G {
 
     // kv status
-    export const setKvStatus = (chain: string, status: boolean) => {
-        KVStatus[`${chain.toLowerCase()}`] = status
+    export const setKvStatus = (chain: string, serverId: number, status: boolean) => {
+        KVStatus[`${chain.toLowerCase()}-${serverId}`] = status
     }
 
-    export const getKvStatus = (chain: string): boolean => {
-        return KVStatus[`${chain.toLowerCase()}`]
+    export const getKvStatus = (chain: string, serverId: number): boolean => {
+        return KVStatus[`${chain.toLowerCase()}-${serverId}`]
     }
 
     // puber event

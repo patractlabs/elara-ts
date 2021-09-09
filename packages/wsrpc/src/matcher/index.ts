@@ -15,7 +15,6 @@ import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason, Statistics } from '../inte
 import Puber from '../puber'
 import Suber, { SuberTyp } from './suber'
 import { md5, randomId } from '@elara/lib'
-import Util from '../util'
 import Conf from '../../config'
 import Topic from './topic'
 
@@ -53,10 +52,10 @@ namespace Matcher {
         const suber = ren.value as Suber
 
         // create new puber 
-        const puber = Puber.create(ws, chain, pid)
+        const puber = Puber.create(ws, chain, suber.serverId, pid)
         let kvOk = false
         let kvSuber: Suber
-        const kvOpen = GG.getKvStatus(chain)
+        const kvOpen = GG.getKvStatus(chain, suber.serverId)
 
         if (kvOpen) {
             let rek = await Suber.selectSuber(chain, SuberTyp.Kv)
@@ -80,7 +79,7 @@ namespace Matcher {
 
         // side context set
         GG.incrConnCnt(chain, puber.pid)
-        log.info(`regist puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvOk ? kvSuber!.id : 'none'}]: : %o`, Util.globalStat())
+        log.info(`regist ${chain}-${suber.serverId} puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvOk ? kvSuber!.id : 'none'}]`)
         return Ok(puber)
     }
 

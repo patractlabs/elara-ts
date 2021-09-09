@@ -15,6 +15,7 @@ interface Puber {
     id: IDT,
     pid: IDT,
     chain: string,
+    serverId: number,
     ws: WebSocket,
     topics: Set<string>,   // {subscribeId}
     subId: IDT,            // suber id
@@ -46,8 +47,8 @@ class Puber {
         delete Puber.g[pubId]
     }
 
-    static create(ws: WebSocket, chain: string, pid: IDT): Puber {
-        const puber = { id: randomId(), pid, chain, ws, topics: new Set() } as Puber
+    static create(ws: WebSocket, chain: string, serverId: number, pid: IDT): Puber {
+        const puber = { id: randomId(), pid, chain, serverId, ws, topics: new Set() } as Puber
         Puber.updateOrAdd(puber)
         return puber
     }

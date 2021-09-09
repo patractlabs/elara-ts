@@ -97,10 +97,13 @@ class Rd {
         return chainRd.zrange(KChain.zChainList(), 0, -1)
     }
 
-    static async getChainConfig(chain: string) {
-        return chainRd.hgetall(KChain.hChain(chain))
+    static async getChainIds(chain: string): Promise<string[]> {
+        return chainRd.zrange(KChain.zChainIds(chain), 0, -1)
     }
 
+    static async getChainConfig(chain: string, serverId: number) {
+        return chainRd.hgetall(KChain.hChain(chain, serverId))
+    }
 
     /// cache operation
 

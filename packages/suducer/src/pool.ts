@@ -106,9 +106,10 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
             if (isCacheReq) {
                 let pat = dat.id.split('-')
                 const chain = pat[1]
-                const method = pat[2]
+                const serverId = pat[2]
+                const method = pat[3]
                 // 
-                log.debug(`new ${chain} cache message: ${method}, `, dat.result)
+                log.debug(`new ${chain}-${serverId} cache message: ${method}, `, dat.result)
                 Dao.updateChainCache(chain, method, dat.result)
             } else if (isSubID(dat.result)) {
                 // first subscribe response

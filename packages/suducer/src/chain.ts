@@ -9,9 +9,11 @@ const log = getAppLogger('chain')
 import { Redis, DBT } from '@elara/lib'
 
 const redisConf = Conf.getRedis()
-const pubsubRd = new Redis(DBT.Pubsub, {host: redisConf.host, port: redisConf.port, options:{
-    password:redisConf.password
-}})
+const pubsubRd = new Redis(DBT.Pubsub, {
+    host: redisConf.host, port: redisConf.port, options: {
+        password: redisConf.password
+    }
+})
 const PSuber = pubsubRd.getClient()
 
 pubsubRd.onConnect(() => {
@@ -24,8 +26,8 @@ pubsubRd.onError((err: string) => {
 })
 
 enum Topic {
-    ChainAdd    = 'chain-add',
-    ChainDel    = 'chain-del',
+    ChainAdd = 'chain-add',
+    ChainDel = 'chain-del',
     ChainUpdate = 'chain-update'
 }
 
@@ -55,7 +57,7 @@ PSuber.psubscribe('*', (err, topicNum) => {
 
 PSuber.on('pmessage', (_pattern, chan, chain: string) => {
     log.info('received new topic message: %o', chan)
-    switch(chan) {
+    switch (chan) {
         case Topic.ChainAdd:
             log.info('Topic chain message: %o', chain)
             chainAddHandler(chain)
@@ -77,16 +79,13 @@ PSuber.on('pmessage', (_pattern, chan, chain: string) => {
 namespace Chain {
 
     export const parseConfig = async (chain: string, serverId: number) => {
-        const conf = await Dao.getChainConfig(chain)
-        if (isErr(conf)) { 
+        const conf = await Dao.getChainConfig(chain, serverId)
+        if (isErr(conf)) {
             log.error(`Parse config of chain[${chain}] error: %o`, conf.value)
-            return 
+            return
         }
         const chainf = conf.value as ChainConfig
-        if (chainf.serverId != serverId) { 
-            log.warn(`chain ${chain} serveId[${chainf.serverId}] not match, current server ID ${serverId}`)
-            return 
-        }
+
         G.addChain(chainf)
     }
 
@@ -100,9 +99,20 @@ namespace Chain {
         let parses: Promise<void>[] = []
         log.warn('fetch chain list: %o', chains)
 
-        const server = Conf.getServer()
         for (let c of chains) {
-            parses.push(parseConfig(c, server.id))
+            try {
+                const ids = await Dao.getChainIds(c)
+                if (ids.length === 0) {
+                    log.error(`get ${c} id list error: empty`)
+                    process.exit(1)
+                }
+                for (let id of ids) {
+                    parses.push(parseConfig(c, parseInt(id)))
+                }
+            } catch (err) {
+                log.error(`catch init ${c} config error: %o`, err)
+                process.exit(2)
+            }
         }
         return Promise.all(parses)
     }

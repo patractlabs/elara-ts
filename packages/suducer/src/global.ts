@@ -143,24 +143,24 @@ export namespace G {
 
     // chain config op
     export const addChain = (chain: ChainConfig): void => {
-        const name = chain.name.toLowerCase()
-        Chains[name] = chain
+        const key = `${chain.name.toLowerCase()}-${chain.serverId}`
+        Chains[key] = chain
     }
 
     export const updateChain = (chain: ChainConfig): void => {
-        Chains[chain.name.toLowerCase()] = chain
+        Chains[`${chain.name.toLowerCase()}-${chain.serverId}`] = chain
     }
 
-    export const getChain = (chain: string): Option<ChainConfig> => {
-        const key = chain.toLowerCase()
+    export const getChain = (chain: string, serverId: number): Option<ChainConfig> => {
+        const key = `${chain.toLowerCase()}-${serverId}`
         if (!Chains[key]) {
             return None
         }
         return Some(Chains[key])
     }
 
-    export const delChain = (chain: string): void => {
-        delete Chains[chain.toLowerCase()]
+    export const delChain = (chain: string, serverId: number): void => {
+        delete Chains[`${chain.toLowerCase()}-${serverId}`]
     }
 
     export const getAllChains = (): Option<string[]> => {
