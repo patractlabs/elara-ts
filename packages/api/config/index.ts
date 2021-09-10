@@ -29,20 +29,20 @@ interface User {
     github: GithubT,
 }
 
-namespace Conf {
-    export function getServer(): Server {
+class Conf {
+    static getServer(): Server {
         return Config.get("server")
     }
 
-    export function getRedis(): Redis {
+    static getRedis(): Redis {
         return Config.get("redis")
     }
 
-    export function getDB(): DB {
+    static getDB(): DB {
         return Config.get("db")
     }
 
-    export function getUser(): User {
+    static getUser(): User {
         return Config.get("user")
     }
 }

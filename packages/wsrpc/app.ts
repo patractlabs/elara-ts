@@ -256,7 +256,7 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('close', async (code, reason) => {
-        log.error(`${chain} pid[${pid}] puber[${id}] close: ${reason}, code ${code}, reason[${reason}]\n \tcurrent total puber connections: %o`, wss.clients.size)
+        log.error(`${chain}-${puber.serverId} pid[${pid}] puber[${id}] close: ${reason}, code ${code}, reason[${reason}]\n \tcurrent total puber connections: %o`, wss.clients.size)
         if (reason === CloseReason.OutOfLimit || reason === CloseReason.SuberUnavail) {
             return  // out of limit
         }
@@ -271,7 +271,7 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('error', (err) => {
-        log.error(`${chain} pid[${pid}] Puber[${id}] Connection error: %o`, err)
+        log.error(`${chain}-${puber.serverId} pid[${pid}] Puber[${id}] Connection error: %o`, err)
     })
     return
 })

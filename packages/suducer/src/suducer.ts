@@ -4,14 +4,14 @@ import { randomId, md5 } from '@elara/lib'
 import { TopicT } from './interface'
 
 export enum SuducerT {
-    Sub     = 'sub',        // suscription except author_submitAndWatchExtrinistic
-    Cache   = 'cache'      // cacheable,
+    Sub = 'sub',        // suscription except author_submitAndWatchExtrinistic
+    Cache = 'cache'      // cacheable,
 }
 
 export enum SuducerStat {
-    Active  = 'active',
-    Check   = 'check',     
-    Fail    = 'fail',
+    Active = 'active',
+    Check = 'check',
+    Fail = 'fail',
 }
 
 interface Suducer {
@@ -26,10 +26,10 @@ interface Suducer {
     stat?: SuducerStat,
 }
 
-namespace Suducer {
-    export const create = (chain: string, type: SuducerT, ws: WebSocket, url: string, topic?: TopicT, 
-        cluster: number = 0): Suducer => {
-        
+class Suducer {
+    static create(chain: string, type: SuducerT, ws: WebSocket, url: string, topic?: TopicT,
+        cluster: number = 0): Suducer {
+
         const suducer = {
             id: randomId(),
             chainId: md5(`${chain}${url}${cluster}`),

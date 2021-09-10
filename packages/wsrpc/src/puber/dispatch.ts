@@ -93,8 +93,13 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
                     log.debug(`${chain}-${serverId} get ws initial block hash`)
                     tmethod = `${method}_0`
                 }
+                log.info(`before ${chain}-${serverId} ${typ} cacher result`)
+
                 const re = await Cacher.send(chain, tmethod)
+                log.info(`after ${chain}-${serverId} ${typ} cacher result: %o`, re.result)
+
                 if (re.result) {
+                    log.info(`${chain}-${serverId} ${typ} cacher result: %o`, re.result)
                     res['result'] = JSON.parse(re.result)
                     const ress = JSON.stringify(res)
                     stat.delay = Util.traceDelay(stat.start)

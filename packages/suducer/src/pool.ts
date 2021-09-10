@@ -18,14 +18,14 @@ import Conf from '../config'
 
 const log = getAppLogger('pool')
 
-const delays = (sec: number, cb: () => void) => {
+function delays(sec: number, cb: () => void) {
     const timer = setTimeout(() => {
         cb()
         clearTimeout(timer)
     }, sec * 1000);
 }
 
-const generateUrl = (url: string, port: number, sec: boolean = false) => {
+function generateUrl(url: string, port: number, sec: boolean = false) {
     let procol = 'ws://'
     if (sec) { procol = 'wss://' }
     return `${procol}${url}:${port}`
@@ -147,9 +147,53 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
     return suducer
 }
 
-namespace Pool {
+async function selectSuducer(chain: string, type: SuducerT, method?: string): PResultT<Suducer> {
+    let suducer: Suducer
 
-    export const add = (arg: SuducerArgT) => {
+    if (type === SuducerT.Cache) {
+        let re = G.getSuducers(chain, type)
+        if (isNone(re)) {
+            return Err(`no suducer of chain ${chain} type ${type}`)
+        }
+        // TODO: robin 
+        const suducers = re.value
+        suducer = suducers[Object.keys(suducers)[0]]
+    } else if (type === SuducerT.Sub) {
+        let re: Option<any> = G.getSuducerId(chain, method!)
+        if (isNone(re)) {
+            return Err(`no suducer id of chain ${chain} topic[${method}]`)
+        }
+
+        re = G.getSuducer(chain, type, re.value)
+        if (isNone(re)) {
+            return Err(`no suducer of chain ${chain} type ${type}`)
+        }
+        suducer = re.value
+    } else {
+        return Err(`no this suducer of type ${type}`)
+    }
+    return Ok(suducer)
+}
+
+function cachePoolInit(chain: string, url: string) {
+    const type = SuducerT.Cache
+    const size = Conf.getServer().cachePoolSize
+    G.setPoolCnt(chain, type, size)
+    Pool.add({ chain, url, type })
+}
+
+function subPoolInit(chain: string, url: string) {
+    const type = SuducerT.Sub
+    const topics = G.getSubTopics()
+    G.setPoolCnt(chain, type, Object.keys(topics).length)
+    for (let topic of topics) {
+        Pool.add({ chain, url, type, topic })
+    }
+}
+
+class Pool {
+
+    static add(arg: SuducerArgT) {
         let { chain, url, type, topic } = arg
 
         const suducer = newSuducer({ chain, url, type, topic })
@@ -159,42 +203,14 @@ namespace Pool {
         }
     }
 
-    export const del = (chain: string, type: SuducerT, sudId: IDT) => {
+    static del(chain: string, type: SuducerT, sudId: IDT) {
         G.delSuducer(chain, type, sudId)
         if (type === SuducerT.Sub) {
             G.delTopicSudid(chain, type)
         }
     }
 
-    const selectSuducer = async (chain: string, type: SuducerT, method?: string): PResultT<Suducer> => {
-        let suducer: Suducer
-
-        if (type === SuducerT.Cache) {
-            let re = G.getSuducers(chain, type)
-            if (isNone(re)) {
-                return Err(`no suducer of chain ${chain} type ${type}`)
-            }
-            // TODO: robin 
-            const suducers = re.value
-            suducer = suducers[Object.keys(suducers)[0]]
-        } else if (type === SuducerT.Sub) {
-            let re: Option<any> = G.getSuducerId(chain, method!)
-            if (isNone(re)) {
-                return Err(`no suducer id of chain ${chain} topic[${method}]`)
-            }
-
-            re = G.getSuducer(chain, type, re.value)
-            if (isNone(re)) {
-                return Err(`no suducer of chain ${chain} type ${type}`)
-            }
-            suducer = re.value
-        } else {
-            return Err(`no this suducer of type ${type}`)
-        }
-        return Ok(suducer)
-    }
-
-    export const send = async (chain: string, type: SuducerT, req: ReqT) => {
+    static async send(chain: string, type: SuducerT, req: ReqT) {
         // select suducer according to chain & type
         let re = await selectSuducer(chain, type, req.method)
         if (isErr(re)) {
@@ -210,27 +226,11 @@ namespace Pool {
         log.debug(`chain ${chain} type ${type} send new request: ${JSON.stringify(req)} `)
     }
 
-    export const isSuducerOk = (suducer: Suducer): boolean => {
+    static isSuducerOk(suducer: Suducer): boolean {
         return suducer.stat === SuducerStat.Active
     }
 
-    const cachePoolInit = (chain: string, url: string) => {
-        const type = SuducerT.Cache
-        const size = Conf.getServer().cachePoolSize
-        G.setPoolCnt(chain, type, size)
-        add({ chain, url, type })
-    }
-
-    const subPoolInit = (chain: string, url: string) => {
-        const type = SuducerT.Sub
-        const topics = G.getSubTopics()
-        G.setPoolCnt(chain, type, Object.keys(topics).length)
-        for (let topic of topics) {
-            add({ chain, url, type, topic })
-        }
-    }
-
-    export const init = (secure: boolean = false) => {
+    static init(secure: boolean = false) {
         // init pool for basic sub & chan connection
         const cconf = G.getAllChainConfs()
         const re = G.getAllChains()

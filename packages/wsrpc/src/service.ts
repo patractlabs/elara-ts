@@ -46,8 +46,8 @@ function cacherMoniter(): NodeJS.Timeout {
     }, 6000)
 }
 
-namespace Service {
-    export const init = async () => {
+class Service {
+    static async init() {
         await Chain.init()
         Matcher.init()
         cacherMoniter()

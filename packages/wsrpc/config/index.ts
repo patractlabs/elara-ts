@@ -25,15 +25,15 @@ interface PoolConf {
     poolSize: number
 }
 
-namespace Conf {
-    export function getServer(): ServerConf {
+class Conf {
+    static getServer(): ServerConf {
         return Config.get('server')
     }
-    export function getRedis(): RedisConf {
+    static getRedis(): RedisConf {
         return Config.get('redis')
     }
 
-    export function getWsPool(): PoolConf {
+    static getWsPool(): PoolConf {
         return Config.get('wspool')
     }
 }

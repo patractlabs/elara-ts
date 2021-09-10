@@ -22,58 +22,58 @@ const ConnCntMap: { [key in string]: { [key in string]: number } } = {}
 const PuberEvt = new EventEmitter()
 const KVStatus: Record<string, boolean> = {}
 
-namespace G {
+class G {
 
     // kv status
-    export const setKvStatus = (chain: string, serverId: number, status: boolean) => {
+    static setKvStatus(chain: string, serverId: number, status: boolean) {
         KVStatus[`${chain.toLowerCase()}-${serverId}`] = status
     }
 
-    export const getKvStatus = (chain: string, serverId: number): boolean => {
+    static getKvStatus(chain: string, serverId: number): boolean {
         return KVStatus[`${chain.toLowerCase()}-${serverId}`]
     }
 
     // puber event
-    export const getPuberEvent = (): EventEmitter => {
+    static getPuberEvent(): EventEmitter {
         return PuberEvt
     }
 
-    export const getID = (): number => {
+    static getID(): number {
         return ID_CNT++
     }
 
-    export const resetTryCnt = (chain: string) => {
+    static resetTryCnt(chain: string) {
         TryCntMap[chain] = 0
     }
 
-    export const incrTryCnt = (chain: string) => {
+    static incrTryCnt(chain: string) {
         chain = chain
         TryCntMap[chain] = 1 + TryCntMap[chain] || 0
     }
 
-    export const getTryCnt = (chain: string) => {
+    static getTryCnt(chain: string) {
         return TryCntMap[chain] || 0
     }
 
-    export const incrConnCnt = (chain: string, pid: IDT) => {
+    static incrConnCnt(chain: string, pid: IDT) {
         chain = chain
         ConnCntMap[chain] = ConnCntMap[chain] || {}
         ConnCntMap[chain][pid] = ConnCntMap[chain][pid] || 0
         ConnCntMap[chain][pid] += 1
     }
 
-    export const decrConnCnt = (chain: string, pid: IDT) => {
+    static decrConnCnt(chain: string, pid: IDT) {
         ConnCntMap[chain][pid] -= 1
         if (ConnCntMap[chain][pid] < 1) {
             delete ConnCntMap[chain][pid]
         }
     }
 
-    export const delConnCnt = (chain: string, pid: IDT) => {
+    static delConnCnt(chain: string, pid: IDT) {
         delete ConnCntMap[chain][pid]
     }
 
-    export const getConnCnt = (chain: string, pid: IDT): number => {
+    static getConnCnt(chain: string, pid: IDT): number {
         if (!ConnCntMap[chain] || !ConnCntMap[chain][pid]) {
             return 0
         }
@@ -81,7 +81,7 @@ namespace G {
     }
 
     // 
-    export const addSubReqMap = (subsId: string, id: IDT) => {
+    static addSubReqMap(subsId: string, id: IDT) {
         if (SubMap[subsId]) {
             log.error(`add new subscribe map error: subscribe ID exist`)
             process.exit(2)
@@ -89,24 +89,24 @@ namespace G {
         SubMap[subsId] = id
     }
 
-    export const getReqId = (subsId: string): ResultT<IDT> => {
+    static getReqId(subsId: string): ResultT<IDT> {
         if (!SubMap[subsId]) {
             return Err(`No this request, subscription ${subsId}`)
         }
         return Ok(SubMap[subsId])
     }
 
-    export const delSubReqMap = (subsId: string): void => {
+    static delSubReqMap(subsId: string): void {
         delete SubMap[subsId]
         log.debug(`delete subscribe Id map: ${subsId}`)
     }
 
-    export const getSubReqMap = () => {
+    static getSubReqMap() {
         return SubMap || {}
     }
 
     // 
-    export const addReqCache = (req: ReqT): void => {
+    static addReqCache(req: ReqT): void {
         if (ReqMap[req.id]) {
             log.error(`add new request cache error: ${req.id} exist`)
             process.exit(2)
@@ -114,15 +114,15 @@ namespace G {
         ReqMap[req.id] = req
     }
 
-    export const updateReqCache = (req: ReqT): void => {
+    static updateReqCache(req: ReqT): void {
         ReqMap[req.id] = req
     }
 
-    export const delReqCache = (reqId: IDT): void => {
+    static delReqCache(reqId: IDT): void {
         delete ReqMap[reqId]
     }
 
-    export const delReqCacheByPubStatis = (reqId: IDT, publish: (stat: Statistics) => void = Stat.publish): void => {
+    static delReqCacheByPubStatis(reqId: IDT, publish: (stat: Statistics) => void = Stat.publish): void {
         if (ReqMap[reqId]) {
             const stat = ReqMap[reqId].stat
             publish(stat)
@@ -132,25 +132,25 @@ namespace G {
         }
     }
 
-    export const getReqCache = (reqId: IDT): ResultT<ReqT> => {
+    static getReqCache(reqId: IDT): ResultT<ReqT> {
         if (!ReqMap[reqId]) {
             return Err(`invalid request id ${reqId}`)
         }
         return Ok(ReqMap[reqId])
     }
 
-    export const getAllReqCache = () => {
+    static getAllReqCache() {
         return ReqMap
     }
 
-    export const addSubTopic = (chain: string, pid: IDT, topic: SubscripT): void => {
+    static addSubTopic(chain: string, pid: IDT, topic: SubscripT): void {
         const key = `${chain}-${pid}`
 
         TopicSubed[key] = TopicSubed[key] || {}
         TopicSubed[key][topic.id] = topic
     }
 
-    export const remSubTopic = (chain: string, pid: IDT, subsId: string): void => {
+    static remSubTopic(chain: string, pid: IDT, subsId: string): void {
         const key = `${chain}-${pid}`
         if (!TopicSubed[key]) return
 
@@ -160,7 +160,7 @@ namespace G {
         }
     }
 
-    export const getSubTopic = (chain: string, pid: IDT, subsId: IDT): ResultT<SubscripT> => {
+    static getSubTopic(chain: string, pid: IDT, subsId: IDT): ResultT<SubscripT> {
         const key = `${chain}-${pid}`
         if (!TopicSubed[key] || !TopicSubed[key][subsId]) {
             return Err(`Invalid subscribed topic: chain ${chain} pid[${pid} id[${subsId}]`)
@@ -168,7 +168,7 @@ namespace G {
         return Ok(TopicSubed[key][subsId])
     }
 
-    export const getSubTopics = (chain: string, pid: IDT): SubscripMap => {
+    static getSubTopics(chain: string, pid: IDT): SubscripMap {
         const key = `${chain}-${pid}`
         if (!TopicSubed[key]) {
             return {}
@@ -176,7 +176,7 @@ namespace G {
         return TopicSubed[key]
     }
 
-    export const getAllSubTopics = (): TopicSubedT => {
+    static getAllSubTopics(): TopicSubedT {
         return TopicSubed
     }
 }

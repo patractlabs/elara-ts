@@ -401,7 +401,7 @@ function newSuber(chain: string, serverId: number, url: string, type: SuberTyp, 
         }
         const subTmp = re.value as Suber
         subTmp.stat = SuberStat.Active
-        log.info(`on open ${chain} ${type} suber pubers: %o`, subTmp.pubers)
+        log.info(`on open ${chain}-${serverId} ${type} suber pubers: %o`, subTmp.pubers)
         Suber.updateOrAddSuber(chain, type, subTmp)
 
         if (!pubers || pubers.size < 1) {

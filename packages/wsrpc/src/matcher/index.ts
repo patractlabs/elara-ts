@@ -41,9 +41,82 @@ function isUnsubReq(method: string): boolean {
     return Topic.unsubscribe.indexOf(method) !== -1
 }
 
-namespace Matcher {
+function remSuberPubers(chain: string, subType: SuberTyp, subId: IDT, pubId: IDT): void {
+    /// suber may be closed 
+    let re = Suber.getSuber(chain, subType, subId)
+    if (isNone(re)) {
+        log.error(`handle puber[${pubId}] close error: invalid ${chain} suber ${subId} type ${subType}, may closed`)
+        // process.exit(2)
+        return
+    }
+    const suber = re.value
+    suber.pubers?.delete(pubId)
+    Suber.updateOrAddSuber(chain, subType, suber)
+}
 
-    export async function regist(ws: WebSocket, chain: string, pid: IDT): PResultT<Puber> {
+async function clearSubscribeContext(puber: Puber, reason: CloseReason): PVoidT {
+    const ptopics = puber.topics || new Set()
+    if (reason === CloseReason.Node) {
+        remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
+    } else if (reason === CloseReason.Kv) {
+        remSuberPubers(puber.chain, SuberTyp.Node, puber.subId, puber.id)
+    } else {
+        if (puber.kvSubId !== undefined) {
+            remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
+        }
+        remSuberPubers(puber.chain, SuberTyp.Node, puber.subId, puber.id)
+    }
+
+    if (ptopics.size < 1) {
+        // delete puber
+        // NOTE: subscribe may not response yet
+        Puber.del(puber.id)
+        log.info(`handle puber ${puber.id} close done: no subscribe topic`)
+        return
+    }
+    // clear puber when unscribe done
+    const evt = GG.getPuberEvent()
+    evt.once(`${puber.id}-done`, () => {
+        // if suber closed, event need to emit on suber closed
+        Puber.del(puber.id)
+        evt.removeAllListeners(`${puber.id}-done`)
+        log.info(`unsubsribe event done: clear ${puber.chain} pid[${puber.pid}] subscribe context of puber[${puber.id}] close done`)
+    })
+
+    const { chain, pid } = puber
+    for (let subsId of ptopics) {
+        const subRe = GG.getSubTopic(chain, pid, subsId)
+        if (isErr(subRe)) {
+            log.error(`unsubscribe when puber clsoe error: ${subRe.value}`)
+            process.exit(2)
+        }
+        const topic = subRe.value
+        const re = GG.getReqId(subsId)
+        if (isErr(re)) {
+            log.error(`unsubscribe when puber clsoe error: ${re.value}`)
+            process.exit(2)
+        }
+        const reqId = re.value
+        const reqRe = GG.getReqCache(reqId)
+        if (isErr(reqRe)) {
+            log.error(`unsubscribe when puber clsoe error: ${reqRe.value}`)
+            process.exit(2)
+        }
+        const req = reqRe.value
+        const unre = await Suber.unsubscribe(chain, req.subType, req.subId, topic.method, subsId)
+        if (isErr(unre)) {
+            evt.emit(`${puber.id}-done`)
+            log.warn(`chain ${chain} ${req.subType} suber ${req.subId} has been closed, emit unsubscribe done`)
+            break
+        }
+        log.info(`unsubscribe topic[${topic.method}] id[${subsId}] of chain ${chain} pid[${pid}] suber[${req.subId}] ${req.subType}`)
+    }
+    log.info(`handle ${chain} pid[${pid}] puber[${puber.id}] close done: unsubscribe all topics`)
+}
+
+class Matcher {
+
+    static async regist(ws: WebSocket, chain: string, pid: IDT): PResultT<Puber> {
         const isOut = await isConnOutOfLimit(ws, chain, pid)
         if (isOut) { return Err(`connection out of limit`) }
 
@@ -83,7 +156,7 @@ namespace Matcher {
         return Ok(puber)
     }
 
-    export function newRequest(chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> {
+    static newRequest(chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> {
         const method = data.method!
         let type = ReqTyp.Rpc
         let subsId
@@ -123,7 +196,7 @@ namespace Matcher {
     }
 
     // according to message set the subscribe context
-    export function setSubContext(req: ReqT, subsId: string): ResultT<void> {
+    static setSubContext(req: ReqT, subsId: string): ResultT<void> {
         // update subscribe request cache
         req.subsId = subsId
         GG.updateReqCache(req)
@@ -143,80 +216,7 @@ namespace Matcher {
         return Ok(void (0))
     }
 
-    function remSuberPubers(chain: string, subType: SuberTyp, subId: IDT, pubId: IDT): void {
-        /// suber may be closed 
-        let re = Suber.getSuber(chain, subType, subId)
-        if (isNone(re)) {
-            log.error(`handle puber[${pubId}] close error: invalid ${chain} suber ${subId} type ${subType}, may closed`)
-            // process.exit(2)
-            return
-        }
-        const suber = re.value
-        suber.pubers?.delete(pubId)
-        Suber.updateOrAddSuber(chain, subType, suber)
-    }
-
-    async function clearSubscribeContext(puber: Puber, reason: CloseReason): PVoidT {
-        const ptopics = puber.topics || new Set()
-        if (reason === CloseReason.Node) {
-            remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
-        } else if (reason === CloseReason.Kv) {
-            remSuberPubers(puber.chain, SuberTyp.Node, puber.subId, puber.id)
-        } else {
-            if (puber.kvSubId !== undefined) {
-                remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
-            }
-            remSuberPubers(puber.chain, SuberTyp.Node, puber.subId, puber.id)
-        }
-
-        if (ptopics.size < 1) {
-            // delete puber
-            // NOTE: subscribe may not response yet
-            Puber.del(puber.id)
-            log.info(`handle puber ${puber.id} close done: no subscribe topic`)
-            return
-        }
-        // clear puber when unscribe done
-        const evt = GG.getPuberEvent()
-        evt.once(`${puber.id}-done`, () => {
-            // if suber closed, event need to emit on suber closed
-            Puber.del(puber.id)
-            evt.removeAllListeners(`${puber.id}-done`)
-            log.info(`unsubsribe event done: clear ${puber.chain} pid[${puber.pid}] subscribe context of puber[${puber.id}] close done`)
-        })
-
-        const { chain, pid } = puber
-        for (let subsId of ptopics) {
-            const subRe = GG.getSubTopic(chain, pid, subsId)
-            if (isErr(subRe)) {
-                log.error(`unsubscribe when puber clsoe error: ${subRe.value}`)
-                process.exit(2)
-            }
-            const topic = subRe.value
-            const re = GG.getReqId(subsId)
-            if (isErr(re)) {
-                log.error(`unsubscribe when puber clsoe error: ${re.value}`)
-                process.exit(2)
-            }
-            const reqId = re.value
-            const reqRe = GG.getReqCache(reqId)
-            if (isErr(reqRe)) {
-                log.error(`unsubscribe when puber clsoe error: ${reqRe.value}`)
-                process.exit(2)
-            }
-            const req = reqRe.value
-            const unre = await Suber.unsubscribe(chain, req.subType, req.subId, topic.method, subsId)
-            if (isErr(unre)) {
-                evt.emit(`${puber.id}-done`)
-                log.warn(`chain ${chain} ${req.subType} suber ${req.subId} has been closed, emit unsubscribe done`)
-                break
-            }
-            log.info(`unsubscribe topic[${topic.method}] id[${subsId}] of chain ${chain} pid[${pid}] suber[${req.subId}] ${req.subType}`)
-        }
-        log.info(`handle ${chain} pid[${pid}] puber[${puber.id}] close done: unsubscribe all topics`)
-    }
-
-    export async function unRegist(pubId: IDT, reason: CloseReason): PVoidT {
+    static async unRegist(pubId: IDT, reason: CloseReason): PVoidT {
         /// when puber error or close,
         /// if suber close or error, will emit puber close
 
@@ -233,7 +233,7 @@ namespace Matcher {
         clearSubscribeContext(puber, reason)
     }
 
-    export function isSubscribed(chain: string, pid: IDT, data: WsData): boolean {
+    static isSubscribed(chain: string, pid: IDT, data: WsData): boolean {
         if (pid === '00000000000000000000000000000000') { return false }
         const topics = GG.getSubTopics(chain, pid)
         for (let id in topics) {
@@ -247,7 +247,7 @@ namespace Matcher {
         return false
     }
 
-    export async function init(): PVoidT {
+    static async init(): PVoidT {
         Suber.init()
     }
 }

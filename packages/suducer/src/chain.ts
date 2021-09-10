@@ -32,19 +32,19 @@ enum Topic {
 }
 
 // chain events
-const chainAddHandler = async (chain: string): PVoidT => {
+async function chainAddHandler(chain: string): PVoidT {
     log.info('Into chain add handler: %o', chain)
     // TODO: chain-init logic
     // update G.chain G.chainConf
     // 
 }
 
-const chainDelHandler = async (chain: string): PVoidT => {
+async function chainDelHandler(chain: string): PVoidT {
     log.info('Into chain delete handler: %o', chain)
     // TODO
 }
 
-const chainUpdateHandler = async (chain: string): PVoidT => {
+async function chainUpdateHandler(chain: string): PVoidT {
     log.info('Into chain update handler: %o', chain)
     // TODO
     // update G.chain G.chainConf
@@ -76,9 +76,9 @@ PSuber.on('pmessage', (_pattern, chan, chain: string) => {
     }
 })
 
-namespace Chain {
+class Chain {
 
-    export const parseConfig = async (chain: string, serverId: number) => {
+    static async parseConfig(chain: string, serverId: number) {
         const conf = await Dao.getChainConfig(chain, serverId)
         if (isErr(conf)) {
             log.error(`Parse config of chain[${chain}] error: %o`, conf.value)
@@ -89,7 +89,7 @@ namespace Chain {
         G.addChain(chainf)
     }
 
-    export const init = async () => {
+    static async init() {
         let re = await Dao.getChainList()
         if (isErr(re)) {
             log.error(`fetch chain list error: ${re.value}`)
@@ -107,7 +107,7 @@ namespace Chain {
                     process.exit(1)
                 }
                 for (let id of ids) {
-                    parses.push(parseConfig(c, parseInt(id)))
+                    parses.push(Chain.parseConfig(c, parseInt(id)))
                 }
             } catch (err) {
                 log.error(`catch init ${c} config error: %o`, err)
