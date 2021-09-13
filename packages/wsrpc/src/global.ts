@@ -20,17 +20,27 @@ const TryCntMap: { [key in string]: number } = {}
 const ConnCntMap: { [key in string]: { [key in string]: number } } = {}
 
 const PuberEvt = new EventEmitter()
-const KVStatus: Record<string, boolean> = {}
+const KVEnable: Record<string, boolean> = {}
+const MemEnable: Record<string, boolean> = {}
 
 class G {
 
-    // kv status
-    static setKvStatus(chain: string, serverId: number, status: boolean) {
-        KVStatus[`${chain.toLowerCase()}-${serverId}`] = status
+    // kv enable cache
+    static setKvEnable(chain: string, enable: boolean) {
+        KVEnable[`${chain.toLowerCase()}`] = enable
     }
 
-    static getKvStatus(chain: string, serverId: number): boolean {
-        return KVStatus[`${chain.toLowerCase()}-${serverId}`]
+    static getKvEnable(chain: string): boolean {
+        return KVEnable[`${chain.toLowerCase()}`]
+    }
+
+    // memory node enable cache
+    static setMemEnable(chain: string, enable: boolean) {
+        MemEnable[`${chain.toLowerCase()}`] = enable
+    }
+
+    static getMemEnable(chain: string): boolean {
+        return MemEnable[`${chain.toLowerCase()}`]
     }
 
     // puber event

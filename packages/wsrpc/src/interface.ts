@@ -1,5 +1,8 @@
 import { IDT } from '@elara/lib'
-import Suber, { SuberTyp } from './matcher/suber'
+import Suber from './matcher/suber'
+import { NodeType } from './chain'
+
+type SuberTyp = NodeType
 
 export interface ReqDataT {
     id: IDT,

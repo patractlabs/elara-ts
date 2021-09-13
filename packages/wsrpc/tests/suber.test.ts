@@ -1,12 +1,13 @@
 import WebSocket from 'ws'
 import { randomId, isNone } from '@elara/lib'
-import Suber, { SuberTyp, SuberStat } from '../src/matcher/suber'
+import Suber, { SuberStat } from '../src/matcher/suber'
+import { NodeType } from '../src/chain'
 
 describe('suber G test suit', () => {
     const ws = {} as WebSocket
     const url = '127.0.0.1'
     const chain = 'polkadot'
-    const type = SuberTyp.Kv
+    const type = NodeType.Kv
     const pubId = randomId()
     const subId = randomId()
     const pubers = new Set([pubId])

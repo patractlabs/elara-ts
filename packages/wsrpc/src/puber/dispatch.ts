@@ -79,27 +79,27 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
 
 export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, stat: Statistics): PVoidT {
     const { id, jsonrpc, method, params } = data
-    const { serverId } = puber
+    const { nodeId } = puber
     const typ = getRpcType(method, params!)
     stat.type = typ
     stat.code = 200
-    log.info(`new ${typ} ws request ${method} of chain ${chain}-${serverId} params: %o\n handle msg delay: ${Util.traceEnd(stat.start)}`, params)
+    log.info(`new ${typ} ws request ${method} of chain ${chain}-${nodeId} params: %o\n handle msg delay: ${Util.traceEnd(stat.start)}`, params)
     switch (typ) {
         case RpcTyp.Cacher:
             if (Cacher.statusOk(chain)) {// no need to clear puber.subid and suber.pubers
                 const res = { id, jsonrpc } as WsData
                 let tmethod = method
                 if (method === 'chain_getBlockHash' && (params?.length === 1 && params[0] === 0)) {
-                    log.debug(`${chain}-${serverId} get ws initial block hash`)
+                    log.debug(`${chain}-${nodeId} get ws initial block hash`)
                     tmethod = `${method}_0`
                 }
-                log.info(`before ${chain}-${serverId} ${typ} cacher result`)
+                log.info(`before ${chain}-${nodeId} ${typ} cacher result`)
 
                 const re = await Cacher.send(chain, tmethod)
-                log.info(`after ${chain}-${serverId} ${typ} cacher result: %o`, re.result)
+                log.info(`after ${chain}-${nodeId} ${typ} cacher result: %o`, re.result)
 
                 if (re.result) {
-                    log.info(`${chain}-${serverId} ${typ} cacher result: %o`, re.result)
+                    log.info(`${chain}-${nodeId} ${typ} cacher result: %o`, re.result)
                     res['result'] = JSON.parse(re.result)
                     const ress = JSON.stringify(res)
                     stat.delay = Util.traceDelay(stat.start)
@@ -114,13 +114,13 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
                 Stat.publish(stat)
                 // return puber.ws.send(JSON.stringify(res))
             }
-            log.error(`${chain}-${serverId} ws cacher fail, transpond to noder method[${method}] params[${params}]`)
+            log.error(`${chain}-${nodeId} ws cacher fail, transpond to noder method[${method}] params[${params}]`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Kver:
             if (puber.kvSubId !== undefined) {
                 return Kver.send(puber, data, stat)
             }
-            log.warn(`${chain}-${serverId} kv is not support, transpond to noder`)
+            log.warn(`${chain}-${nodeId} kv is not support, transpond to noder`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))

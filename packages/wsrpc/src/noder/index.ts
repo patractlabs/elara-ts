@@ -1,12 +1,13 @@
 import Http from 'http'
-import { ChainConfig, getAppLogger, isErr, PVoidT, randomReplaceId } from '@elara/lib'
+import { getAppLogger, isErr, PVoidT } from '@elara/lib'
 import Dao from '../dao'
 import { ReqDataT, Statistics } from "../interface"
 import Util from '../util'
 import Puber from '../puber'
-import { SuberTyp } from '../matcher/suber'
 import Response from '../resp'
 import { Stat } from '../statistic'
+import { ChainInstance, NodeType } from '../chain'
+import Suber from '../matcher/suber'
 
 const log = getAppLogger('noder')
 
@@ -46,24 +47,17 @@ function post(chain: string, url: string, data: ReqDataT, resp: Http.ServerRespo
     req.end()
 }
 
-async function selectNoder(chain: string): Promise<Noder> {
-    const ids = await Dao.getChainIds(chain)
-    if (ids.length === 0) {
-        log.error(`select noder error: node instance id empty`)
-        process.exit(1)
-    }
-    const rnd = randomReplaceId(8)
-    const serverId = rnd % ids.length
+async function getNoder(chain: string, nodeId: number): Promise<Noder> {
 
-    const re = await Dao.getChainConfig(chain, serverId)
+    const re = await Dao.getChainInstance(chain, nodeId)
     if (isErr(re)) {
         log.error(`send node rpc request error: ${re.value}`)
         process.exit(2)
     }
-    const cconf = re.value as ChainConfig
+    const cconf = re.value as ChainInstance
     return {
         chain,
-        serverId,
+        nodeId,
         host: cconf.baseUrl,
         port: cconf.rpcPort
     }
@@ -71,7 +65,7 @@ async function selectNoder(chain: string): Promise<Noder> {
 
 interface Noder {
     chain: string,
-    serverId: number,
+    nodeId: number,
     host: string,
     port: number
 }
@@ -80,8 +74,10 @@ class Noder {
 
     static async sendRpc(chain: string, data: ReqDataT, resp: Http.ServerResponse, stat: Statistics): PVoidT {
 
-        const noder = await selectNoder(chain)
-        log.info(`new node rpc requst, chain ${chain} method ${data.method} params ${data.params}, select noder: ${noder.serverId}-${noder.host}-${noder.port}`)
+        const re = await Suber.selectSuber(chain, NodeType.Node)
+        const noder = await getNoder(chain, (re.value as Suber).nodeId)
+
+        log.info(`new node rpc requst, chain ${chain} method ${data.method} params ${data.params}, select noder: ${noder.nodeId}-${noder.host}-${noder.port}`)
 
         const url = `http://${noder.host}:${noder.port}`
         stat.type = 'node'
@@ -90,7 +86,7 @@ class Noder {
 
     static async sendWs(puber: Puber, data: ReqDataT, stat: Statistics): PVoidT {
         log.info(`new node ws requst, chain ${puber.chain} method ${data.method} params ${data.params}`)
-        Puber.transpond(puber, SuberTyp.Node, data, stat)
+        Puber.transpond(puber, NodeType.Node, data, stat)
     }
 }
 

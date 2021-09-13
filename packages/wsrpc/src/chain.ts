@@ -1,6 +1,6 @@
 /// chain list init and handler the chain update
 
-import { ChainConfig, getAppLogger, PVoidT } from '@elara/lib'
+import { getAppLogger, PVoidT } from '@elara/lib'
 import { isErr } from '@elara/lib'
 import Dao from './dao'
 import Conf from '../config'
@@ -28,6 +28,23 @@ enum ChainEvt {
     Add = 'chain-add',
     Del = 'chain-del',
     Update = 'chain-update'
+}
+
+export enum NodeType {
+    Node = 'node',
+    Kv = 'kv',
+    Mem = 'memory'
+}
+
+export interface ChainInstance {
+    name: string,
+    nodeId: number,       // default 0, elara node instance id
+    type: NodeType,       
+    baseUrl: string,      // host
+    rpcPort: number,      // default 9933
+    wsPort: number,        // default 9944
+    poolSize: number,      
+    [key: string]: any    // for redis
 }
 
 // chain events
@@ -81,9 +98,9 @@ chainPSub.on('error', (err) => {
 
 class Chain {
     private static chains: Set<string> = new Set()
-    private static conf: Record<string, ChainConfig> = {}
+    private static conf: Record<string, ChainInstance> = {}
 
-    static addChainConf(chainConf: ChainConfig): void {
+    static addChainConf(chainConf: ChainInstance): void {
         Chain.conf[chainConf.name] = chainConf
     }
 

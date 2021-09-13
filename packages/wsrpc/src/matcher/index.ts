@@ -1,19 +1,10 @@
-/// manager ws socket pair 
-/// 1. dapps fail
-///     - part connectin fail, regist matcher to valid connection
-///     - all fail, clear all matcher bind to this dapp
-/// 2. elara fail
-///     - all connection fail, need dapps to reconnect
-/// 3. node fail
-///     - node recover in soon(e.g. 10s), keep the puber connection, regist matchers
-///     - node fail longtime, clear all pubers and matchers
-
 import WebSocket from 'ws'
 import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option, PBoolT } from '@elara/lib'
 import GG from '../global'
 import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason, Statistics } from '../interface'
 import Puber from '../puber'
-import Suber, { SuberTyp } from './suber'
+import Suber from './suber'
+import { NodeType } from '../chain'
 import { md5, randomId } from '@elara/lib'
 import Conf from '../../config'
 import Topic from './topic'
@@ -33,6 +24,7 @@ async function isConnOutOfLimit(ws: WebSocket, chain: string, pid: IDT): PBoolT 
     return false
 }
 
+// subcribe request
 function isSubReq(method: string): boolean {
     return Topic.subscribe.indexOf(method) !== -1
 }
@@ -41,7 +33,7 @@ function isUnsubReq(method: string): boolean {
     return Topic.unsubscribe.indexOf(method) !== -1
 }
 
-function remSuberPubers(chain: string, subType: SuberTyp, subId: IDT, pubId: IDT): void {
+function remSuberPubers(chain: string, subType: NodeType, subId: IDT, pubId: IDT): void {
     /// suber may be closed 
     let re = Suber.getSuber(chain, subType, subId)
     if (isNone(re)) {
@@ -57,19 +49,20 @@ function remSuberPubers(chain: string, subType: SuberTyp, subId: IDT, pubId: IDT
 async function clearSubscribeContext(puber: Puber, reason: CloseReason): PVoidT {
     const ptopics = puber.topics || new Set()
     if (reason === CloseReason.Node) {
-        remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
+        remSuberPubers(puber.chain, NodeType.Kv, puber.kvSubId!, puber.id)
     } else if (reason === CloseReason.Kv) {
-        remSuberPubers(puber.chain, SuberTyp.Node, puber.subId, puber.id)
+        remSuberPubers(puber.chain, NodeType.Node, puber.subId, puber.id)
     } else {
         if (puber.kvSubId !== undefined) {
-            remSuberPubers(puber.chain, SuberTyp.Kv, puber.kvSubId!, puber.id)
+            remSuberPubers(puber.chain, NodeType.Kv, puber.kvSubId!, puber.id)
         }
-        remSuberPubers(puber.chain, SuberTyp.Node, puber.subId, puber.id)
+        remSuberPubers(puber.chain, NodeType.Node, puber.subId, puber.id)
     }
 
     if (ptopics.size < 1) {
         // delete puber
         // NOTE: subscribe may not response yet
+        // TODO: check request cache
         Puber.del(puber.id)
         log.info(`handle puber ${puber.id} close done: no subscribe topic`)
         return
@@ -114,49 +107,80 @@ async function clearSubscribeContext(puber: Puber, reason: CloseReason): PVoidT 
     log.info(`handle ${chain} pid[${pid}] puber[${puber.id}] close done: unsubscribe all topics`)
 }
 
+async function suberBind(chain: string, puber: Puber, type: NodeType): PResultT<Suber> {
+    let re = await Suber.selectSuber(chain, type)
+    if (isErr(re)) {
+        return re
+    }
+    let suber = re.value as Suber
+    suber.pubers = suber.pubers || new Set<IDT>()
+    suber.pubers.add(puber.id)
+    Suber.updateOrAddSuber(chain, type, suber)
+    switch (type) {
+        case NodeType.Kv:
+            puber.kvSubId = suber.id
+            log.info(`${chain} puber[${puber.id}] bind to ${type} suber[${suber.id}]`)
+            break
+        case NodeType.Mem:
+            puber.memSubId = suber.id
+            log.info(`${chain} puber[${puber.id}] bind to ${type} suber[${suber.id}]`)
+            break
+        case NodeType.Node:
+            puber.subId = suber.id
+            log.info(`${chain} puber[${puber.id}] bind to ${type} suber[${suber.id}]`)
+            break
+        default:
+            log.error(`bind suber error: invalid suber type[${type}]`)
+            process.exit(1)
+    }
+    return Ok(suber)
+}
+
 class Matcher {
 
     static async regist(ws: WebSocket, chain: string, pid: IDT): PResultT<Puber> {
         const isOut = await isConnOutOfLimit(ws, chain, pid)
         if (isOut) { return Err(`connection out of limit`) }
 
-        let ren = await Suber.selectSuber(chain, SuberTyp.Node)
-        if (isErr(ren)) { return ren }
-        const suber = ren.value as Suber
-
         // create new puber 
-        const puber = Puber.create(ws, chain, suber.serverId, pid)
-        let kvOk = false
-        let kvSuber: Suber
-        const kvOpen = GG.getKvStatus(chain, suber.serverId)
+        const puber = Puber.create(ws, chain, pid)
+        let re = await suberBind(chain, puber, NodeType.Node)
+        if (isErr(re)) {
+            log.error(`${chain}-${pid} bind node suber error: %o`, re.value)
+            return Err(`${chain}-${pid} bind node suber error`)
+        }
+        puber.nodeId = re.value.nodeId
+        const kvOpen = GG.getKvEnable(chain)
+        const memOpen = GG.getMemEnable(chain)
+        log.debug(`puber before bind: kv[%o] mem[%o]`, puber.kvSubId, puber.memSubId)
 
         if (kvOpen) {
-            let rek = await Suber.selectSuber(chain, SuberTyp.Kv)
-            if (isErr(rek)) { return rek }
-            kvSuber = rek.value as Suber
-            kvSuber.pubers = suber.pubers || new Set<IDT>()
-            kvSuber.pubers.add(puber.id)
-            Suber.updateOrAddSuber(chain, SuberTyp.Kv, kvSuber)
-            puber.kvSubId = kvSuber.id
+            re = await suberBind(chain, puber, NodeType.Kv)
+            if (isErr(re)) {
+                log.error(`${chain}-${pid} bind node suber error: %o`, re.value)
+                return Err(`${chain}-${pid} bind node suber error`)
+            }
+            log.debug(`puber after bind kv:  kv[%o] mem[%o]`, puber.kvSubId, puber.memSubId)
         }
 
-        // update suber.pubers
-        suber.pubers = suber.pubers || new Set<IDT>()
-        suber.pubers.add(puber.id)
-        Suber.updateOrAddSuber(chain, SuberTyp.Node, suber)
-
+        if (memOpen) {
+            re = await suberBind(chain, puber, NodeType.Mem)
+            if (isErr(re)) {
+                log.error(`${chain}-${pid} bind node suber error: %o`, re.value)
+                return Err(`${chain}-${pid} bind node suber error`)
+            }
+            log.debug(`puber after bind memory node: kv[%o] mem[%o]`, puber.kvSubId, puber.memSubId)
+        }
 
         // update puber.subId
-        puber.subId = suber.id
         Puber.updateOrAdd(puber)
 
-        // side context set
         GG.incrConnCnt(chain, puber.pid)
-        log.info(`regist ${chain}-${suber.serverId} puber[${puber.id}] to node suber[${suber.id}] kv suber[${kvOk ? kvSuber!.id : 'none'}]`)
+        log.info(`regist ${chain} puber[${puber.id}] done`)
         return Ok(puber)
     }
 
-    static newRequest(chain: string, pid: IDT, pubId: IDT, subType: SuberTyp, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> {
+    static newRequest(chain: string, pid: IDT, pubId: IDT, subType: NodeType, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> {
         const method = data.method!
         let type = ReqTyp.Rpc
         let subsId

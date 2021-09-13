@@ -4,10 +4,11 @@ import { Option, None, Some } from '@elara/lib'
 import { randomId } from '@elara/lib'
 import { ReqDataT, Statistics } from '../interface'
 import Matcher from '../matcher'
-import Suber, { SuberTyp } from '../matcher/suber'
+import Suber from '../matcher/suber'
 import G from '../global'
 import { Stat } from '../statistic'
 import Util from '../util'
+import { NodeType } from '../chain'
 
 const log = getAppLogger('puber')
 
@@ -15,11 +16,12 @@ interface Puber {
     id: IDT,
     pid: IDT,
     chain: string,
-    serverId: number,
+    nodeId: number,
     ws: WebSocket,
     topics: Set<string>,   // {subscribeId}
     subId: IDT,            // suber id
-    kvSubId?: IDT,          // kv suber
+    kvSubId?: IDT,          // kv 
+    memSubId?: IDT          // memory node
 }
 
 type KvReqT = {
@@ -47,8 +49,8 @@ class Puber {
         delete Puber.g[pubId]
     }
 
-    static create(ws: WebSocket, chain: string, serverId: number, pid: IDT): Puber {
-        const puber = { id: randomId(), pid, chain, serverId, ws, topics: new Set() } as Puber
+    static create(ws: WebSocket, chain: string, pid: IDT): Puber {
+        const puber = { id: randomId(), pid, chain, ws, topics: new Set() } as Puber
         Puber.updateOrAdd(puber)
         return puber
     }
@@ -73,7 +75,7 @@ class Puber {
         return Ok(puber)
     }
 
-    static async transpond(puber: Puber, type: SuberTyp, data: ReqDataT, stat: Statistics): PVoidT {
+    static async transpond(puber: Puber, type: NodeType, data: ReqDataT, stat: Statistics): PVoidT {
         const start = Util.traceStart()
         const { id, chain, pid } = puber
 
@@ -87,7 +89,7 @@ class Puber {
         //     return puber.ws.send(sres)
         // }
         let subId = puber.subId
-        if (type === SuberTyp.Kv) {
+        if (type === NodeType.Kv) {
             subId = puber.kvSubId!
         }
         let re = Matcher.newRequest(chain, pid, id, type, subId!, data, stat)
@@ -100,7 +102,7 @@ class Puber {
         }
         const dat = re.value
         let sendData: KvReqT | ReqDataT = dat
-        if (type === SuberTyp.Kv) {
+        if (type === NodeType.Kv) {
             sendData = {
                 id: dat.id,
                 chain: puber.chain,

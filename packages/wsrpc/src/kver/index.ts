@@ -1,6 +1,6 @@
 import { getAppLogger } from '@elara/lib'
 import { ReqDataT, Statistics } from "../interface"
-import { SuberTyp } from "../matcher/suber"
+import { NodeType } from "../chain"
 import Puber from "../puber"
 
 const log = getAppLogger('kver')
@@ -36,7 +36,7 @@ class Kver {
 
     static send(puber: Puber, data: ReqDataT, stat: Statistics): void {
         log.info(`new kv request, chain ${puber.chain} method ${data.method} params `, data.params)
-        Puber.transpond(puber, SuberTyp.Kv, data, stat)
+        Puber.transpond(puber, NodeType.Kv, data, stat)
     }
 }
 

@@ -101,8 +101,8 @@ class Rd {
         return chainRd.zrange(KChain.zChainIds(chain), 0, -1)
     }
 
-    static async getChainConfig(chain: string, serverId: number) {
-        return chainRd.hgetall(KChain.hChain(chain, serverId))
+    static async getChainInstance(chain: string, nodeId: number) {
+        return chainRd.hgetall(KChain.hChain(chain, nodeId))
     }
 
     /// cache operation

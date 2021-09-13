@@ -1,4 +1,5 @@
-import { ChainConfig, Err, Ok, PResultT, PVoidT } from '@elara/lib'
+import { Err, Ok, PResultT, PVoidT } from '@elara/lib'
+import { ChainInstance } from '../chain'
 import Rd from './redis'
 
 class Dao {
@@ -10,10 +11,10 @@ class Dao {
         return Rd.getChainIds(chain)
     }
 
-    static async getChainConfig(chain: string, serverId: number): PResultT<ChainConfig> {
-        const conf = await Rd.getChainConfig(chain, serverId) as ChainConfig
+    static async getChainInstance(chain: string, nodeId: number): PResultT<ChainInstance> {
+        const conf = await Rd.getChainInstance(chain, nodeId) as ChainInstance
         if (!conf.name) {
-            return Err('Invalid chain config')
+            return Err('Invalid chain instance')
         }
         return Ok(conf)
     }
