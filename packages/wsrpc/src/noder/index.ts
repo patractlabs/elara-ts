@@ -72,6 +72,18 @@ interface Noder {
 
 class Noder {
 
+    static memRpcs: Record<string, number> = {
+        "state_getKeysPaged": 4,
+        "state_getStorage": 2,
+        "state_getStorageHash": 2,
+        "state_getStorageSize": 2,
+        "state_queryStorage": 3,
+        "childstate_getKeys": 3,
+        "childstate_getStorage": 3,
+        "childstate_getStorageHash": 3,
+        "childstate_getStorageSize": 3
+    }
+
     static async sendRpc(chain: string, data: ReqDataT, resp: Http.ServerResponse, stat: Statistics): PVoidT {
 
         const re = await Suber.selectSuber(chain, NodeType.Node)
@@ -87,6 +99,22 @@ class Noder {
     static async sendWs(puber: Puber, data: ReqDataT, stat: Statistics): PVoidT {
         log.info(`new node ws requst, chain ${puber.chain} method ${data.method} params ${data.params}`)
         Puber.transpond(puber, NodeType.Node, data, stat)
+    }
+
+    static async sendMemRpc(chain: string, data: ReqDataT, resp: Http.ServerResponse, stat: Statistics): PVoidT {
+
+        const re = await Suber.selectSuber(chain, NodeType.Mem)
+        const noder = await getNoder(chain, (re.value as Suber).nodeId)
+
+        log.info(`new memory node rpc requst, chain ${chain} method ${data.method} params ${data.params}, select noder: ${noder.nodeId}-${noder.host}-${noder.port}`)
+
+        const url = `http://${noder.host}:${noder.port}`
+        stat.type = 'mem-node'
+        return post(chain, url, data, resp, stat)
+    }
+
+    static async sendMemWs(puber: Puber, data: ReqDataT, stat: Statistics): PVoidT {
+        Puber.transpond(puber, NodeType.Mem, data, stat)
     }
 }
 

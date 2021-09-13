@@ -176,6 +176,8 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): Resu
         }
         // dat.error: no need handle
         log.info(`${chain} new kv ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
+    } else if(subType === NodeType.Mem) {
+        log.info(`${chain} new memory node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
     } else {
         log.info(`${chain} new node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
     }

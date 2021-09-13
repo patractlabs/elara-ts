@@ -17,7 +17,8 @@ enum RpcTyp {
     Cacher = 'cache',
     Kver = 'kv',
     Recorder = 'record',
-    Noder = 'node'
+    Noder = 'node',
+    MemNoder = 'memory'
 }
 
 function getRpcType(method: string, params: any[]): RpcTyp {
@@ -25,6 +26,13 @@ function getRpcType(method: string, params: any[]): RpcTyp {
         return RpcTyp.Cacher
     } else if (Kver.Rpcs.includes(method)) {
         return RpcTyp.Kver
+    } else if (Object.keys(Noder.memRpcs).includes(method)) {
+        log.debug(`memory node rpc request: ${method} %o`, params)
+        const pLen = Noder.memRpcs[method]
+        const len = params.length
+        if (len != pLen || (params[len-1] === null || params[len-1] === undefined)) {
+            return RpcTyp.MemNoder
+        }
     }
     // if (Recorder.Rpcs.includes(method)) { return RpcTyp.Recorder }
     return RpcTyp.Noder
@@ -68,8 +76,10 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
         case RpcTyp.Recorder:
             res.result = `recoder: ${method}`
             return Response.Ok(resp, JSON.stringify(res), stat)
+        case RpcTyp.MemNoder:
+            // TODO: memory node fail
+            return Noder.sendMemRpc(chain, data, resp, stat)
         case RpcTyp.Noder:
-            res.result = `direct: ${method}`
             return Noder.sendRpc(chain, data, resp, stat)
         default:
             log.error(`[SBH] no this rpc request type: ${typ}`)
@@ -124,6 +134,8 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))
+        case RpcTyp.MemNoder:
+            return Noder.sendMemWs(puber, data, stat)
         case RpcTyp.Noder:
             return Noder.sendWs(puber, data, stat)
         default:

@@ -91,10 +91,12 @@ class Puber {
         let subId = puber.subId
         if (type === NodeType.Kv) {
             subId = puber.kvSubId!
+        } else if (type === NodeType.Mem) {
+            subId = puber.memSubId!
         }
-        let re = Matcher.newRequest(chain, pid, id, type, subId!, data, stat)
+        let re = Matcher.newRequest(chain, pid, id, type, subId, data, stat)
         if (isErr(re)) {
-            log.error(`create new request error: ${re.value}`)
+            log.error(`${type} ${chain}-${pid} create new request error: ${re.value}`)
             stat.code = 500
             // publish statistics
             Stat.publish(stat)
