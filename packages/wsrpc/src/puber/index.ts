@@ -119,6 +119,7 @@ class Puber {
             // clear request cache
             // G.delReqCache(dat.id)
             G.delReqCacheByPubStatis(dat.id)
+            puber.ws.terminate()
             return
         }
         const suber: Suber = sre.value

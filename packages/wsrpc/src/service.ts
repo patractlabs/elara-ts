@@ -1,9 +1,10 @@
 import Mom from 'moment'
 import Cacher from "./cacher"
-import Chain from "./chain"
+import Chain, { NodeType } from "./chain"
 import Matcher from "./matcher"
-import { getAppLogger, PVoidT } from '@elara/lib'
+import { getAppLogger, PVoidT, randomId } from '@elara/lib'
 import Dao from "./dao"
+import Suber from './matcher/suber'
 
 const log = getAppLogger('service')
 
@@ -46,11 +47,55 @@ function cacherMoniter(): NodeJS.Timeout {
     }, 6000)
 }
 
+function buildReq(reqId: string, method: string, params: any[]): string {
+
+    const id = `ping-${reqId}`
+    let data = {
+        id,
+        jsonrpc: "2.0",
+        method,
+        params
+    }
+    log.debug('rpc data to send: %o', data)
+    return JSON.stringify(data)
+}
+
+export function suberMoniter(): void {
+    setInterval(async () => {
+        const subers = Suber.getAllSuber()
+        let keys = Object.keys(subers)
+        for (let k of keys) {
+            const par = k.split('-')
+            const chain = par[0]
+            const type = par[1]
+            const subs = subers[k]
+            log.debug(`${chain}-${type} suber health check start`)
+            for (let sub of Object.values(subs)) {
+                try {
+                    log.debug(`suber: ${sub.id}`)
+                    // send calls to confirm suber connection
+                    // active or not
+                    if (type !== NodeType.Kv) {
+                        const id = randomId()
+                        // ping map cache
+                        // udpate when pong response
+                        const rpc = buildReq(id, 'chain_getBlockHash', [0])
+                        sub.ws.send(rpc)
+                    }
+                } catch (err) {
+                    log.error(`${chain}-${type} suber[${sub.id}] health check error: %o`, err)
+                }
+            }
+        }
+    }, 5000)
+}
+
 class Service {
     static async init() {
         await Chain.init()
         Matcher.init()
         cacherMoniter()
+        // suberMoniter()
     }
 }
 

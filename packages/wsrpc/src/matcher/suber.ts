@@ -167,6 +167,15 @@ function updateStatistic(req: ReqT, data: string, isSub: boolean = false): void 
 /// 5. unsubscribe response
 function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): ResultT<DParT> {
     let dat = JSON.parse(data as string)
+    log.debug(`data: %o`, dat)
+    // health check message
+    if (dat.id && (dat.id as string).startsWith('ping')) {
+        log.info(`${chain}-${subType} pong respponse`)
+        // update suber status to Active
+
+        return Ok({ req: {} as ReqT, data: true })
+    }
+
     if (subType === NodeType.Kv) {
         if (dat.data) {
             // subscribe response
@@ -397,11 +406,22 @@ function setSuberTypeCache(chain: string, type: NodeType) {
     }
 }
 
+let timeout: NodeJS.Timeout
+
+function heartbeat(ws: WebSocket) {
+    log.info(`ping=========================`)
+    clearTimeout(timeout)
+    timeout = setTimeout(() => {
+        ws.terminate()
+    }, 3000)
+}
+
 function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pubers?: Set<IDT>): Suber {
     const ws = new WebSocket(url, { perMessageDeflate: false })
     let suber = { id: randomId(), ws, url, chain, nodeId, type, stat: SuberStat.Create, pubers } as Suber
     log.info(`create ${chain}-${nodeId} ${type} new suber with puber: %o`, pubers)
     Suber.updateOrAddSuber(chain, type, suber)
+    
     ws.once('open', () => {
         /// pubers may closed when re-open
         log.info(`${chain}-${nodeId} ${type} suber[${suber.id}] connection opened`)
@@ -432,8 +452,11 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
         // suber.ws.close()
     })
 
+    ws.on('ping', heartbeat)
+
     ws.on('close', async (code: number, reason: string) => {
         log.error(`${chain}-${nodeId} ${type} suber[${suber.id}] socket closed: %o %o`, code, reason)
+        clearTimeout(timeout)
         const re = Suber.getSuber(chain, type, suber.id)
         if (isNone(re)) {
             log.error(`Handle ${type} suber close event error: invalid suber ${suber.id} of chain ${chain}`)
@@ -451,7 +474,13 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
         // GG.updateOrAddSuber(chain, type, subTmp)
         let pubers = new Set(subTmp.pubers) // new heap space
         // const curTryCnt = GG.getTryCnt(chain)
+        
+        // delete suber before
+        Suber.delSuber(chain, type, suber.id)
+        log.warn(`delete ${chain}-${type} suber[${suber.id}]`)
+
         if (!isSubClose && pubers.size > 0) {
+            
             // clear non-subscribe request cache  bind to suber
             clearNonSubReqcache(subTmp.id)
 
@@ -467,7 +496,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
             // if (curTryCnt >= serConf.maxReConn) {
             if (true) {
                 // make sure node service is active
-                await Util.sleep(30000)
+                // await Util.sleep(30000)
                 // log.warn(`too many try to connect to ${type} suber, clear all relate context.`)
                 // clear subscribe context 
                 const rea = type === NodeType.Kv ? CloseReason.Kv : CloseReason.Node
@@ -523,10 +552,6 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
             }
         }
 
-        // delete suber before
-        // NOTE: will the websocet connection keep?
-
-        Suber.delSuber(chain, type, suber.id)
         // ws.terminate()
         // try to reconnect after 5 second
         delays(5, () => {
@@ -561,7 +586,7 @@ export enum SuberStat {
     Active,
     Create,
     Closed,
-    Stoped
+    Block
 }
 
 function configCheck(chain: string, conf: ChainInstance) {
@@ -677,7 +702,7 @@ class Suber {
 
                 const url = `ws://${conf.baseUrl}:${conf.wsPort}`
                 const type = conf.type
-                const poolSize = conf.poolSize || 10
+                const poolSize = conf.poolSize || 20
 
                 log.info(`${chain}-${id} type[${type}] url[${url}] pool size: ${poolSize}`)
                 for (let i = 0; i < poolSize; i++) {

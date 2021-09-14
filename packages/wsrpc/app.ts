@@ -209,7 +209,12 @@ wss.on('connection', async (ws, req: any) => {
         return ws.terminate()
     }
     const puber = re.value as Puber
-    log.info(`New socket connection chain ${chain} pid[${pid}], current total connections: %o`, wss.clients.size)
+    let ip = req.socket.remoteAddress
+    const forward = req.headers['x-forwarded-for']
+    if (forward) {
+        ip = forward.split(',')[0].trim()
+    }
+    log.info(`New socket connection chain ${chain} pid[${pid}] ip[${ip}], current total connections: %o`, wss.clients.size)
     const id = puber.id
     stat.code = 200
     // publish statistics
