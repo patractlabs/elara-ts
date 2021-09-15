@@ -380,15 +380,23 @@ function isSuberClosed(reason: CloseReason): boolean {
     return reason === CloseReason.Kv || reason === CloseReason.Node
 }
 
-function clearNonSubReqcache(subId: IDT) {
-    // TODO: by suber & puber
-    const reqs = Matcher.getAllReqCache()
-    log.debug(`clear non subscribe request cache: ${Object.keys(reqs).length}`)
-    for (let reqId in reqs) {
-        const req = reqs[reqId]
-        if (req.subId === subId && req.type !== ReqTyp.Sub) {
+function clearNonSubReqcache(chain: string, type: NodeType, subId: IDT, pubers: Set<IDT>) {
+    for (let pubId of pubers) {
+        const reqIds = Puber.getReqs(pubId)
+        log.info(`clear ${chain}-${type} puber[${pubId}] of suber[${subId}] non-subscribe request cache: ${reqIds.size}`)
+        for (let reqId of reqIds) {
+            const re = Matcher.getReqCache(reqId)
+            if (isErr(re)) {
+                log.error(`${chain}-${type} suber[${subId}] clear non-subscribe request cache error: %o`, re.value)
+                process.exit(1)
+            }
+            const req = re.value
+            if (req.type === ReqTyp.Sub) { 
+                log.debug(`${chain}-${type} suber[${subId}] ignore subscribe request cache: ${reqId}`)
+                continue 
+            }
             Matcher.delReqCacheByPubStat(reqId)
-            log.info(`clear ${req.chain} pid[${req.pid}] non-subscribe request cache: ${reqId} of suber ${req.subId}`)
+            Puber.remReq(pubId, reqId)
         }
     }
 }
@@ -474,7 +482,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
         if (!isSubClose && pubers.size > 0) {
             
             // clear non-subscribe request cache  bind to suber
-            clearNonSubReqcache(subTmp.id)
+            clearNonSubReqcache(chain, type, subTmp.id, pubers)
 
             /// this tryCnt is shared by all the subers of this chain.
             /// Kv suber and Node suber maybe close at one time all both failed.
@@ -550,7 +558,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
         delays(5, () => {
             log.warn(`create ${chain}-${nodeId} new ${type} suber try to connect, pubers: %o`, pubers)
             // log.warn(`create new suber try to connect ${curTryCnt + 1} times, pubers `, pubers)
-            newSuber(chain, nodeId, url, type, pubers)
+            newSuber(chain, nodeId, url, type, pubers, poolEmiter)
             // GG.incrTryCnt(chain)
         })
     })

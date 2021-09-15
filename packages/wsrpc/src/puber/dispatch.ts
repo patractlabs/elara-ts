@@ -10,6 +10,7 @@ import Noder from '../noder'
 import Kver from '../kver'
 import Util from '../util'
 import { Stat } from '../statistic'
+import G from '../global'
 
 const log = getAppLogger('dispatch')
 
@@ -30,7 +31,7 @@ function getRpcType(method: string, params: any[]): RpcTyp {
         log.debug(`memory node rpc request: ${method} %o`, params)
         const pLen = Noder.memRpcs[method]
         const len = params.length
-        if (len != pLen || (params[len-1] === null || params[len-1] === undefined)) {
+        if (len != pLen || (params[len - 1] === null || params[len - 1] === undefined)) {
             return RpcTyp.MemNoder
         }
     }
@@ -78,7 +79,12 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
             return Response.Ok(resp, JSON.stringify(res), stat)
         case RpcTyp.MemNoder:
             // TODO: memory node fail
-            return Noder.sendMemRpc(chain, data, resp, stat)
+            const isSupport = G.getMemEnable(chain)
+            if (isSupport) {
+                return Noder.sendMemRpc(chain, data, resp, stat)
+            }
+            log.warn(`${chain} memory node is not support, transpond to noder`)
+            return Noder.sendRpc(chain, data, resp, stat)
         case RpcTyp.Noder:
             return Noder.sendRpc(chain, data, resp, stat)
         default:
@@ -93,6 +99,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
     const typ = getRpcType(method, params!)
     stat.type = typ
     stat.code = 200
+    let isSupport = false
     log.info(`new ${typ} ws request ${method} of chain ${chain}-${nodeId} params: %o\n handle msg delay: ${Util.traceEnd(stat.start)}`, params)
     switch (typ) {
         case RpcTyp.Cacher:
@@ -127,7 +134,8 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
             log.error(`${chain}-${nodeId} ws cacher fail, transpond to noder method[${method}] params[${params}]`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Kver:
-            if (puber.kvSubId !== undefined) {
+            isSupport = G.getKvEnable(chain)
+            if (isSupport && puber.kvSubId !== undefined) {
                 return Kver.send(puber, data, stat)
             }
             log.warn(`${chain}-${nodeId} kv is not support, transpond to noder`)
@@ -135,7 +143,12 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))
         case RpcTyp.MemNoder:
-            return Noder.sendMemWs(puber, data, stat)
+            isSupport = G.getMemEnable(chain)
+            if (isSupport && puber.memSubId !== undefined) {
+                return Noder.sendMemWs(puber, data, stat)
+            }
+            log.warn(`${chain}-${nodeId} memory is not support, transpond to noder`)
+            return Noder.sendWs(puber, data, stat)
         case RpcTyp.Noder:
             return Noder.sendWs(puber, data, stat)
         default:
