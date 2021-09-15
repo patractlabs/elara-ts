@@ -38,7 +38,7 @@ export enum ReqTyp {
 }
 
 export interface ReqT {
-    id: IDT,
+    id: string,
     chain: string,
     pid: IDT,
     pubId: IDT,

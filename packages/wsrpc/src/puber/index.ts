@@ -5,7 +5,6 @@ import { randomId } from '@elara/lib'
 import { ReqDataT, Statistics } from '../interface'
 import Matcher from '../matcher'
 import Suber from '../matcher/suber'
-import G from '../global'
 import { Stat } from '../statistic'
 import Util from '../util'
 import { NodeType } from '../chain'
@@ -33,6 +32,9 @@ type KvReqT = {
 class Puber {
     private static g: Record<string, Puber> = {}
 
+    private static reqs: Record<string, Set<string>> = {}
+
+    // pubers cache
     static get(pubId: IDT): Option<Puber> {
         if (!Puber.g[pubId]) {
             return None
@@ -49,9 +51,23 @@ class Puber {
         delete Puber.g[pubId]
     }
 
+    // request cache
+    static getReqs(pubId: IDT): Set<string> {
+        return Puber.reqs[pubId]
+    }
+
+    static addReq(pubId: IDT, reqId: string): void {
+        Puber.reqs[pubId].add(reqId)
+    }
+
+    static remReq(pubId: IDT, reqId: string): boolean {
+        return Puber.reqs[pubId].delete(reqId)
+    }
+
     static create(ws: WebSocket, chain: string, pid: IDT): Puber {
         const puber = { id: randomId(), pid, chain, ws, topics: new Set() } as Puber
         Puber.updateOrAdd(puber)
+        Puber.reqs[puber.id] = new Set<string>()
         return puber
     }
 
@@ -77,7 +93,7 @@ class Puber {
 
     static async transpond(puber: Puber, type: NodeType, data: ReqDataT, stat: Statistics): PVoidT {
         const start = Util.traceStart()
-        const { id, chain, pid } = puber
+        const { chain, pid } = puber
 
         // polkadotapps will subscribe more than once
         // const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
@@ -94,7 +110,7 @@ class Puber {
         } else if (type === NodeType.Mem) {
             subId = puber.memSubId!
         }
-        let re = Matcher.newRequest(chain, pid, id, type, subId, data, stat)
+        let re = Matcher.newRequest(puber, type, subId, data, stat)
         if (isErr(re)) {
             log.error(`${type} ${chain}-${pid} create new request error: ${re.value}`)
             stat.code = 500
@@ -112,13 +128,13 @@ class Puber {
             } as KvReqT
         }
 
-        // TODO
         let sre = Suber.getSuber(chain, type, subId!)
         if (isNone(sre)) {
-            log.error(`send message error: invalid suber ${puber.subId} chain ${chain} type ${type}, may closed`)
+            log.error(`send message error: invalid suber ${puber.subId} chain ${chain} type ${type}, suber may closed, close puber[${puber.id}] now`)
             // clear request cache
+
             // G.delReqCache(dat.id)
-            G.delReqCacheByPubStatis(dat.id)
+            Matcher.delReqCacheByPubStat(dat.id)
             puber.ws.terminate()
             return
         }

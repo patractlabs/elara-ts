@@ -8,6 +8,7 @@ import { NodeType } from '../chain'
 import { md5, randomId } from '@elara/lib'
 import Conf from '../../config'
 import Topic from './topic'
+import { Stat } from '../statistic'
 
 const log = getAppLogger('matcher')
 
@@ -90,7 +91,7 @@ async function clearSubscribeContext(puber: Puber, reason: CloseReason): PVoidT 
             process.exit(2)
         }
         const reqId = re.value
-        const reqRe = GG.getReqCache(reqId)
+        const reqRe = Matcher.getReqCache(reqId)
         if (isErr(reqRe)) {
             log.error(`unsubscribe when puber clsoe error: ${reqRe.value}`)
             process.exit(2)
@@ -138,6 +139,45 @@ async function suberBind(chain: string, puber: Puber, type: NodeType): PResultT<
 
 class Matcher {
 
+    private static req: Record<string, ReqT> = {}
+
+    static addReqCache(req: ReqT): void {
+        if (this.req[req.id]) {
+            log.error(`add new request cache error: ${req.id} exist`)
+            process.exit(2)
+        }
+        this.req[req.id] = req
+    }
+
+    static updateReqCache(req: ReqT): void {
+        this.req[req.id] = req
+    }
+
+    static delReqCache(reqId: IDT): void {
+        delete this.req[reqId]
+    }
+
+    static delReqCacheByPubStat(reqId: IDT, publish: (stat: Statistics) => void = Stat.publish): void {
+        if (this.req[reqId]) {
+            const stat = this.req[reqId].stat
+            publish(stat)
+            delete this.req[reqId]
+        } else {
+            log.warn(`request cache ${reqId} invalid: %o`, this.req[reqId])
+        }
+    }
+
+    static getReqCache(reqId: IDT): ResultT<ReqT> {
+        if (!this.req[reqId]) {
+            return Err(`invalid request id ${reqId}`)
+        }
+        return Ok(this.req[reqId])
+    }
+
+    static getAllReqCache(): Record<string, ReqT> {
+        return this.req
+    }
+
     static async regist(ws: WebSocket, chain: string, pid: IDT): PResultT<Puber> {
         const isOut = await isConnOutOfLimit(ws, chain, pid)
         if (isOut) { return Err(`connection out of limit`) }
@@ -180,7 +220,8 @@ class Matcher {
         return Ok(puber)
     }
 
-    static newRequest(chain: string, pid: IDT, pubId: IDT, subType: NodeType, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> {
+    static newRequest(puber: Puber, subType: NodeType, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> {
+        const { chain, pid, id } = puber
         const method = data.method!
         let type = ReqTyp.Rpc
         let subsId
@@ -199,7 +240,7 @@ class Matcher {
 
         const req = {
             id: randomId(),
-            pubId,
+            pubId: id,
             chain,
             pid,
             subType,
@@ -212,8 +253,9 @@ class Matcher {
             subsId,
             stat
         } as ReqT
+        Puber.addReq(id, req.id)
+        Matcher.addReqCache(req)
         log.info(`new ${chain} ${pid} ${subType} request cache: ${JSON.stringify(req)}`)
-        GG.addReqCache(req)
 
         data.id = req.id as string
         return Ok(data)
@@ -223,7 +265,7 @@ class Matcher {
     static setSubContext(req: ReqT, subsId: string): ResultT<void> {
         // update subscribe request cache
         req.subsId = subsId
-        GG.updateReqCache(req)
+        Matcher.updateReqCache(req)
 
         // update submap
         GG.addSubReqMap(subsId, req.id)
@@ -269,10 +311,6 @@ class Matcher {
             }
         }
         return false
-    }
-
-    static async init(): PVoidT {
-        Suber.init()
     }
 }
 

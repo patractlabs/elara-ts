@@ -1,8 +1,7 @@
-import { getAppLogger, IDT } from '@elara/lib'
+import { IDT, getAppLogger } from '@elara/lib'
 import { ResultT, Err, Ok } from '@elara/lib'
 import EventEmitter from 'events'
-import { ReqT, Statistics, SubscripT } from "./interface"
-import { Stat } from './statistic'
+import { ReqT, SubscripT } from "./interface"
 const log = getAppLogger('global')
 
 export type SubscripMap = { [key in string]: SubscripT }
@@ -12,7 +11,6 @@ const TopicSubed: TopicSubedT = {}
 const SubMap: { [key in string]: IDT } = {}
 
 export type ReqMap = { [key in string]: ReqT }
-const ReqMap: ReqMap = {}
 
 let ID_CNT: number = 0
 
@@ -24,6 +22,15 @@ const KVEnable: Record<string, boolean> = {}
 const MemEnable: Record<string, boolean> = {}
 
 class G {
+    private static ser: Record<string, boolean> = {}
+
+    static getServerStatus(chain: string): boolean {
+        return this.ser[chain]
+    }
+
+    static setServerStatus(chain: string, status: boolean) {
+        this.ser[chain] = status
+    }
 
     // kv enable cache
     static setKvEnable(chain: string, enable: boolean) {
@@ -108,49 +115,10 @@ class G {
 
     static delSubReqMap(subsId: string): void {
         delete SubMap[subsId]
-        log.debug(`delete subscribe Id map: ${subsId}`)
     }
 
     static getSubReqMap() {
         return SubMap || {}
-    }
-
-    // 
-    static addReqCache(req: ReqT): void {
-        if (ReqMap[req.id]) {
-            log.error(`add new request cache error: ${req.id} exist`)
-            process.exit(2)
-        }
-        ReqMap[req.id] = req
-    }
-
-    static updateReqCache(req: ReqT): void {
-        ReqMap[req.id] = req
-    }
-
-    static delReqCache(reqId: IDT): void {
-        delete ReqMap[reqId]
-    }
-
-    static delReqCacheByPubStatis(reqId: IDT, publish: (stat: Statistics) => void = Stat.publish): void {
-        if (ReqMap[reqId]) {
-            const stat = ReqMap[reqId].stat
-            publish(stat)
-            delete ReqMap[reqId]
-        } else {
-            log.warn(`request cache ${reqId} invalid: %o`, ReqMap[reqId])
-        }
-    }
-
-    static getReqCache(reqId: IDT): ResultT<ReqT> {
-        if (!ReqMap[reqId]) {
-            return Err(`invalid request id ${reqId}`)
-        }
-        return Ok(ReqMap[reqId])
-    }
-
-    static getAllReqCache() {
-        return ReqMap
     }
 
     static addSubTopic(chain: string, pid: IDT, topic: SubscripT): void {

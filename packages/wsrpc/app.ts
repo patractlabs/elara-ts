@@ -12,6 +12,8 @@ import Puber from './src/puber'
 import Response from './src/resp'
 import { Stat } from './src/statistic'
 import Dao from './src/dao'
+import G from './src/global'
+import Emiter from './src/emiter'
 
 const conf = Conf.getServer()
 const log = getAppLogger('app')
@@ -170,6 +172,13 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
         return
     }
     const { chain, pid } = re.value
+    // chain node ok
+    if (!G.getServerStatus(chain)) {
+        log.error(`${chain} service unavailable now`)
+        await socket.end(`HTTP/1.1 500 ${re.value} \r\n\r\n`, 'ascii')
+        socket.emit('close', true)
+        return
+    }
     const projectIsOk = await projectOk(chain, pid as string)
     if (!projectIsOk) {
         log.error(`${chain} [${pid}] check failed, no this pid!`)
@@ -206,7 +215,8 @@ wss.on('connection', async (ws, req: any) => {
         stat.code = 500
         // publish statistics
         Stat.publish(stat)
-        return ws.terminate()
+        ws.terminate()
+        return
     }
     const puber = re.value as Puber
     let ip = req.socket.remoteAddress
@@ -284,10 +294,16 @@ wss.on('connection', async (ws, req: any) => {
 async function run(): PVoidT {
     unexpectListener()
 
-    await Service.init()
-    Server.listen(conf.port, () => {
-        log.info(`Elara server listen on port: ${conf.port}`)
+    const elaraEmiter = new Emiter('elara-init', () => {
+        log.info(`Elara init done`)
+        Server.listen(conf.port, () => {
+            log.info(`Elara server listen on port: ${conf.port}`)
+        })
     })
+    elaraEmiter.add()
+
+    await Service.init(elaraEmiter)
+    
 }
 
 run()

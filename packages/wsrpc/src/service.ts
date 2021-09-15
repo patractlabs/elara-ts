@@ -1,10 +1,10 @@
 import Mom from 'moment'
 import Cacher from "./cacher"
 import Chain, { NodeType } from "./chain"
-import Matcher from "./matcher"
 import { getAppLogger, PVoidT, randomId } from '@elara/lib'
 import Dao from "./dao"
 import Suber from './matcher/suber'
+import Emiter from './emiter'
 
 const log = getAppLogger('service')
 
@@ -91,11 +91,10 @@ export function suberMoniter(): void {
 }
 
 class Service {
-    static async init() {
+    static async init(emiter: Emiter) {
         await Chain.init()
-        Matcher.init()
+        Suber.init(emiter)
         cacherMoniter()
-        // suberMoniter()
     }
 }
 
