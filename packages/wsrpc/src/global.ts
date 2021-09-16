@@ -1,5 +1,5 @@
 import { IDT, getAppLogger } from '@elara/lib'
-import { ResultT, Err, Ok } from '@elara/lib'
+import { ResultT, Err, Ok, Option, Some, None } from '@elara/lib'
 import EventEmitter from 'events'
 import { SubscripT, PingT } from "./interface"
 const log = getAppLogger('global')
@@ -33,7 +33,19 @@ class G {
     }
 
     static addPingCache(ping: PingT): void {
-        this.Ping[ping.id] = ping
+        this.Ping[ping.subId] = ping
+    }
+
+    static delPingCache(subId: IDT) {
+        delete this.Ping[subId]
+    }
+
+    static getPingCache(subId: IDT): Option<PingT> {
+        return this.Ping[subId] === undefined ? None : Some(this.Ping[subId])
+    }
+
+    static getAllPingCache(): Record<string, PingT> {
+        return this.Ping
     }
 
     // kv enable cache

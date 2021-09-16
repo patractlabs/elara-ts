@@ -1,7 +1,7 @@
 import Mom from 'moment'
 import Cacher from "./cacher"
 import Chain, { NodeType } from "./chain"
-import { getAppLogger, PVoidT, randomId } from '@elara/lib'
+import { getAppLogger, PVoidT, isNone } from '@elara/lib'
 import Dao from "./dao"
 import Suber from './matcher/suber'
 import Emiter from './emiter'
@@ -63,35 +63,56 @@ function buildReq(reqId: string, method: string, params: any[]): string {
     return JSON.stringify(data)
 }
 
-export function suberMoniter(): void {
+function suberMoniter(): void {
     setInterval(async () => {
+        log.debug(`suber health monitor start`)
+    
         const subers = Suber.getAllSuber()
         let keys = Object.keys(subers)
+        const now = Mom().utcOffset('+08:00', false).valueOf()
         for (let k of keys) {
             const par = k.split('-')
             const chain = par[0]
             const type = par[1]
             const subs = subers[k]
-            log.debug(`${chain}-${type} suber health check start`)
+            log.debug(`${chain}-${type} subers health check start`)
             for (let sub of Object.values(subs)) {
                 try {
-                    log.debug(`suber: ${sub.id}`)
                     // send calls to confirm suber connection
                     // active or not
-                    if (type !== NodeType.Kv) {
-                        const id = randomId()
+                    if (type === NodeType.Kv) {
+                        continue
+                    }
+                    // check first
+                    const re = G.getPingCache(sub.id)
+                    if (isNone(re)) {
+                        // first or been clear
+                        log.debug(`${chain} ${type} ping cache of suber[${sub.id}] is none`)
                         // ping map cache
-                        
+                        G.addPingCache({
+                            subId: sub.id,
+                            startTime: Mom().utcOffset('+08:00', false).valueOf()
+                        })
                         // udpate when pong response
-                        const rpc = buildReq(id, 'chain_getBlockHash', [0])
+                        const rpc = buildReq(sub.id.toString(), 'chain_getBlockHash', [0])
                         sub.ws.send(rpc)
+                        continue
+                    }
+                    const { startTime } = re.value
+                    const delay = (now - startTime) / 1000
+                    if (delay > 20) {
+                        // restart suber
+                        log.error(`${chain} ${type} suber[${sub.id}] hasn't response over 20 seconds, ready to terminate.`)
+                        sub.ws.terminate()
+                    } else if (delay > 10) {
+                        log.warn(`${chain} ${type} suber[${sub.id}] hasn't response over 10 seconds`)
                     }
                 } catch (err) {
                     log.error(`${chain}-${type} suber[${sub.id}] health check error: %o`, err)
                 }
             }
         }
-    }, 5000)
+    }, 10000)
 }
 
 function debugCacheMonitor() {
@@ -126,6 +147,7 @@ function debugCacheMonitor() {
             const re = Suber.getSubersByChain(chain, type as NodeType)
             suberCnt += Object.keys(re).length
         }
+        const pings = G.getAllPingCache()
         log.debug(`current request cache size: ${Object.keys(reReqs).length}`)
         log.debug(`current puber request cache size: ${prCnt}`)
         log.debug(`current subscribe topic cache size: ${subCnt}`)
@@ -134,6 +156,7 @@ function debugCacheMonitor() {
         log.debug(`current connecion map cache size: ${Object.keys(connMap).length}`)
         log.debug(`current puber map cache size: ${Object.keys(puber).length}`)
         log.debug(`current suber map cache size: ${suberCnt}`)
+        log.debug(`current ping map cache size: ${Object.keys(pings).length}`)
 
     }, 5000)
 }
@@ -143,6 +166,7 @@ class Service {
         await Chain.init()
         Suber.init(emiter)
         cacherMoniter()
+        suberMoniter()
         if (process.env.NODE_ENV === 'dev') {
             debugCacheMonitor()
         }

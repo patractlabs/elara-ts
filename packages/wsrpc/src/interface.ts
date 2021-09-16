@@ -99,6 +99,6 @@ export interface Statistics {
 }
 
 export interface PingT {
-    id: string,
+    subId: IDT,
     startTime: number
 }

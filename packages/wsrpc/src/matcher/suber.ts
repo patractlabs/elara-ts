@@ -139,9 +139,14 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
     }
 }
 
+enum DataT {
+    Ping = 'ping',
+    Unsub = 'unsubscribe'
+}
+
 type DParT = {
-    req: ReqT,
-    data: string | WebSocket.Data | boolean
+    req?: ReqT,
+    data: string | WebSocket.Data | DataT
 }
 
 function updateStatistic(req: ReqT, data: string, isSub: boolean = false): void {
@@ -166,14 +171,16 @@ function updateStatistic(req: ReqT, data: string, isSub: boolean = false): void 
 /// 3. subscribe response non-first
 /// 4. error response
 /// 5. unsubscribe response
-function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): ResultT<DParT> {
+function dataParse(data: WebSocket.Data, chain: string, subType: NodeType, subId: IDT): ResultT<DParT> {
     let dat = JSON.parse(data as string)
     log.debug(`new ${chain} ${subType} data: %o`, dat)
     // health check message
     if (dat.id && (dat.id as string).startsWith('ping')) {
-        log.info(`${chain}-${subType} pong respponse`)
+        log.debug(`${chain}-${subType} suber[${subId}] pong response`)
+        // clear ping cache
+        G.delPingCache(subId)
         // update suber status to Active
-        return Ok({ req: {} as ReqT, data: true })
+        return Ok({ data: DataT.Ping })
     }
 
     if (subType === NodeType.Kv) {
@@ -198,7 +205,7 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): Resu
         return Err(`${re.value}`)
     }
     if (re.value === true) {
-        return Ok({ req: {} as ReqT, data: true })
+        return Ok({ data: DataT.Unsub })
     }
 
     const req = re.value as ReqT
@@ -239,7 +246,7 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): Resu
     } else if (req.type === ReqTyp.Unsub || isClose) {
         log.info(`${chain} ${subType} suber of pid[${req.pid}] puber[${req.pubId}] method[${req.method}] params[${req.params}] unsubscribe response: ${JSON.stringify(dat)}`)
         handleUnsubscribe(req, dres)
-        if (req.originId === 0) { return Ok({ req, data: true }) }
+        if (req.originId === 0) { return Ok({ req, data: DataT.Unsub }) }
     } else if (isSubRequest(req.type, isSubscribeID(dres))) {
         // first response of subscribe
         // NOTE: may receive after puber closed
@@ -573,20 +580,23 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
     ws.on('message', async (dat: WebSocket.Data) => {
         const start = Util.traceStart()
         // if parse async, will occur message disorder problem
-        let re = dataParse(dat, chain, type)
+        let re = dataParse(dat, chain, type, suber.id)
         const time = Util.traceEnd(start)
 
         if (isErr(re)) {
             log.error(`Parse ${chain}-${nodeId} ${type} suber[${suber.id}] message data error: %o`, re.value)
             return
         }
-        if (re.value.data === true) {
+        const { data, req } = re.value
+        if (data === DataT.Unsub) {
             log.info(` ${chain}-${nodeId} ${type} suber[${suber.id}] unsubscribe topic done after puber close`)
             return
         }
-        const { data, req } = re.value
-        puberSend(req, data as WebSocket.Data)
-        log.info(`new ${chain}-${nodeId} ${type} suber[${suber.id}] message of [${req.method}] id[${req.id}] parse time[${time}]`)
+        if (data === DataT.Ping) {
+            return
+        }
+        puberSend(req!, data as WebSocket.Data)
+        log.info(`new ${chain}-${nodeId} ${type} suber[${suber.id}] message of [${req!.method}] id[${req!.id}] parse time[${time}]`)
     })
     return suber
 }
