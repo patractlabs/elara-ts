@@ -6,20 +6,28 @@ const log = getAppLogger('emiter')
 type Listener = (...arg: any[]) => void
 
 export default class Emiter {
-    private evt: EventEmitter  = new EventEmitter()
+    private evt: EventEmitter = new EventEmitter()
 
     private evtCnt: number
 
     private event: string
 
-    constructor(event: string, listener: Listener) {
+    constructor(event: string, listener: Listener, on: boolean = false) {
         this.evtCnt = 0
         this.event = event
-        this.evt.once(event, (args: any[]) => {
-            log.info(`Event ${event} done`)
-            listener(args)
-            this.evt.removeAllListeners(event)
-        })
+
+        if (on) {
+            this.evt.on(event, (args: any[]) => {
+                log.info(`On event ${event} done`)
+                listener(args)
+            })
+        } else {
+            this.evt.once(event, (args: any[]) => {
+                log.info(`Once event ${event} done`)
+                listener(args)
+                this.evt.removeAllListeners(event)
+            })
+        }
     }
 
     getEvent = (): string => {
@@ -28,6 +36,10 @@ export default class Emiter {
 
     getEvtCount = (): number => {
         return this.evtCnt
+    }
+
+    removeListener = (): void => {
+        this.evt.removeAllListeners(this.event)
     }
 
     add = (num: number = 1): void => {

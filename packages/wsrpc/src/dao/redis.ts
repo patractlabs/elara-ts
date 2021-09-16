@@ -91,7 +91,6 @@ statRedis.onError((err: string) => {
 })
 
 class Rd {
-
     /// chain operation
     static async getChainList() {
         return chainRd.zrange(KChain.zChainList(), 0, -1)
@@ -119,7 +118,10 @@ class Rd {
     }
 
     static async getLatest(chain: string, method: string) {
-        return cacheRd.hgetall(KCache.hCache(chain, method))
+        log.debug(`before get ${chain} latest cache, method: ${method}`)
+        const re = await cacheRd.hgetall(KCache.hCache(chain, method))
+        log.debug(`after get ${chain} ${method} cache result`)
+        return re
     }
 
     // user status

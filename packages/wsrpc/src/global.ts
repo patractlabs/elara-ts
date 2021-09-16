@@ -1,21 +1,19 @@
 import { IDT, getAppLogger } from '@elara/lib'
 import { ResultT, Err, Ok } from '@elara/lib'
 import EventEmitter from 'events'
-import { ReqT, SubscripT } from "./interface"
+import { SubscripT } from "./interface"
 const log = getAppLogger('global')
 
-export type SubscripMap = { [key in string]: SubscripT }
-type TopicSubedT = { [key in string]: SubscripMap }
-const TopicSubed: TopicSubedT = {}
+export type SubscripMap = Record<string, SubscripT>
 
-const SubMap: { [key in string]: IDT } = {}
+const TopicSubed: Record<string, SubscripMap> = {}
 
-export type ReqMap = { [key in string]: ReqT }
+const SubMap: { [key in string]: string } = {}
 
 let ID_CNT: number = 0
 
-const TryCntMap: { [key in string]: number } = {}
-const ConnCntMap: { [key in string]: { [key in string]: number } } = {}
+const TryCntMap: Record<string, number> = {}
+const ConnCntMap: Record<string, Record<string, number>> = {}
 
 const PuberEvt = new EventEmitter()
 const KVEnable: Record<string, boolean> = {}
@@ -72,14 +70,20 @@ class G {
         return TryCntMap[chain] || 0
     }
 
+    static getTryMap() {
+        return TryCntMap
+    }
+
     static incrConnCnt(chain: string, pid: IDT) {
         chain = chain
         ConnCntMap[chain] = ConnCntMap[chain] || {}
         ConnCntMap[chain][pid] = ConnCntMap[chain][pid] || 0
+        log.debug(`increase ${chain} pid[${pid}] connection count: ${ConnCntMap[chain][pid]}`)
         ConnCntMap[chain][pid] += 1
     }
 
     static decrConnCnt(chain: string, pid: IDT) {
+        log.debug(`decrease ${chain} pid[${pid}] connection count: ${ConnCntMap[chain][pid]}`)
         ConnCntMap[chain][pid] -= 1
         if (ConnCntMap[chain][pid] < 1) {
             delete ConnCntMap[chain][pid]
@@ -97,8 +101,12 @@ class G {
         return ConnCntMap[chain][pid]
     }
 
+    static getConnMap() {
+        return ConnCntMap
+    }
+
     // 
-    static addSubReqMap(subsId: string, id: IDT) {
+    static addSubReqMap(subsId: string, id: string) {
         if (SubMap[subsId]) {
             log.error(`add new subscribe map error: subscribe ID exist`)
             process.exit(2)
@@ -106,7 +114,7 @@ class G {
         SubMap[subsId] = id
     }
 
-    static getReqId(subsId: string): ResultT<IDT> {
+    static getReqId(subsId: string): ResultT<string> {
         if (!SubMap[subsId]) {
             return Err(`No this request, subscription ${subsId}`)
         }
@@ -117,13 +125,12 @@ class G {
         delete SubMap[subsId]
     }
 
-    static getSubReqMap() {
-        return SubMap || {}
+    static getAllSubReqMap() {
+        return SubMap
     }
 
     static addSubTopic(chain: string, pid: IDT, topic: SubscripT): void {
         const key = `${chain}-${pid}`
-
         TopicSubed[key] = TopicSubed[key] || {}
         TopicSubed[key][topic.id] = topic
     }
@@ -154,7 +161,7 @@ class G {
         return TopicSubed[key]
     }
 
-    static getAllSubTopics(): TopicSubedT {
+    static getAllSubTopics(): Record<string, SubscripMap> {
         return TopicSubed
     }
 }

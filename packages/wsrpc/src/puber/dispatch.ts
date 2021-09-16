@@ -110,10 +110,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
                     log.debug(`${chain}-${nodeId} get ws initial block hash`)
                     tmethod = `${method}_0`
                 }
-                log.info(`before ${chain}-${nodeId} ${typ} cacher result`)
-
                 const re = await Cacher.send(chain, tmethod)
-                log.info(`after ${chain}-${nodeId} ${typ} cacher result: %o`, re.result)
 
                 if (re.result) {
                     log.info(`${chain}-${nodeId} ${typ} cacher result: %o`, re.result)

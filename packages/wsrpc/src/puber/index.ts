@@ -42,6 +42,10 @@ class Puber {
         return Some(Puber.g[pubId])
     }
 
+    static getAll() {
+        return this.g
+    }
+
     static updateOrAdd(puber: Puber): void {
         Puber.g[puber.id] = puber
     }
@@ -54,6 +58,10 @@ class Puber {
     // request cache
     static getReqs(pubId: IDT): Set<string> {
         return Puber.reqs[pubId]
+    }
+
+    static getAllReqs() {
+        return Puber.reqs
     }
 
     static addReq(pubId: IDT, reqId: string): void {

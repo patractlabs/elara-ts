@@ -119,7 +119,7 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
         }
         const reqId = re.value
         Matcher.delReqCacheByPubStat(reqId)
-
+        Puber.remReq(req.pubId, reqId)
         GG.remSubTopic(req.chain, req.pid, subsId)
 
         GG.delSubReqMap(subsId)
@@ -168,7 +168,7 @@ function updateStatistic(req: ReqT, data: string, isSub: boolean = false): void 
 /// 5. unsubscribe response
 function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): ResultT<DParT> {
     let dat = JSON.parse(data as string)
-    log.debug(`data: %o`, dat)
+    log.debug(`new ${chain} ${subType} data: %o`, dat)
     // health check message
     if (dat.id && (dat.id as string).startsWith('ping')) {
         log.info(`${chain}-${subType} pong respponse`)
@@ -186,7 +186,7 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): Resu
         }
         // dat.error: no need handle
         log.info(`${chain} new kv ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
-    } else if(subType === NodeType.Mem) {
+    } else if (subType === NodeType.Mem) {
         log.info(`${chain} new memory node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
     } else {
         log.info(`${chain} new node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
@@ -224,6 +224,7 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): Resu
         req.stat = stat
         Matcher.updateReqCache(req)
         Matcher.delReqCacheByPubStat(req.id)
+        Puber.remReq(req.pubId, req.id)
         log.info(`delete ${req.chain} pid[${req.pid}] non-subscribe cache request ID[${req.id}]: %o`, req.method)
     } else {
         updateStatistic(req, data.toString())
@@ -391,9 +392,9 @@ function clearNonSubReqcache(chain: string, type: NodeType, subId: IDT, pubers: 
                 process.exit(1)
             }
             const req = re.value
-            if (req.type === ReqTyp.Sub) { 
+            if (req.type === ReqTyp.Sub) {
                 log.debug(`${chain}-${type} suber[${subId}] ignore subscribe request cache: ${reqId}`)
-                continue 
+                continue
             }
             Matcher.delReqCacheByPubStat(reqId)
             Puber.remReq(pubId, reqId)
@@ -415,14 +416,19 @@ function setSuberTypeCache(chain: string, type: NodeType) {
     }
 }
 
-function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pubers: Set<IDT>, poolEmiter?: Emiter): Suber {
+type CloseOptions = {
+    emiter: Emiter,
+    doneCnt: number
+}
+
+function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pubers: Set<IDT>, poolEmiter?: Emiter, options?: CloseOptions): Suber {
     const ws = new WebSocket(url, { perMessageDeflate: false })
     let suber = { id: randomId(), ws, url, chain, nodeId, type, stat: SuberStat.Create, pubers } as Suber
     log.info(`create ${chain}-${nodeId} ${type} new suber with puber: %o`, pubers)
     Suber.updateOrAddSuber(chain, type, suber)
-    
+
     ws.once('open', () => {
-        poolEmiter && poolEmiter.done([chain, type, 0])
+        poolEmiter?.done([options?.emiter, poolEmiter, options?.doneCnt])
         /// pubers may closed when re-open
         log.info(`${chain}-${nodeId} ${type} suber[${suber.id}] connection opened`)
         // GG.resetTryCnt(chain)   // reset chain connection count
@@ -474,13 +480,13 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
         // GG.updateOrAddSuber(chain, type, subTmp)
         let pubers = new Set(subTmp.pubers) // new heap space
         // const curTryCnt = GG.getTryCnt(chain)
-        
+
         // delete suber before
         Suber.delSuber(chain, type, suber.id)
         log.warn(`delete ${chain}-${type} suber[${suber.id}]`)
 
         if (!isSubClose && pubers.size > 0) {
-            
+
             // clear non-subscribe request cache  bind to suber
             clearNonSubReqcache(chain, type, subTmp.id, pubers)
 
@@ -532,6 +538,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
                         if (req.subType === type) {
                             // GG.delReqCache(reqId)
                             Matcher.delReqCacheByPubStat(reqId)
+                            Puber.remReq(puber.id, reqId)
                             GG.remSubTopic(chain, puber.pid, subsId)
                             GG.delSubReqMap(subsId)
                             // update puber.topic
@@ -558,7 +565,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
         delays(5, () => {
             log.warn(`create ${chain}-${nodeId} new ${type} suber try to connect, pubers: %o`, pubers)
             // log.warn(`create new suber try to connect ${curTryCnt + 1} times, pubers `, pubers)
-            newSuber(chain, nodeId, url, type, pubers, poolEmiter)
+            newSuber(chain, nodeId, url, type, pubers, poolEmiter, options)  // poolEmiter only when start-up valid
             // GG.incrTryCnt(chain)
         })
     })
@@ -604,6 +611,23 @@ function configCheck(chain: string, conf: ChainInstance) {
     if (!conf.baseUrl || !conf.wsPort) {
         log.error(`invalid ${chain} instance config: %o`, conf)
         process.exit(1)
+    }
+}
+
+function poolDoneListener(args: any[]) {
+    const chainEmiter: Emiter = args[0]
+    const poolEmiter: Emiter = args[1]
+    const poolEventCnt = args[2]
+    log.debug(`pool emiter done listener: %o %o %o`, args[0], args[1], args[2])
+    chainEmiter?.done()
+    poolEmiter?.add(poolEventCnt)
+    if (poolEmiter) {
+        const evt = poolEmiter.getEvent()
+        const par = evt.split('-')
+        const chain = par[0]
+        const type = par[1]
+        const nodeId = par[2]
+        log.debug(`${chain} ${type} ${nodeId} suber pool init done`)
     }
 }
 
@@ -708,11 +732,12 @@ class Suber {
                 const poolSize = conf.poolSize || 20
 
                 log.info(`${chain}-${id} type[${type}] url[${url}] pool size: ${poolSize}`)
-                const poolEmiter = new Emiter(`${chain}-${type}-${id}-init`, chainEmiter.done)
+                const poolEmiter = new Emiter(`${chain}-${type}-${id}-init`, poolDoneListener, true)
                 poolEmiter.add(parseInt(poolSize.toString()))
+
                 for (let i = 0; i < poolSize; i++) {
                     // TODO: suber health listener
-                    newSuber(chain, nodeId, url, type, new Set(), poolEmiter)
+                    newSuber(chain, nodeId, url, type, new Set(), poolEmiter, {emiter: chainEmiter, doneCnt: poolSize})
                 }
                 setSuberTypeCache(chain, type)     //e.g. kv support or not
 
