@@ -1,6 +1,6 @@
 /// chain list init and handler the chain update
 
-import { ChainConfig, getAppLogger, PVoidT } from '@elara/lib'
+import { getAppLogger, PVoidT } from '@elara/lib'
 import { isErr } from '@elara/lib'
 import Dao from './dao'
 import { G } from './global'
@@ -76,6 +76,23 @@ PSuber.on('pmessage', (_pattern, chan, chain: string) => {
     }
 })
 
+export enum NodeType {
+    Node = 'node',
+    Kv = 'kv',
+    Mem = 'memory'
+}
+
+export interface ChainConfig {
+    name: string,
+    nodeId: number,       // default 0, elara node instance id
+    type: NodeType,       
+    baseUrl: string,      // host
+    rpcPort: number,      // default 9933
+    wsPort: number,        // default 9944
+    poolSize: number,      
+    [key: string]: any    // for redis
+}
+
 class Chain {
 
     static async parseConfig(chain: string, serverId: number) {
@@ -106,6 +123,7 @@ class Chain {
                     log.error(`get ${c} id list error: empty`)
                     process.exit(1)
                 }
+                log.debug(`${c} id list: %o`, ids)
                 for (let id of ids) {
                     parses.push(Chain.parseConfig(c, parseInt(id)))
                 }
@@ -118,4 +136,4 @@ class Chain {
     }
 }
 
-export = Chain
+export default Chain

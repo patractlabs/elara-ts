@@ -4,14 +4,15 @@
 
 import WebSocket from 'ws'
 import EventEmitter from 'events'
-import { ChainConfig, getAppLogger, IDT, isErr, isNone, Option } from '@elara/lib'
+import { getAppLogger, IDT, isErr, isNone, Option, dotenvInit } from '@elara/lib'
 import { Ok, Err, PResultT } from '@elara/lib'
 import { G } from './global'
 import { ReqT, TopicT } from './interface'
 import Dao from './dao'
 import Suducer, { SuducerStat, SuducerT } from './suducer'
 import Service from './service'
-import { dotenvInit } from '@elara/lib'
+import { ChainConfig } from './chain'
+
 dotenvInit()
 
 import Conf from '../config'

@@ -1,8 +1,9 @@
 import EventEmitter from 'events'
-import { getAppLogger, ChainConfig, RpcMapT, RpcStrategy, IDT } from '@elara/lib'
+import { getAppLogger, IDT } from '@elara/lib'
 import { None, Some, Option } from '@elara/lib'
 import { CacheT, ChainT, SuducerMap, SuducersT, PubsubT, CacheStrategyT, PsubStrategyT } from './interface'
 import Suducer, { SuducerT } from './suducer'
+import { ChainConfig } from './chain'
 
 const log = getAppLogger('global')
 
@@ -143,24 +144,24 @@ export class G {
 
     // chain config op
     static addChain(chain: ChainConfig): void {
-        const key = `${chain.name.toLowerCase()}-${chain.serverId}`
+        const key = `${chain.name.toLowerCase()}-${chain.nodeId}`
         Chains[key] = chain
     }
 
     static updateChain(chain: ChainConfig): void {
-        Chains[`${chain.name.toLowerCase()}-${chain.serverId}`] = chain
+        Chains[`${chain.name.toLowerCase()}-${chain.nodeId}`] = chain
     }
 
-    static getChain(chain: string, serverId: number): Option<ChainConfig> {
-        const key = `${chain.toLowerCase()}-${serverId}`
+    static getChain(chain: string, nodeId: number): Option<ChainConfig> {
+        const key = `${chain.toLowerCase()}-${nodeId}`
         if (!Chains[key]) {
             return None
         }
         return Some(Chains[key])
     }
 
-    static delChain(chain: string, serverId: number): void {
-        delete Chains[`${chain.toLowerCase()}-${serverId}`]
+    static delChain(chain: string, nodeId: number): void {
+        delete Chains[`${chain.toLowerCase()}-${nodeId}`]
     }
 
     static getAllChains(): Option<string[]> {
@@ -253,32 +254,6 @@ export class G {
     static delSubCache(reqId: string): void {
         delete SubCache[reqId]
     }
-
-    // depends on chain evnet
-    static getExtends(chain: string, strategy: RpcStrategy): string[] {
-        const cconf = Chains[chain]
-        if (!cconf || !cconf['extends']) {
-            return []
-        }
-        const extens = cconf['extends'] as RpcMapT
-        // log.error(`extens of chain[${chain}]: %o`, extens)
-        let res: string[] = []
-        for (let k in extens) {
-            if (extens[k] === strategy) {
-                res.push(k)
-            }
-        }
-        log.warn(`Extends list of chain[${chain}]-[${strategy}]: %o`, res)
-        return res
-    }
-
-    // depends on chain event
-    static getExcludes(chain: string): string[] {
-        const c = Chains[chain]
-        if (c && c['excludes']) {
-            return c['excludes'] as string[]
-        }
-        return []
-    }
 }
+
 export default G

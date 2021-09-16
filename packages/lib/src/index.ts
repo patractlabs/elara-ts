@@ -48,12 +48,10 @@ export const dotenvInit = () => {
 //
 export * from './api-code'
 export * from './api-response'
-export * from './chain'
 export * from './log'
 export * from './mq'
 export * from './result'
 export * from './redis'
 export * from './redis-key'
-export * from './rpc'
 export * from './unexpect'
 export * from './option'

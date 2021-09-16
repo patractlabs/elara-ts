@@ -140,7 +140,7 @@ namespace Service {
             process.exit(2)
         }
         const chains = re.value
-        log.debug(`chain config lsit: %o`, chains)
+        log.debug(`chain config list: %o`, chains)
 
         // cache service
         Cacheable.run(chains)
