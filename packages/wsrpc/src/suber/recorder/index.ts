@@ -1,19 +1,18 @@
 // import crypto from 'crypto'
-import { Sequelize, DataTypes } from 'sequelize'
 import { getAppLogger, PVoidT } from '@elara/lib'
 
 const log = getAppLogger('recorder')
 
-const Sq = new Sequelize({
-    host: '127.0.0.1',
-    port: 9002,
-    dialect: 'postgres',
-    pool: {
-        max: 5,
-        min: 1,
-        idle: 30000
-    }
-})
+// const Sq = new Sequelize({
+//     host: '127.0.0.1',
+//     port: 9002,
+//     dialect: 'postgres',
+//     pool: {
+//         max: 5,
+//         min: 1,
+//         idle: 30000
+//     }
+// })
 
 // Sq.define("blocks", {
 //     id: {
@@ -30,13 +29,13 @@ const Sq = new Sequelize({
 //     spec: DataTypes.INTEGER
 // })
 
-Sq.define('storage', {
-    id: {
-        type: DataTypes.INTEGER
-    }
-})
+// Sq.define('storage', {
+//     id: {
+//         type: DataTypes.INTEGER
+//     }
+// })
 
-class Recorder {
+export class Recorder {
     static Rpcs = [
         "chain_getHeader",      // block hash   0x*********** 64 length
         "chain_getBlockHash",   // block number 0x*

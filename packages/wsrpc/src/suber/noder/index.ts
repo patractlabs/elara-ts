@@ -1,13 +1,13 @@
 import Http from 'http'
 import { getAppLogger, isErr, PVoidT } from '@elara/lib'
-import Dao from '../dao'
-import { ReqDataT, Statistics } from "../interface"
-import Util from '../util'
-import Puber from '../puber'
-import Response from '../resp'
-import { Stat } from '../statistic'
-import { ChainInstance, NodeType } from '../chain'
-import Suber from '../matcher/suber'
+import Dao from '../../dao'
+import { ReqDataT, Statistics } from "../../interface"
+import Util from '../../util'
+import Puber from '../../puber'
+import Response from '../../resp'
+import { Stat } from '../../statistic'
+import { ChainInstance, NodeType } from '../../chain'
+import Suber from '..'
 
 const log = getAppLogger('noder')
 
@@ -63,14 +63,14 @@ async function getNoder(chain: string, nodeId: number): Promise<Noder> {
     }
 }
 
-interface Noder {
+export interface Noder {
     chain: string,
     nodeId: number,
     host: string,
     port: number
 }
 
-class Noder {
+export class Noder {
 
     static memRpcs: Record<string, number> = {
         "state_getKeysPaged": 4,

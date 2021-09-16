@@ -3,7 +3,7 @@ import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, O
 import GG from '../global'
 import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason, Statistics } from '../interface'
 import Puber from '../puber'
-import Suber from './suber'
+import Suber from '../suber'
 import { NodeType } from '../chain'
 import { md5, randomId } from '@elara/lib'
 import Conf from '../../config'

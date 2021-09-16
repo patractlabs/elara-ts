@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 import { randomId, isNone } from '@elara/lib'
-import Suber, { SuberStat } from '../src/matcher/suber'
+import Suber, { SuberStat } from '../src/suber'
 import { NodeType } from '../src/chain'
 
 describe('suber G test suit', () => {

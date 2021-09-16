@@ -1,5 +1,5 @@
 import { IDT } from '@elara/lib'
-import Suber from './matcher/suber'
+import Suber from './suber'
 import { NodeType } from './chain'
 
 type SuberTyp = NodeType

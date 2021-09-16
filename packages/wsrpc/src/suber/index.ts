@@ -5,10 +5,10 @@ import { getAppLogger, isErr, IDT, Err, Ok, ResultT, PResultT, isNone, Option, S
 import GG from '../global'
 import Chain, { ChainInstance, NodeType } from '../chain'
 import Dao from '../dao'
-import Matcher from '.'
+import Matcher from '../matcher'
 import Puber from '../puber'
 import Util from '../util'
-import Topic from './topic'
+import Topic from '../matcher/topic'
 import G from '../global'
 import Emiter from '../emiter'
 
@@ -810,5 +810,10 @@ class Suber {
         return isSubscribeID(id)
     }
 }
+
+export * from './cacher'
+export * from './kver'
+export * from './noder'
+export * from './recorder'
 
 export default Suber

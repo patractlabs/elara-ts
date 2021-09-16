@@ -1,9 +1,9 @@
 import Mom from 'moment'
-import Cacher from "./cacher"
+import Cacher from "./suber/cacher"
 import Chain, { NodeType } from "./chain"
 import { getAppLogger, PVoidT, isNone } from '@elara/lib'
 import Dao from "./dao"
-import Suber from './matcher/suber'
+import Suber from './suber'
 import Emiter from './emiter'
 import Matcher from './matcher'
 import G from './global'
@@ -59,7 +59,6 @@ function buildReq(reqId: string, method: string, params: any[]): string {
         method,
         params
     }
-    log.debug('rpc data to send: %o', data)
     return JSON.stringify(data)
 }
 
