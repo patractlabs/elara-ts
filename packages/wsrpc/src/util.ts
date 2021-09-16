@@ -38,11 +38,10 @@ class Util {
 
     static async urlParse(url: string): PResultT<ChainPidT> {
         const par = url.split('/')
-        const chain = par[1].toLowerCase()
+        const chain = par[1].toLowerCase()  // maybe empty
         let pid = '00000000000000000000000000000000'    // for public
         // chain check
         if (!Chain.hasChain(chain)) {
-            // return Ok({ chain: 'polkadot', pid})    // for local test
             return Err(`invalid chain[${chain}]`)
         }
         if (par.length === 3) {
@@ -52,6 +51,7 @@ class Util {
                 return Err(`Invalid request path: ${url}`)
             }
         }
+        // public url without pid, default 0s
         return Ok({ chain, pid })
     }
 

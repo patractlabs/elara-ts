@@ -276,7 +276,7 @@ wss.on('connection', async (ws, req: any) => {
             return  // out of limit
         }
         Matcher.unRegist(id, reason as CloseReason)
-
+        // clear project statistic, which has been delete
         const projectIsOk = await projectOk(chain, pid)
         if (!projectIsOk) {
             // clear project statistic

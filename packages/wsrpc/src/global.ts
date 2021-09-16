@@ -1,7 +1,7 @@
 import { IDT, getAppLogger } from '@elara/lib'
 import { ResultT, Err, Ok } from '@elara/lib'
 import EventEmitter from 'events'
-import { SubscripT } from "./interface"
+import { SubscripT, PingT } from "./interface"
 const log = getAppLogger('global')
 
 export type SubscripMap = Record<string, SubscripT>
@@ -20,14 +20,20 @@ const KVEnable: Record<string, boolean> = {}
 const MemEnable: Record<string, boolean> = {}
 
 class G {
-    private static ser: Record<string, boolean> = {}
+    private static ServerStatus: Record<string, boolean> = {}
+
+    private static Ping: Record<string, PingT> = {}
 
     static getServerStatus(chain: string): boolean {
-        return this.ser[chain]
+        return this.ServerStatus[chain]
     }
 
     static setServerStatus(chain: string, status: boolean) {
-        this.ser[chain] = status
+        this.ServerStatus[chain] = status
+    }
+
+    static addPingCache(ping: PingT): void {
+        this.Ping[ping.id] = ping
     }
 
     // kv enable cache

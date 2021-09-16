@@ -1,4 +1,4 @@
-import { randomId } from '@elara/lib'
+import { PVoidT, randomId } from '@elara/lib'
 import WebSocket from 'ws'
 import { ReqT, ReqTyp, WsData, CloseReason, ChainSuber, SuberMap, SubscripT } from '../interface'
 import { getAppLogger, isErr, IDT, Err, Ok, ResultT, PResultT, isNone, Option, Some, None } from '@elara/lib'
@@ -173,7 +173,6 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): Resu
     if (dat.id && (dat.id as string).startsWith('ping')) {
         log.info(`${chain}-${subType} pong respponse`)
         // update suber status to Active
-
         return Ok({ req: {} as ReqT, data: true })
     }
 
@@ -275,7 +274,8 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType): Resu
     return Ok({ req, data: dataToSend })
 }
 
-function puberSend(pubId: IDT, dat: WebSocket.Data) {
+async function puberSend(req: ReqT, dat: WebSocket.Data): PVoidT {
+    const { chain, id, subType, pubId } = req
     let re = Puber.get(pubId)
     if (isNone(re)) {
         log.error(`invalid puber ${pubId}, has been closed`)
@@ -283,7 +283,7 @@ function puberSend(pubId: IDT, dat: WebSocket.Data) {
     }
     const puber = re.value as Puber
     puber.ws.send(dat)
-    log.debug(`${puber.chain} pid[${puber.pid}] puber ${pubId} send response `)
+    log.info(`${chain} ${subType} pid[${puber.pid}] puber ${pubId} send response: ${id}`)
 }
 
 function recoverPuberTopics(puber: Puber, ws: WebSocket, subType: NodeType, subId: IDT, subsId: string) {
@@ -570,8 +570,9 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
         })
     })
 
-    ws.on('message', (dat: WebSocket.Data) => {
+    ws.on('message', async (dat: WebSocket.Data) => {
         const start = Util.traceStart()
+        // if parse async, will occur message disorder problem
         let re = dataParse(dat, chain, type)
         const time = Util.traceEnd(start)
 
@@ -584,8 +585,8 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
             return
         }
         const { data, req } = re.value
-        puberSend(req.pubId, data as WebSocket.Data)
-        log.info(`new ${chain}-${nodeId} ${type} suber[${suber.id}] message of [${req.method}] parse time[${time}]`)
+        puberSend(req, data as WebSocket.Data)
+        log.info(`new ${chain}-${nodeId} ${type} suber[${suber.id}] message of [${req.method}] id[${req.id}] parse time[${time}]`)
     })
     return suber
 }
@@ -658,7 +659,12 @@ class Suber {
         return Some(Suber.g[ct][subId])
     }
 
-    static getSubersByChain(chain: string, type: NodeType,): SuberMap {
+    static getSubersByType(chain: string, type: NodeType): SuberMap {
+        const ct = `${chain}-${type}`
+        return Suber.g[ct] || {}
+    }
+
+    static getSubersByChain(chain: string, type: NodeType): SuberMap {
         const ct = `${chain}-${type}`
         return Suber.g[ct] || {}
     }

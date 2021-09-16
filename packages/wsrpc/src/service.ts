@@ -81,6 +81,7 @@ export function suberMoniter(): void {
                     if (type !== NodeType.Kv) {
                         const id = randomId()
                         // ping map cache
+                        
                         // udpate when pong response
                         const rpc = buildReq(id, 'chain_getBlockHash', [0])
                         sub.ws.send(rpc)

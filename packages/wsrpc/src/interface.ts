@@ -97,3 +97,8 @@ export interface Statistics {
     timeout?: boolean,   // timeout threshold 1s
     reqCnt?: number,     // for subscribe
 }
+
+export interface PingT {
+    id: string,
+    startTime: number
+}
