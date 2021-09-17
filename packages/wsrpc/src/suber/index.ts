@@ -423,22 +423,15 @@ function setSuberTypeCache(chain: string, type: NodeType) {
     }
 }
 
-type CloseOptions = {
-    emiter: Emiter,
-    chain: string,
-    type: NodeType
-}
-
-function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pubers: Set<IDT>, poolEmiter?: Emiter, options?: CloseOptions): Suber {
+function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pubers: Set<IDT>, poolEmiter: Emiter): Suber {
     const ws = new WebSocket(url, { perMessageDeflate: false })
     let suber = { id: randomId(), ws, url, chain, nodeId, type, stat: SuberStat.Create, pubers } as Suber
     log.info(`create ${chain}-${nodeId} ${type} new suber with puber: %o`, pubers)
     Suber.updateOrAddSuber(chain, type, suber)
 
     ws.once('open', () => {
-        poolEmiter?.done([options?.emiter, chain, type])
+        poolEmiter.done()
         /// pubers may closed when re-open
-        G.setServerStatus(chain, type, true)
         log.info(`${chain}-${nodeId} ${type} suber[${suber.id}] connection opened`)
         // GG.resetTryCnt(chain)   // reset chain connection count
         
@@ -574,7 +567,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
             log.warn(`create ${chain}-${nodeId} new ${type} suber try to connect, pubers: %o`, pubers)
             // log.warn(`create new suber try to connect ${curTryCnt + 1} times, pubers `, pubers)
             // GG.incrTryCnt(chain)
-            newSuber(chain, nodeId, url, type, pubers, poolEmiter, options)  // poolEmiter only when start-up valid
+            newSuber(chain, nodeId, url, type, pubers, poolEmiter)  // poolEmiter only when start-up valid
         })
     })
 
@@ -624,16 +617,6 @@ function configCheck(chain: string, conf: ChainInstance) {
         log.error(`invalid ${chain} instance config: %o`, conf)
         process.exit(1)
     }
-}
-
-function poolDoneListener(args: any[]) {
-    const chainEmiter: Emiter = args[0]
-    const chain: string = args[1]
-    const type: NodeType = args[2]
-    log.debug(`pool emiter done listener: %o %o %o`, args[0], chain, type)
-    chainEmiter?.done()
-    // poolEmiter?.add(poolEventCnt)
-    // G.setServerStatus(chain, type, true)
 }
 
 interface Suber {
@@ -741,11 +724,17 @@ class Suber {
                 const poolSize = parseInt((conf.poolSize ?? 20).toString())
 
                 log.info(`${chain}-${id} type[${type}] url[${url}] pool size: ${poolSize}`)
-                const poolEmiter = new Emiter(`${chain}-${type}-${id}-init`, poolDoneListener, poolSize, true)
+                const poolEmiter = new Emiter(`${chain}-${type}-${id}-init`, () => {
+                    // we may have multiple nodeId instance of type,
+                    // once one of nodeId instance init done, take this type available
+                    log.info(`${chain}-${type}-${id} init done`)
+                    chainEmiter.done()
+                    G.setServerStatus(chain, type, true)
+                }, poolSize, true)
 
                 for (let i = 0; i < poolSize; i++) {
                     // TODO: suber health listener
-                    newSuber(chain, nodeId, url, type, new Set(), poolEmiter, {emiter: chainEmiter, chain, type})
+                    newSuber(chain, nodeId, url, type, new Set(), poolEmiter)
                 }
                 setSuberTypeCache(chain, type)     //e.g. kv support or not
 
