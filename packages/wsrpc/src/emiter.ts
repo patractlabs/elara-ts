@@ -10,11 +10,14 @@ export default class Emiter {
 
     private evtCnt: number
 
+    private maxEvtCnt: number
+
     private event: string
 
-    constructor(event: string, listener: Listener, on: boolean = false) {
-        this.evtCnt = 0
+    constructor(event: string, listener: Listener, maxEvt: number, on: boolean = false) {
+        this.evtCnt = maxEvt
         this.event = event
+        this.maxEvtCnt = maxEvt
 
         if (on) {
             this.evt.on(event, (args: any[]) => {
@@ -38,13 +41,21 @@ export default class Emiter {
         return this.evtCnt
     }
 
+    getMaxEvtCnt = (): number => {
+        return this.maxEvtCnt
+    }
+
     removeListener = (): void => {
         this.evt.removeAllListeners(this.event)
     }
 
     add = (num: number = 1): void => {
         log.info(`add event[${this.event}] count: ${num}`)
+        if (num > this.maxEvtCnt) { num = this.maxEvtCnt }
         this.evtCnt += num
+        if (this.evtCnt >= this.maxEvtCnt) {
+            this.evtCnt = this.maxEvtCnt
+        }
     }
 
     done = (args: any[] = []): void => {

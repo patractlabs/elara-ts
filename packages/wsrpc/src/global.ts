@@ -1,6 +1,7 @@
 import { IDT, getAppLogger } from '@elara/lib'
 import { ResultT, Err, Ok, Option, Some, None } from '@elara/lib'
 import EventEmitter from 'events'
+import { NodeType } from './chain'
 import { SubscripT, PingT } from "./interface"
 const log = getAppLogger('global')
 
@@ -16,20 +17,19 @@ const TryCntMap: Record<string, number> = {}
 const ConnCntMap: Record<string, Record<string, number>> = {}
 
 const PuberEvt = new EventEmitter()
-const KVEnable: Record<string, boolean> = {}
-const MemEnable: Record<string, boolean> = {}
+const SuberEnable: Record<string, boolean> = {}
 
 class G {
     private static ServerStatus: Record<string, boolean> = {}
 
     private static Ping: Record<string, PingT> = {}
 
-    static getServerStatus(chain: string): boolean {
-        return this.ServerStatus[chain]
+    static getServerStatus(chain: string, type: NodeType): boolean {
+        return this.ServerStatus[`${chain}-${type}`]
     }
 
-    static setServerStatus(chain: string, status: boolean) {
-        this.ServerStatus[chain] = status
+    static setServerStatus(chain: string, type: NodeType, status: boolean) {
+        this.ServerStatus[`${chain}-${type}`] = status
     }
 
     static addPingCache(ping: PingT): void {
@@ -48,23 +48,15 @@ class G {
         return this.Ping
     }
 
-    // kv enable cache
-    static setKvEnable(chain: string, enable: boolean) {
-        KVEnable[`${chain.toLowerCase()}`] = enable
+    // suber enable cache
+    static setSuberEnable(chain: string, type: NodeType, enable: boolean) {
+        SuberEnable[`${chain}-${type}`] = enable
     }
 
-    static getKvEnable(chain: string): boolean {
-        return KVEnable[`${chain.toLowerCase()}`]
+    static getSuberEnable(chain: string, type: NodeType): boolean {
+        return SuberEnable[`${chain}-${type}`]
     }
 
-    // memory node enable cache
-    static setMemEnable(chain: string, enable: boolean) {
-        MemEnable[`${chain.toLowerCase()}`] = enable
-    }
-
-    static getMemEnable(chain: string): boolean {
-        return MemEnable[`${chain.toLowerCase()}`]
-    }
 
     // puber event
     static getPuberEvent(): EventEmitter {

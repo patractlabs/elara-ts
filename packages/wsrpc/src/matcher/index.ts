@@ -190,11 +190,13 @@ class Matcher {
             return Err(`${chain}-${pid} bind node suber error`)
         }
         puber.nodeId = re.value.nodeId
-        const kvOpen = GG.getKvEnable(chain)
-        const memOpen = GG.getMemEnable(chain)
+        const kvOpen = GG.getSuberEnable(chain, NodeType.Kv)
+        const kvStatOk = GG.getServerStatus(chain, NodeType.Kv)
+        const memOpen = GG.getSuberEnable(chain, NodeType.Mem)
+        const memStatOk = GG.getServerStatus(chain, NodeType.Mem)
         log.debug(`puber before bind: kv[%o] mem[%o]`, puber.kvSubId, puber.memSubId)
 
-        if (kvOpen) {
+        if (kvOpen && kvStatOk) {
             re = await suberBind(chain, puber, NodeType.Kv)
             if (isErr(re)) {
                 log.error(`${chain}-${pid} bind node suber error: %o`, re.value)
@@ -203,7 +205,7 @@ class Matcher {
             log.debug(`puber after bind kv:  kv[%o] mem[%o]`, puber.kvSubId, puber.memSubId)
         }
 
-        if (memOpen) {
+        if (memOpen && memStatOk) {
             re = await suberBind(chain, puber, NodeType.Mem)
             if (isErr(re)) {
                 log.error(`${chain}-${pid} bind node suber error: %o`, re.value)

@@ -8,6 +8,7 @@ import { Kver, Noder, Cacher } from '../suber'
 import Util from '../util'
 import { Stat } from '../statistic'
 import G from '../global'
+import { NodeType } from '../chain'
 
 const log = getAppLogger('dispatch')
 
@@ -76,11 +77,12 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
             return Response.Ok(resp, JSON.stringify(res), stat)
         case RpcTyp.MemNoder:
             // TODO: memory node fail
-            const isSupport = G.getMemEnable(chain)
-            if (isSupport) {
+            const isSupport = G.getSuberEnable(chain, NodeType.Mem)
+            const statOk = G.getServerStatus(chain, NodeType.Mem)
+            if (isSupport && statOk) {
                 return Noder.sendMemRpc(chain, data, resp, stat)
             }
-            log.warn(`${chain} memory node is not support, transpond to noder`)
+            log.warn(`${chain} memory node support[${isSupport}] suber status ok[${statOk}], transpond to noder`)
             return Noder.sendRpc(chain, data, resp, stat)
         case RpcTyp.Noder:
             return Noder.sendRpc(chain, data, resp, stat)
@@ -97,6 +99,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
     stat.type = typ
     stat.code = 200
     let isSupport = false
+    let statOk = false
     log.info(`new ${typ} ws request ${method} of chain ${chain}-${nodeId} params: %o\n handle msg delay: ${Util.traceEnd(stat.start)}`, params)
     switch (typ) {
         case RpcTyp.Cacher:
@@ -128,20 +131,24 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
             log.error(`${chain}-${nodeId} ws cacher fail, transpond to noder method[${method}] params[${params}]`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Kver:
-            isSupport = G.getKvEnable(chain)
-            if (isSupport && puber.kvSubId !== undefined) {
+            isSupport = G.getSuberEnable(chain, NodeType.Kv)
+            statOk = G.getServerStatus(chain, NodeType.Kv)
+
+            if (isSupport && statOk && puber.kvSubId !== undefined) {
                 return Kver.send(puber, data, stat)
             }
-            log.warn(`${chain}-${nodeId} kv is not support, transpond to noder`)
+            log.warn(`${chain}-${nodeId} kv support[${isSupport}] suber status ok[${statOk}], transpond to noder`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))
         case RpcTyp.MemNoder:
-            isSupport = G.getMemEnable(chain)
-            if (isSupport && puber.memSubId !== undefined) {
+            isSupport = G.getSuberEnable(chain, NodeType.Mem)
+            statOk = G.getServerStatus(chain, NodeType.Mem)
+
+            if (isSupport && statOk && puber.memSubId !== undefined) {
                 return Noder.sendMemWs(puber, data, stat)
             }
-            log.warn(`${chain}-${nodeId} memory is not support, transpond to noder`)
+            log.warn(`${chain}-${nodeId} memory support[${isSupport}] suber status ok[${statOk}], transpond to noder`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Noder:
             return Noder.sendWs(puber, data, stat)

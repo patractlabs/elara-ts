@@ -14,6 +14,7 @@ import { Stat } from './src/statistic'
 import Dao from './src/dao'
 import G from './src/global'
 import Emiter from './src/emiter'
+import { NodeType } from './src/chain'
 
 const conf = Conf.getServer()
 const log = getAppLogger('app')
@@ -173,7 +174,7 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
     }
     const { chain, pid } = re.value
     // chain node ok
-    if (!G.getServerStatus(chain)) {
+    if (!G.getServerStatus(chain, NodeType.Node)) {
         log.error(`${chain} service unavailable now`)
         await socket.end(`HTTP/1.1 500 ${re.value} \r\n\r\n`, 'ascii')
         socket.emit('close', true)
@@ -299,8 +300,7 @@ async function run(): PVoidT {
         Server.listen(conf.port, () => {
             log.info(`Elara server listen on port: ${conf.port}`)
         })
-    })
-    elaraEmiter.add()
+    }, 1)
 
     await Service.init(elaraEmiter)
     

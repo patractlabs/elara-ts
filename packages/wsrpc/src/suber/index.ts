@@ -413,10 +413,10 @@ function setSuberTypeCache(chain: string, type: NodeType) {
     // NOTE: all chain instances must support kv or not
     switch (type) {
         case NodeType.Kv:
-            GG.setKvEnable(chain, true)
+            GG.setSuberEnable(chain, type, true)
             break
         case NodeType.Mem:
-            GG.setMemEnable(chain, true)
+            GG.setSuberEnable(chain, type, true)
             break
         default:
             break
@@ -425,7 +425,8 @@ function setSuberTypeCache(chain: string, type: NodeType) {
 
 type CloseOptions = {
     emiter: Emiter,
-    doneCnt: number
+    chain: string,
+    type: NodeType
 }
 
 function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pubers: Set<IDT>, poolEmiter?: Emiter, options?: CloseOptions): Suber {
@@ -435,11 +436,12 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
     Suber.updateOrAddSuber(chain, type, suber)
 
     ws.once('open', () => {
-        poolEmiter?.done([options?.emiter, poolEmiter, options?.doneCnt])
+        poolEmiter?.done([options?.emiter, chain, type])
         /// pubers may closed when re-open
+        G.setServerStatus(chain, type, true)
         log.info(`${chain}-${nodeId} ${type} suber[${suber.id}] connection opened`)
         // GG.resetTryCnt(chain)   // reset chain connection count
-        G.setServerStatus(chain, true)
+        
         // update suber status
         let re = Suber.getSuber(chain, type, suber.id)
         if (isNone(re)) {
@@ -462,7 +464,6 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
 
     ws.on('error', (err) => {
         log.error(`${chain}-${nodeId} ${type} suber[${suber.id}] socket error: %o`, err)
-        // suber.ws.close()
     })
 
     /// for polkadotappjs don't handle proxy connection, it will be broken if
@@ -476,6 +477,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
             process.exit(1)
         }
         const subTmp = re.value as Suber
+        poolEmiter?.add()
         log.debug(`get ${chain}-${nodeId} ${type} suber ${subTmp.id} pubers size: %o`, subTmp.pubers?.size)
         const isSubClose = isSuberClosed(reason as CloseReason)
         // if (isSubClose) {
@@ -557,7 +559,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
                     }
                     Puber.updateOrAdd(puber)
                     puber.ws.terminate()
-                    G.setServerStatus(chain, false)
+                    G.setServerStatus(chain, type, false)
                     log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear subscribe context of puber ${pubId} done`)
                 }
 
@@ -567,19 +569,18 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
             }
         }
 
-        // ws.terminate()
         // try to reconnect after 5 second
         delays(5, () => {
             log.warn(`create ${chain}-${nodeId} new ${type} suber try to connect, pubers: %o`, pubers)
             // log.warn(`create new suber try to connect ${curTryCnt + 1} times, pubers `, pubers)
-            newSuber(chain, nodeId, url, type, pubers, poolEmiter, options)  // poolEmiter only when start-up valid
             // GG.incrTryCnt(chain)
+            newSuber(chain, nodeId, url, type, pubers, poolEmiter, options)  // poolEmiter only when start-up valid
         })
     })
 
     ws.on('message', async (dat: WebSocket.Data) => {
         const start = Util.traceStart()
-        // if parse async, will occur message disorder problem
+        // BUG: if parse async, will occur message disorder problem
         let re = dataParse(dat, chain, type, suber.id)
         const time = Util.traceEnd(start)
 
@@ -627,19 +628,12 @@ function configCheck(chain: string, conf: ChainInstance) {
 
 function poolDoneListener(args: any[]) {
     const chainEmiter: Emiter = args[0]
-    const poolEmiter: Emiter = args[1]
-    const poolEventCnt = args[2]
-    log.debug(`pool emiter done listener: %o %o %o`, args[0], args[1], args[2])
+    const chain: string = args[1]
+    const type: NodeType = args[2]
+    log.debug(`pool emiter done listener: %o %o %o`, args[0], chain, type)
     chainEmiter?.done()
-    poolEmiter?.add(poolEventCnt)
-    if (poolEmiter) {
-        const evt = poolEmiter.getEvent()
-        const par = evt.split('-')
-        const chain = par[0]
-        const type = par[1]
-        const nodeId = par[2]
-        log.debug(`${chain} ${type} ${nodeId} suber pool init done`)
-    }
+    // poolEmiter?.add(poolEventCnt)
+    // G.setServerStatus(chain, type, true)
 }
 
 interface Suber {
@@ -727,8 +721,7 @@ class Suber {
             log.error(`${chain} get node instance error: id list empty`)
             process.exit(1)
         }
-        const chainEmiter = new Emiter(`${chain}-init`, suberEmiter.done)
-        chainEmiter.add(ids.length)
+        const chainEmiter = new Emiter(`${chain}-init`, suberEmiter.done, ids.length)
 
         for (let id of ids) {
 
@@ -745,15 +738,14 @@ class Suber {
 
                 const url = `ws://${conf.baseUrl}:${conf.wsPort}`
                 const type = conf.type
-                const poolSize = conf.poolSize || 20
+                const poolSize = parseInt((conf.poolSize ?? 20).toString())
 
                 log.info(`${chain}-${id} type[${type}] url[${url}] pool size: ${poolSize}`)
-                const poolEmiter = new Emiter(`${chain}-${type}-${id}-init`, poolDoneListener, true)
-                poolEmiter.add(parseInt(poolSize.toString()))
+                const poolEmiter = new Emiter(`${chain}-${type}-${id}-init`, poolDoneListener, poolSize, true)
 
                 for (let i = 0; i < poolSize; i++) {
                     // TODO: suber health listener
-                    newSuber(chain, nodeId, url, type, new Set(), poolEmiter, {emiter: chainEmiter, doneCnt: poolSize})
+                    newSuber(chain, nodeId, url, type, new Set(), poolEmiter, {emiter: chainEmiter, chain, type})
                 }
                 setSuberTypeCache(chain, type)     //e.g. kv support or not
 
@@ -769,8 +761,7 @@ class Suber {
 
         // config
         log.info(`NODE_ENV is ${process.env.NODE_ENV}`)
-        const suberEmiter = new Emiter('suber-init', emiter.done)
-        suberEmiter.add(chains.size)
+        const suberEmiter = new Emiter('suber-init', emiter.done, chains.size)
 
         for (let chain of chains) {
             log.info(`init suber of chain ${chain}`)
