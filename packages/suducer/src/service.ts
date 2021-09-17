@@ -3,7 +3,7 @@
 /// 
 import { getAppLogger, isNone } from '@elara/lib'
 import { G } from './global'
-import Chain from './chain'
+import Chain, { ChainConfig, NodeType } from './chain'
 import Pool from './pool'
 import { SuducerT } from './suducer'
 import { randomId } from '@elara/lib'
@@ -16,17 +16,17 @@ const buildReq = (id: string, method: string, params: any[]): ReqT => {
 }
 
 // no parameters allowed
-const sendWithoutParam = (chain: string, method: string, type: SuducerT) => {
+const sendWithoutParam = (chain: string, nodeId: string, method: string, type: SuducerT) => {
     let id: string
 
     switch (type) {
         case SuducerT.Sub:
             // topic - subscribe id
-            id = randomId().toString()
+            id = randomId()
             G.addSubCache(id, method)
             break
         case SuducerT.Cache:
-            id = `chain-${chain}-${method}`
+            id = `chain-${chain}-${nodeId}-${method}`
             // method cache
             break
         default:
@@ -35,12 +35,12 @@ const sendWithoutParam = (chain: string, method: string, type: SuducerT) => {
     }
     // all the cache & subscribe method has no params
     const req = buildReq(id, method, [])
-    Pool.send(chain, type, req)
+    Pool.send(chain, nodeId, type, req)
 }
 
-const excuteStrategyList = (rpcs: string[], chain: string, type: SuducerT) => {
+const excuteStrategyList = (rpcs: string[], chain: string, nodeId: string, type: SuducerT) => {
     for (let r of rpcs) {
-        sendWithoutParam(chain, r, type)
+        sendWithoutParam(chain, nodeId, r, type)
     }
 }
 
@@ -48,7 +48,7 @@ namespace Service {
 
     export namespace Cacheable {
 
-        const runSyncJob = (chain: string, second: number, strategy: CacheStrategyT): void => {
+        const runSyncJob = (chain: string, nodeId: string, second: number, strategy: CacheStrategyT): void => {
             const rpcs = G.getCacheByType(strategy)
             if (rpcs.length < 1) {
                 log.warn(`no item to excute in chain ${chain} cache strategy: ${strategy}`)
@@ -57,45 +57,35 @@ namespace Service {
 
             const interval = setInterval(() => {
                 log.info(`run chain ${chain} strategy ${strategy} cache job`)
-                excuteStrategyList(rpcs, chain, SuducerT.Cache)
+                excuteStrategyList(rpcs, chain, nodeId, SuducerT.Cache)
             }, second * 1000)
             G.addInterval(chain, strategy, interval)
         }
 
-        const syncAsBlockService = async (chain: string) => {
+        const syncAsBlockService = async (chain: string, nodeId: string) => {
             log.info(`run syncAsBlock service interval: 5s`)
-            runSyncJob(chain, 5, CacheStrategyT.SyncAsBlock)
+            runSyncJob(chain, nodeId, 5, CacheStrategyT.SyncAsBlock)
         }
 
-        const syncLowService = (chain: string) => {
+        const syncLowService = (chain: string, nodeId: string) => {
             log.info(`run syncLow service interval: 60s`)
-            runSyncJob(chain, 10 * 60, CacheStrategyT.SyncLow)
+            runSyncJob(chain, nodeId, 10 * 60, CacheStrategyT.SyncLow)
         }
 
-        export const syncOnceService = (chain: string) => {
-            log.info(`run syncOnce service chain ${chain}`)
+        export const syncOnceService = (chain: string, nodeId: string) => {
+            log.info(`run syncOnce service chain ${chain}-${nodeId}`)
             const rpcs = G.getCacheByType(CacheStrategyT.SyncOnce)
-            const req = buildReq(`chain-${chain}-chain_getBlockHash_0`, "chain_getBlockHash", [0])
-            Pool.send(chain, SuducerT.Cache, req)
-            excuteStrategyList(rpcs, chain, SuducerT.Cache)
+            const req = buildReq(`chain-${chain}-${nodeId}-chain_getBlockHash_0`, "chain_getBlockHash", [0])
+            Pool.send(chain, nodeId, SuducerT.Cache, req)
+            excuteStrategyList(rpcs, chain, nodeId, SuducerT.Cache)
         }
 
-        export const run = (chains: string[]) => {
-
-            const evt = G.getPoolEvt(SuducerT.Cache)
-            if (!evt) {
-                log.error(`subscribe cache pool event error`)
-                process.exit(2)
-            }
+        export const run = (chains: ChainConfig[]) => {
             for (let chain of chains) {
-
-                evt.once(`${chain}-open`, () => {
-                    log.info(`chain ${chain} subscribe pool event done type cache`)
-                    evt.removeAllListeners(`${chain}-open`)
-                    syncOnceService(chain)
-                    syncAsBlockService(chain)
-                    syncLowService(chain)
-                })
+                const { name, nodeId } = chain
+                log.info(`chain ${name} subscribe pool event done type cache`)
+                syncAsBlockService(name, nodeId)
+                syncLowService(name, nodeId)
             }
         }
     }
@@ -103,26 +93,20 @@ namespace Service {
 
     export namespace Subscribe {
 
-        export const subscribeService = async (chain: string) => {
+        export const subscribeService = async (chain: string, nodeId: string) => {
             const subs = G.getSubTopics()
-            excuteStrategyList(subs, chain, SuducerT.Sub)
+            log.info(`run subscribe service chain ${chain}-${nodeId}`)
+            excuteStrategyList(subs, chain, nodeId, SuducerT.Sub)
         }
 
-        export const run = async (chains: string[]) => {
-
-            let evt = G.getPoolEvt(SuducerT.Sub)
-            if (!evt) {
-                log.error(`subscribe pool event error`)
-                process.exit(2)
-            }
+        export const run = async (chains: ChainConfig[]) => {
             for (let chain of chains) {
-                log.info(`run subscribe topic of chain ${chain}`)
+                const { name, nodeId, type } = chain
+                if (type !== NodeType.Node) { continue }
+                log.info(`run subscribe topic of chain ${name}-${nodeId}`)
 
-                evt.once(`${chain}-open`, () => {
-                    log.info(`chain ${chain} subscribe pool event done`)
-                    evt.removeAllListeners(`${chain}-open`)
-                    subscribeService(chain)
-                })
+                log.warn(`chain ${name}-${nodeId} subscribe pool event done`)
+                subscribeService(name, nodeId)
             }
         }
     }
@@ -131,22 +115,16 @@ namespace Service {
         // init a ws connection for all chains
         await Chain.init()
         log.info(`chain init done`)
-
-        await Pool.init(secure)
-
         const re = G.getAllChains()
         if (isNone(re)) {
-            log.error(`no chains valid`)
-            process.exit(2)
+            log.error(`no chains available`)
+            process.exit(1)
         }
-        const chains = re.value
-        log.debug(`chain config list: %o`, chains)
-
-        // cache service
-        Cacheable.run(chains)
-
-        // subscribe runtimeVersion update
-        Subscribe.run(chains)
+    
+        Pool.init((args: any[]) => {
+            log.info(`suducer init done, service up: %o`, args)
+            Service.Cacheable.run(re.value)
+        }, secure)
     }
 }
 

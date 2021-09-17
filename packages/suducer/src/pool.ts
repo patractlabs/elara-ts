@@ -3,7 +3,6 @@
 /// 2. a ws Suducer-binding map { chain: {chan: {id1: Suducer}, rpc: {id2: Suducer}}}, current choose.
 
 import WebSocket from 'ws'
-import EventEmitter from 'events'
 import { getAppLogger, IDT, isErr, isNone, Option, dotenvInit } from '@elara/lib'
 import { Ok, Err, PResultT } from '@elara/lib'
 import { G } from './global'
@@ -11,11 +10,11 @@ import { ReqT, TopicT } from './interface'
 import Dao from './dao'
 import Suducer, { SuducerStat, SuducerT } from './suducer'
 import Service from './service'
-import { ChainConfig } from './chain'
+import Conf from '../config'
+import Emiter from './emiter'
 
 dotenvInit()
 
-import Conf from '../config'
 
 const log = getAppLogger('pool')
 
@@ -43,8 +42,15 @@ const isSubID = (id: string): boolean => {
     return SubReg.test(id) && id.length === 16
 }
 
-type SuducerArgT = { chain: string, url: string, type: SuducerT, topic?: string }
-const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
+interface SuducerArgT {
+    chain: string,
+    nodeId: string,
+    url: string,
+    type: SuducerT,
+    topic?: string
+}
+
+const newSuducer = (emiter: Emiter, { chain, nodeId, url, type, topic }: SuducerArgT): Suducer => {
 
     const ws: WebSocket = new WebSocket(url)
     let top
@@ -54,29 +60,15 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
             params: []
         } as TopicT
     }
-    let suducer: Suducer = Suducer.create(chain, type, ws, url, top)
-    // log.info(`create new suducer: ${JSON.stringify(suducer)}`)
-    const sign = `Chain[${chain}]-Url[${url}]-Type[${type}]-ID[${suducer.id}]`
+    let suducer: Suducer = Suducer.create(chain, nodeId, type, ws, url, top)
+    const sign = `Chain[${chain}]-${nodeId}-Url[${url}]-Type[${type}]-ID[${suducer.id}]`
 
-    ws.once('open', () => {
+    ws.on('open', () => {
         log.info(`Suducer ${sign} opened`)
-
+        emiter.done()
         // set the status ok
         suducer.stat = SuducerStat.Active
         G.updateSuducer(suducer)
-
-        // decr pool cnt
-        G.decrPoolCnt(chain, type)
-        if (G.getPoolCnt(chain, type) === 0) {
-            // emit init done event
-            let evt = G.getPoolEvt(type)
-            if (!evt) {
-                log.error(`get pool event of chain ${chain} type ${type} error`)
-                process.exit(2)
-            }
-            evt.emit(`${chain}-open`)
-            log.info(`emit pool open event done of chain ${chain} type ${type}`)
-        }
     })
 
     ws.on('error', (err: Error) => {
@@ -85,18 +77,12 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
 
     ws.on('close', (code: number, reason: string) => {
         log.error(`Suducer close-evt ${sign}: %o %o %o`, code, reason, suducer.ws.readyState)
+        emiter.add()
 
-        if (type === SuducerT.Cache) {
-            // G.delInterval(chain, CacheStrategyT.SyncAsBlock)
-            let size = Conf.getServer().cachePoolSize
-            if (G.getPoolCnt(chain, type) < size) {
-                G.incrPoolCnt(chain, type)
-            }
-        }
-        Pool.del(chain, type, suducer.id!)
+        Pool.del(chain, nodeId, type, suducer.id!)
 
         // set pool subscribe status fail        
-        delays(3, () => Pool.add({ chain, url, type, topic }))
+        delays(3, () => Pool.add(emiter, { chain, nodeId, url, type, topic }))
     })
 
     ws.on('message', async (data: WebSocket.Data) => {
@@ -114,45 +100,43 @@ const newSuducer = ({ chain, url, type, topic }: SuducerArgT): Suducer => {
                 Dao.updateChainCache(chain, method, dat.result)
             } else if (isSubID(dat.result)) {
                 // first subscribe response
-                log.info(`first subscribe response chain ${chain} topic[${topic}]`)
+                log.info(`first subscribe response chain ${chain}-${nodeId} topic[${topic}]`)
                 // G.addSubTopic(chain, dat.result, method)
                 let re: any = G.getSuducerId(chain, topic!)
                 if (isNone(re)) {
-                    log.error(`get suducer id error: invalid chain ${chain} method ${topic}`)
+                    log.error(`get suducer id error: invalid chain ${chain}-${nodeId} method ${topic}`)
                     process.exit(2)
                 }
                 const sudId = re.value
-                re = G.getSuducer(chain, type, sudId)
+                re = G.getSuducer(chain, nodeId, type, sudId)
                 if (isNone(re)) {
-                    log.error(`get suducer error: chain ${chain} type[${type}] id[${sudId}]`)
+                    log.error(`get suducer error: chain ${chain}-${nodeId} type[${type}] id[${sudId}]`)
                     process.exit(2)
                 }
                 let suducer = re.value as Suducer
                 suducer.topic = { ...suducer.topic, id: dat.result } as TopicT
                 G.updateSuducer(suducer)
             }
-        }
-        // subscribe data
-        else if (dat.params) {
+        } else if (dat.params) {
             // second response
             const method = topic!
 
             if (method === 'state_subscribeRuntimeVersion') {
                 // update syncOnce 
-                log.info(`chain ${chain} runtime version update`)
+                log.warn(`chain ${chain}-${nodeId} runtime version update`)
                 // Dao.updateChainCache(chain, method, dat.params.result)
-                Service.Cacheable.syncOnceService(chain)
+                Service.Cacheable.syncOnceService(chain, nodeId)
             }
         }
     })
     return suducer
 }
 
-async function selectSuducer(chain: string, type: SuducerT, method?: string): PResultT<Suducer> {
+async function selectSuducer(chain: string, nodeId: string, type: SuducerT, method?: string): PResultT<Suducer> {
     let suducer: Suducer
 
     if (type === SuducerT.Cache) {
-        let re = G.getSuducers(chain, type)
+        let re = G.getSuducers(chain, nodeId, type)
         if (isNone(re)) {
             return Err(`no suducer of chain ${chain} type ${type}`)
         }
@@ -165,7 +149,7 @@ async function selectSuducer(chain: string, type: SuducerT, method?: string): PR
             return Err(`no suducer id of chain ${chain} topic[${method}]`)
         }
 
-        re = G.getSuducer(chain, type, re.value)
+        re = G.getSuducer(chain, nodeId, type, re.value)
         if (isNone(re)) {
             return Err(`no suducer of chain ${chain} type ${type}`)
         }
@@ -176,46 +160,55 @@ async function selectSuducer(chain: string, type: SuducerT, method?: string): PR
     return Ok(suducer)
 }
 
-function cachePoolInit(chain: string, url: string) {
+function cachePoolInit(chain: string, nodeId: string, url: string, emiter: Emiter) {
     const type = SuducerT.Cache
     const size = Conf.getServer().cachePoolSize
-    G.setPoolCnt(chain, type, size)
-    Pool.add({ chain, url, type })
+    const suducerEmiter = new Emiter(`suducer-${nodeId}-${type}`, emiter.done, size, true)
+    for (let i = 0; i < size; i++) {
+        Pool.add(suducerEmiter, { chain, nodeId, url, type })
+    }
 }
 
-function subPoolInit(chain: string, url: string) {
+function subPoolInit(chain: string, nodeId: string, url: string, emiter: Emiter) {
     const type = SuducerT.Sub
     const topics = G.getSubTopics()
-    G.setPoolCnt(chain, type, Object.keys(topics).length)
+    const size = Object.keys(topics).length
+    const suducerEmiter = new Emiter(`suducer-${nodeId}-${type}`, () => {
+        emiter.done()
+        Service.Subscribe.subscribeService(chain, nodeId)
+        // Service.Cacheable.syncOnceService(chain, nodeId)
+    }, size, true)
+
     for (let topic of topics) {
-        Pool.add({ chain, url, type, topic })
+        log.debug(`init ${chain}-${nodeId} subscribe pool of topic: ${topic}`)
+        Pool.add(suducerEmiter, { chain, nodeId, url, type, topic })
     }
 }
 
 class Pool {
 
-    static add(arg: SuducerArgT) {
-        let { chain, url, type, topic } = arg
+    static add(emiter: Emiter, arg: SuducerArgT) {
+        let { chain, nodeId, url, type, topic } = arg
 
-        const suducer = newSuducer({ chain, url, type, topic })
+        const suducer = newSuducer(emiter, { chain, nodeId, url, type, topic })
         G.addSuducer(suducer)
         if (type === SuducerT.Sub) {
             G.addTopicSudid(chain, topic!, suducer.id)
         }
     }
 
-    static del(chain: string, type: SuducerT, sudId: IDT) {
-        G.delSuducer(chain, type, sudId)
+    static del(chain: string, nodeId: string, type: SuducerT, sudId: IDT) {
+        G.delSuducer(chain, nodeId, type, sudId)
         if (type === SuducerT.Sub) {
             G.delTopicSudid(chain, type)
         }
     }
 
-    static async send(chain: string, type: SuducerT, req: ReqT) {
+    static async send(chain: string, nodeId: string, type: SuducerT, req: ReqT) {
         // select suducer according to chain & type
-        let re = await selectSuducer(chain, type, req.method)
+        let re = await selectSuducer(chain, nodeId, type, req.method)
         if (isErr(re)) {
-            log.error(`select suducer error: no ${type} suducer of chain ${chain} method [${req.method}] valid`)
+            log.error(`select suducer error: no ${type} suducer of chain ${chain}-${nodeId} method [${req.method}] valid`)
             process.exit(2)
         }
         const suducer = re.value as Suducer
@@ -231,28 +224,23 @@ class Pool {
         return suducer.stat === SuducerStat.Active
     }
 
-    static init(secure: boolean = false) {
+    static init(doneListener: (args: any[]) => void, secure: boolean = false) {
         // init pool for basic sub & chan connection
-        const cconf = G.getAllChainConfs()
         const re = G.getAllChains()
-
-        if (isNone(cconf) || isNone(re)) {
+        if (isNone(re)) {
             log.error(`no chains available`)
             return
         }
         const chains = re.value
-        const chainConf = cconf.value
-        G.setPoolEvt(SuducerT.Sub, new EventEmitter())
-        G.setPoolEvt(SuducerT.Cache, new EventEmitter())
 
+        const chainEmiter = new Emiter('chain-init', doneListener, chains.length)
         for (let chain of chains) {
-            const conf = chainConf[chain] as ChainConfig
+            const { name, nodeId, baseUrl, wsPort } = chain
+            const url = generateUrl(baseUrl, wsPort, secure)
+            const poolEmiter = new Emiter(`${name}-${nodeId}-init`, chainEmiter.done, 2)
 
-            const url = generateUrl(conf.baseUrl, conf.wsPort, secure)
-
-            cachePoolInit(chain, url)
-
-            subPoolInit(chain, url)
+            cachePoolInit(name, nodeId, url, poolEmiter)
+            subPoolInit(name, nodeId, url, poolEmiter)
         }
     }
 }

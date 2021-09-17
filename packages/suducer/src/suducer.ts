@@ -19,6 +19,7 @@ interface Suducer {
     ws: WebSocket,
     chainId: IDT,      // chain scale, hash(name, url)
     chain: string,
+    nodeId: string,
     url: string,        // host:port
     type: SuducerT,
     cluster: number,    // 0 no-cluster, 1-N cluster ID, default 0
@@ -27,7 +28,7 @@ interface Suducer {
 }
 
 class Suducer {
-    static create(chain: string, type: SuducerT, ws: WebSocket, url: string, topic?: TopicT,
+    static create(chain: string, nodeId: string, type: SuducerT, ws: WebSocket, url: string, topic?: TopicT,
         cluster: number = 0): Suducer {
 
         const suducer = {
@@ -36,6 +37,7 @@ class Suducer {
             cluster,
             ws,
             chain,
+            nodeId,
             topic,
             url,
             type,

@@ -1,4 +1,3 @@
-import EventEmitter from 'events'
 import { getAppLogger, IDT } from '@elara/lib'
 import { None, Some, Option } from '@elara/lib'
 import { CacheT, ChainT, SuducerMap, SuducersT, PubsubT, CacheStrategyT, PsubStrategyT } from './interface'
@@ -63,50 +62,10 @@ const Suducers: SuducerMap = {}
 type TopicMapT = { [key in string]: IDT }
 const TopicSudidMap: { [key in string]: TopicMapT } = {}
 
-const PoolCnt: { [key in string]: number } = {}
-const PoolEvt: { [key in string]: EventEmitter } = {}
-
 // requestId -- method
 const SubCache: { [key in string]: string } = {}
 
 export class G {
-    // pool count
-    static setPoolCnt(chain: string, type: SuducerT, cnt: number) {
-        const key = `${chain.toLowerCase()}-${type}`
-        PoolCnt[key] = cnt
-    }
-
-    static getPoolCnt(chain: string, type: SuducerT): number {
-        const key = `${chain.toLowerCase()}-${type}`
-        return PoolCnt[key]
-    }
-
-    static incrPoolCnt(chain: string, type: SuducerT): void {
-        const key = `${chain.toLowerCase()}-${type}`
-        PoolCnt[key] += 1
-    }
-
-    static decrPoolCnt(chain: string, type: SuducerT): void {
-        const key = `${chain.toLowerCase()}-${type}`
-        PoolCnt[key] -= 1
-    }
-
-    // pool event
-    static setPoolEvt(type: SuducerT, evt: EventEmitter) {
-        PoolEvt[type] = evt
-    }
-
-    static delPoolEvt(type: SuducerT) {
-        delete PoolEvt[type]
-    }
-
-    static getPoolEvt(type: SuducerT): EventEmitter {
-        return PoolEvt[type]
-    }
-
-    static getAllPoolEvt() {
-        return PoolEvt
-    }
 
     // strategy 
     static getCacheMap(): CacheT {
@@ -148,10 +107,6 @@ export class G {
         Chains[key] = chain
     }
 
-    static updateChain(chain: ChainConfig): void {
-        Chains[`${chain.name.toLowerCase()}-${chain.nodeId}`] = chain
-    }
-
     static getChain(chain: string, nodeId: number): Option<ChainConfig> {
         const key = `${chain.toLowerCase()}-${nodeId}`
         if (!Chains[key]) {
@@ -164,18 +119,11 @@ export class G {
         delete Chains[`${chain.toLowerCase()}-${nodeId}`]
     }
 
-    static getAllChains(): Option<string[]> {
+    static getAllChains(): Option<ChainConfig[]> {
         if (Chains == {}) {
             return None
         }
-        return Some(Object.keys(Chains))
-    }
-
-    static getAllChainConfs(): Option<ChainT> {
-        if (Chains == {}) {
-            return None
-        }
-        return Some(Chains)
+        return Some(Object.values(Chains))
     }
 
     // intervals 
@@ -194,32 +142,32 @@ export class G {
 
     // suducer 
     static addSuducer(suducer: Suducer): void {
-        const key = `${suducer.chain.toLowerCase()}-${suducer.type}`
+        const key = `${suducer.chain.toLowerCase()}-${suducer.nodeId}-${suducer.type}`
         Suducers[key] = Suducers[key] || {}
         Suducers[key][suducer.id!] = suducer
     }
 
-    static getSuducer(chain: string, typ: SuducerT, sudId: IDT): Option<Suducer> {
-        const key = `${chain.toLowerCase()}-${typ}`
+    static getSuducer(chain: string, nodeId: string, typ: SuducerT, sudId: IDT): Option<Suducer> {
+        const key = `${chain.toLowerCase()}-${nodeId}-${typ}`
         if (!Suducers[key] || !Suducers[key][sudId]) { return None }
         return Some(Suducers[key][sudId] as Suducer)
     }
 
     static updateSuducer(suducer: Suducer): void {
-        const key = `${suducer.chain.toLowerCase()}-${suducer.type}`
+        const key = `${suducer.chain.toLowerCase()}-${suducer.nodeId}-${suducer.type}`
         Suducers[key][suducer.id!] = suducer
     }
 
-    static getSuducers(chain: string, typ: SuducerT): Option<SuducersT> {
-        const key = `${chain.toLowerCase()}-${typ}`
+    static getSuducers(chain: string, nodeId: string, typ: SuducerT): Option<SuducersT> {
+        const key = `${chain.toLowerCase()}-${nodeId}-${typ}`
         if (!Suducers[key]) {
             return None
         }
         return Some(Suducers[key])
     }
 
-    static delSuducer(chain: string, typ: SuducerT, sudId: IDT): void {
-        const key = `${chain.toLowerCase()}-${typ}`
+    static delSuducer(chain: string, nodeId: string, typ: SuducerT, sudId: IDT): void {
+        const key = `${chain.toLowerCase()}-${nodeId}-${typ}`
         delete Suducers[key][sudId]
     }
 

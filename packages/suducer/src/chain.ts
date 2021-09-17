@@ -84,7 +84,7 @@ export enum NodeType {
 
 export interface ChainConfig {
     name: string,
-    nodeId: number,       // default 0, elara node instance id
+    nodeId: string,       // default 0, elara node instance id
     type: NodeType,       
     baseUrl: string,      // host
     rpcPort: number,      // default 9933
@@ -95,14 +95,14 @@ export interface ChainConfig {
 
 class Chain {
 
-    static async parseConfig(chain: string, serverId: number) {
+    static async parseConfig(chain: string, serverId: number): PVoidT {
         const conf = await Dao.getChainConfig(chain, serverId)
         if (isErr(conf)) {
             log.error(`Parse config of chain[${chain}] error: %o`, conf.value)
             return
         }
         const chainf = conf.value as ChainConfig
-
+        if (chainf.type !== NodeType.Node) { return }
         G.addChain(chainf)
     }
 
