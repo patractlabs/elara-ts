@@ -485,6 +485,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
 
         // delete suber before
         Suber.delSuber(chain, type, suber.id)
+        G.delPingCache(suber.id)
         log.warn(`delete ${chain}-${type} suber[${suber.id}]`)
 
         if (!isSubClose && pubers.size > 0) {
