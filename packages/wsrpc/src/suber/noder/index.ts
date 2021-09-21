@@ -97,7 +97,7 @@ export class Noder {
     }
 
     static async sendWs(puber: Puber, data: ReqDataT, stat: Statistics): PVoidT {
-        log.info(`new node ws requst, chain ${puber.chain} method ${data.method} params ${data.params}`)
+        // log.info(`new node ws requst, chain ${puber.chain} method ${data.method} params ${data.params}`)
         Puber.transpond(puber, NodeType.Node, data, stat)
     }
 

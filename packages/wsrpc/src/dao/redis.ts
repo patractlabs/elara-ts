@@ -113,14 +113,11 @@ class Rd {
             updateTime,
             result
         }
-        log.error('data to be dump: %o', latest)
         return cacheRd.hmset(KCache.hCache(chain, method), latest)
     }
 
     static async getLatest(chain: string, method: string) {
-        log.debug(`before get ${chain} latest cache, method: ${method}`)
         const re = await cacheRd.hgetall(KCache.hCache(chain, method))
-        log.debug(`after get ${chain} ${method} cache result`)
         return re
     }
 

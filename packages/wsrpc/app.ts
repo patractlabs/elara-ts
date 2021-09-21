@@ -41,7 +41,7 @@ async function projectOk(chain: string, pid: string): PBoolT {
 }
 
 async function resourceLimitOk(chain: string, pid: string): PResultT<boolean> {
-    const start = Util.traceStart()
+    // const start = Util.traceStart()
     if (pid === '00000000000000000000000000000000') {
         return Ok(true)
     }
@@ -56,7 +56,7 @@ async function resourceLimitOk(chain: string, pid: string): PResultT<boolean> {
     if (ustat.status !== 'active') {
         return Err(`user status not valid`)
     }
-    log.debug(`resource check delay: %o`, Util.traceEnd(start))
+    // log.debug(`resource check delay: %o`, Util.traceEnd(start))
     return Ok(true)
 }
 

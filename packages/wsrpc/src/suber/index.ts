@@ -56,7 +56,6 @@ function parseReq(dat: WsData, chain: string): ResultT<ReqT | boolean> {
 
     if (isSecondResp(dat.params)) {
         const subsId = dat.params.subscription
-        log.info(`${chain} receive second response of subscribe: %o`, subsId)
         const re = GG.getReqId(subsId)
         if (isErr(re)) {
             log.error(`${chain} parse request cache error: ${re.value}, puber has been closed.`)
@@ -65,7 +64,6 @@ function parseReq(dat: WsData, chain: string): ResultT<ReqT | boolean> {
         reqId = re.value
     } else if (isUnsubOnClose(dat, isSubscribeID(dat.id.toString()))) {
         // unsubscribe data when puber close
-        log.warn(`${chain} get unsubscribe resposne when puber close: %o`, dat)
         const re = GG.getReqId((dat.id)!.toString())
         if (isErr(re)) {
             // BUG: WTF
@@ -74,7 +72,7 @@ function parseReq(dat: WsData, chain: string): ResultT<ReqT | boolean> {
             // process.exit(2)
         }
         reqId = re.value    // the subscribe request id
-        log.info(`${chain} unsubscribe result when puber closed, fetch subscribe request ${reqId}`)
+        // log.info(`${chain} unsubscribe result when puber closed, fetch subscribe request ${reqId}, subscript id[${dat.id}]`)
     }
 
     let re = Matcher.getReqCache(reqId!)
@@ -85,7 +83,7 @@ function parseReq(dat: WsData, chain: string): ResultT<ReqT | boolean> {
     }
     const req = re.value as ReqT
     if (dat.id && isUnsubOnClose(dat, isSubscribeID(dat.id.toString()))) {
-        log.info(`set ${req.chain} pid[${req.pid}] unsubscribe request context when puber close`)
+        // log.debug(`set ${req.chain} pid[${req.pid}] unsubscribe request context when puber close`)
         // req.type = ReqTyp.Close   // to clear request cache
         req.params = req.subsId!
         req.originId = 0
@@ -173,10 +171,9 @@ function updateStatistic(req: ReqT, data: string, isSub: boolean = false): void 
 /// 5. unsubscribe response
 function dataParse(data: WebSocket.Data, chain: string, subType: NodeType, subId: IDT): ResultT<DParT> {
     let dat = JSON.parse(data as string)
-    log.debug(`new ${chain} ${subType} data: %o`, dat)
+    // log.debug(`new ${chain} ${subType} data: %o`, dat)
     // health check message
     if (dat.id && (dat.id as string).startsWith('ping')) {
-        log.debug(`${chain}-${subType} suber[${subId}] pong response`)
         // clear ping cache
         G.delPingCache(subId)
         // update suber status to Active
@@ -191,11 +188,11 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType, subId
             dat = JSON.parse(dat.result)
         }
         // dat.error: no need handle
-        log.info(`${chain} new kv ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
+        // log.debug(`${chain} new kv ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
     } else if (subType === NodeType.Mem) {
-        log.info(`${chain} new memory node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
+        // log.debug(`${chain} new memory node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
     } else {
-        log.info(`${chain} new node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
+        // log.debug(`${chain} new node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
     }
     // NOTE: if asynclize parseReqId, 
     // subReqMap may uninit, then miss the first data response
@@ -282,7 +279,7 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType, subId
 }
 
 async function puberSend(req: ReqT, dat: WebSocket.Data): PVoidT {
-    const { chain, id, subType, pubId } = req
+    const { pubId } = req
     let re = Puber.get(pubId)
     if (isNone(re)) {
         log.error(`invalid puber ${pubId}, has been closed`)
@@ -290,7 +287,6 @@ async function puberSend(req: ReqT, dat: WebSocket.Data): PVoidT {
     }
     const puber = re.value as Puber
     puber.ws.send(dat)
-    log.info(`${chain} ${subType} pid[${puber.pid}] puber ${pubId} send response: ${id}`)
 }
 
 function recoverPuberTopics(puber: Puber, ws: WebSocket, subType: NodeType, subId: IDT, subsId: string) {

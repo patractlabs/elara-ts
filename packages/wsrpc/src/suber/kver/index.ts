@@ -35,7 +35,7 @@ export class Kver {
     ]
 
     static send(puber: Puber, data: ReqDataT, stat: Statistics): void {
-        log.info(`new kv request, chain ${puber.chain} method ${data.method} params `, data.params)
+        // log.info(`new kv request, chain ${puber.chain} method ${data.method} params `, data.params)
         Puber.transpond(puber, NodeType.Kv, data, stat)
     }
 }

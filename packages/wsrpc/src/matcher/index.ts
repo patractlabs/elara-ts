@@ -222,13 +222,13 @@ class Matcher {
         return Ok(puber)
     }
 
-    static newRequest(puber: Puber, subType: NodeType, subId: IDT, data: ReqDataT, stat: Statistics): ResultT<ReqDataT> {
+    static async newRequest(puber: Puber, subType: NodeType, subId: IDT, data: ReqDataT, stat: Statistics): PResultT<ReqDataT> {
         const { chain, pid, id } = puber
         const method = data.method!
         let type = ReqTyp.Rpc
         let subsId
         if (isUnsubReq(method)) {
-            log.info(`${chain} pid[${pid}] pre handle unsubscribe request: ${method}: %o`, data.params)
+            log.debug(`${chain} pid[${pid}] pre handle unsubscribe request: ${method}: %o`, data.params)
             if (data.params!.length < 1 || !Suber.isSubscribeID(data.params![0])) {
                 return Err(`invalid unsubscribe params: ${data.params![0]}`)
             }

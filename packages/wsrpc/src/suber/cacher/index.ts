@@ -54,7 +54,7 @@ export class Cacher {
     }
 
     static async send(chain: string, method: string): Promise<Record<string, string>> {
-        log.info(`new cache request, chain ${chain} method[${method}]`)
+        // log.info(`new cache request, chain ${chain} method[${method}]`)
         return Dao.getChainCache(chain, method)
     }
 }

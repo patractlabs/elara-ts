@@ -118,7 +118,7 @@ class Puber {
         } else if (type === NodeType.Mem) {
             subId = puber.memSubId!
         }
-        let re = Matcher.newRequest(puber, type, subId, data, stat)
+        let re = await Matcher.newRequest(puber, type, subId, data, stat)
         if (isErr(re)) {
             log.error(`${type} ${chain}-${pid} create new request error: ${re.value}`)
             stat.code = 500
@@ -147,7 +147,6 @@ class Puber {
             return
         }
         const suber: Suber = sre.value
-        log.debug(`ready to send ${type} subscribe request: ${JSON.stringify(sendData)}`)
         // transpond requset
         log.info(`Send new message to ${type} suber[${suber.id}] of chain ${chain} request ID[${dat.id}], transpond delay: ${Util.traceEnd(start)}`)
         return suber.ws.send(JSON.stringify(sendData))
