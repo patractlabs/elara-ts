@@ -102,16 +102,6 @@ class Puber {
     static async transpond(puber: Puber, type: NodeType, data: ReqDataT, stat: Statistics): PVoidT {
         const start = Util.traceStart()
         const { chain, pid } = puber
-
-        // polkadotapps will subscribe more than once
-        // const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
-        // topic bind to chain and params 
-        // if (Matcher.isSubscribed(chain, pid, data)) {
-        //     log.warn(`The pid[${puber.pid}] puber[${puber.id}] has subscribed topic [${data.method}], no need to subscribe twice!`)
-        //     res.error = { code: 1000, message: 'No need to subscribe twice' }
-        //     const sres = JSON.stringify(res)
-        //     return puber.ws.send(sres)
-        // }
         let subId = puber.subId
         if (type === NodeType.Kv) {
             subId = puber.kvSubId!
@@ -140,8 +130,6 @@ class Puber {
         if (isNone(sre)) {
             log.error(`send message error: invalid suber ${puber.subId} chain ${chain} type ${type}, suber may closed, close puber[${puber.id}] now`)
             // clear request cache
-
-            // G.delReqCache(dat.id)
             Matcher.delReqCacheByPubStat(dat.id)
             puber.ws.terminate()
             return

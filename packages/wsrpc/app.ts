@@ -225,13 +225,12 @@ wss.on('connection', async (ws, req: any) => {
     if (forward) {
         ip = forward.split(',')[0].trim()
     }
-    log.info(`New socket connection chain ${chain} pid[${pid}] ip[${ip}], current total connections: %o`, wss.clients.size)
     const id = puber.id
     stat.code = 200
     // publish statistics
     Stat.publish(stat)
     const delay = Util.traceEnd(trace)
-    log.info(`${chain} pid[${pid}] websocket connection delay: ${delay}`)
+    log.info(`New socket connection chain ${chain} pid[${pid}] ip[${ip}] delay[${delay}], current total connections: %o`, wss.clients.size)
 
     ws.on('message', async (data) => {
         let dat: ReqDataT
@@ -273,7 +272,7 @@ wss.on('connection', async (ws, req: any) => {
 
     ws.on('close', async (code, reason) => {
         log.error(`${chain}-${puber.nodeId} pid[${pid}] puber[${id}] close: code ${code}, reason ${reason}, current total puber connections: %o`, wss.clients.size)
-        if (reason === CloseReason.OutOfLimit || reason === CloseReason.SuberUnavail) {
+        if (reason === CloseReason.OutOfLimit) {
             return  // out of limit
         }
         Matcher.unRegist(id, reason as CloseReason)
@@ -287,6 +286,7 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('error', (err) => {
+        ws.terminate()
         log.error(`${chain}-${puber.nodeId} pid[${pid}] Puber[${id}] Connection error: %o`, err)
     })
     return

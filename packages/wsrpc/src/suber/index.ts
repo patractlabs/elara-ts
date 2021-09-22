@@ -430,7 +430,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
         /// pubers may closed when re-open
         log.info(`${chain}-${nodeId} ${type} suber[${suber.id}] connection opened`)
         // GG.resetTryCnt(chain)   // reset chain connection count
-        
+
         // update suber status
         let re = Suber.getSuber(chain, type, suber.id)
         if (isNone(re)) {
@@ -452,6 +452,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
     })
 
     ws.on('error', (err) => {
+        ws.terminate()
         log.error(`${chain}-${nodeId} ${type} suber[${suber.id}] socket error: %o`, err)
     })
 
@@ -499,64 +500,64 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
 
             // const serConf = Conf.getServer()
             // if (curTryCnt >= serConf.maxReConn) {
-            if (true) {
-                // make sure node service is active
-                // await Util.sleep(30000)
-                // log.warn(`too many try to connect to ${type} suber, clear all relate context.`)
-                // clear subscribe context 
-                const rea = type === NodeType.Kv ? CloseReason.Kv : CloseReason.Node
-                for (let pubId of pubers) {
-                    // clear all topics
-                    let re = Puber.get(pubId)
-                    if (isNone(re)) {
-                        log.error(`clear subscribe context when ${chain}-${nodeId} ${type} suber close error: invalid puber ${pubId}`)
-                        continue
-                    }
-                    const puber = re.value
-                    const pid = puber.pid
-                    log.info(`close pid[${pid}] puber[${pubId}] of ${chain}-${nodeId} ${type} suber[${suber.id}]`)
-                    if (puber.topics.size < 1) {
-                        log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: no topics in pid[${pid}] puber ${pubId}`)
-                        // send close to puber
-                        puber.ws.close(1001, rea)
-                        continue
-                    }
-                    for (let subsId of puber.topics) {
-                        let reid = GG.getReqId(subsId)
-                        if (isErr(reid)) {
-                            log.error(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear pid[${pid}] puber[${pubId}] subscribe context error: ${reid.value}`)
-                            process.exit(2)
-                        }
-                        const reqId = reid.value
-                        const reqr = Matcher.getReqCache(reqId)
-                        if (isErr(reqr)) {
-                            log.error(`clear pid[${pid}] puber ${pubId} when ${chain}-${nodeId} ${type} suber ${subTmp.id} closed error: ${reqr.value}`)
-                            process.exit(2)
-                        }
-                        const req = reqr.value
-                        if (req.subType === type) {
-                            // GG.delReqCache(reqId)
-                            Matcher.delReqCacheByPubStat(reqId)
-                            Puber.remReq(puber.id, reqId)
-                            GG.remSubTopic(chain, puber.pid, subsId)
-                            GG.delSubReqMap(subsId)
-                            // update puber.topic
-                            puber.topics.delete(subsId)
-                            log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear subscribe context of pid[${pid}] puber ${pubId} topic ${subsId} done`)
-                        } else {
-                            log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: ignore subscribe context of pid[${pid}] puber ${pubId} topic ${subsId}, is brother suber's topic`)
-                        }
-                    }
-                    Puber.updateOrAdd(puber)
-                    puber.ws.terminate()
-                    G.setServerStatus(chain, type, false)
-                    log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear subscribe context of puber ${pubId} done`)
-                }
 
-                pubers = new Set<IDT>()  // clear pubers after handle 
-                // GG.resetTryCnt(chain)
-                log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear context done`)
+            // make sure node service is active
+            // await Util.sleep(30000)
+            // log.warn(`too many try to connect to ${type} suber, clear all relate context.`)
+            // clear subscribe context 
+            const rea = type === NodeType.Kv ? CloseReason.Kv : CloseReason.Node
+            for (let pubId of pubers) {
+                // clear all topics
+                let re = Puber.get(pubId)
+                if (isNone(re)) {
+                    log.error(`clear subscribe context when ${chain}-${nodeId} ${type} suber close error: invalid puber ${pubId}`)
+                    continue
+                }
+                const puber = re.value
+                const pid = puber.pid
+                log.info(`close pid[${pid}] puber[${pubId}] of ${chain}-${nodeId} ${type} suber[${suber.id}]`)
+                if (puber.topics.size < 1) {
+                    log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: no topics in pid[${pid}] puber ${pubId}`)
+                    // send close to puber
+                    puber.ws.close(1001, rea)
+                    continue
+                }
+                for (let subsId of puber.topics) {
+                    let reid = GG.getReqId(subsId)
+                    if (isErr(reid)) {
+                        log.error(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear pid[${pid}] puber[${pubId}] subscribe context error: ${reid.value}`)
+                        process.exit(2)
+                    }
+                    const reqId = reid.value
+                    const reqr = Matcher.getReqCache(reqId)
+                    if (isErr(reqr)) {
+                        log.error(`clear pid[${pid}] puber ${pubId} when ${chain}-${nodeId} ${type} suber ${subTmp.id} closed error: ${reqr.value}`)
+                        process.exit(2)
+                    }
+                    const req = reqr.value
+                    if (req.subType === type) {
+                        // GG.delReqCache(reqId)
+                        Matcher.delReqCacheByPubStat(reqId)
+                        Puber.remReq(puber.id, reqId)
+                        GG.remSubTopic(chain, puber.pid, subsId)
+                        GG.delSubReqMap(subsId)
+                        // update puber.topic
+                        puber.topics.delete(subsId)
+                        log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear subscribe context of pid[${pid}] puber ${pubId} topic ${subsId} done`)
+                    } else {
+                        log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: ignore subscribe context of pid[${pid}] puber ${pubId} topic ${subsId}, is brother suber's topic`)
+                    }
+                }
+                Puber.updateOrAdd(puber)
+                puber.ws.terminate()
+                G.setServerStatus(chain, type, false)
+                log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear subscribe context of puber ${pubId} done`)
             }
+
+            pubers = new Set<IDT>()  // clear pubers after handle 
+            // GG.resetTryCnt(chain)
+            log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear context done`)
+            // }    // end if (curTryCnt >= serConf.maxReConn)
         }
 
         // try to reconnect after 5 second

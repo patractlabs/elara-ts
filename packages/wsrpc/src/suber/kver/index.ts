@@ -1,9 +1,9 @@
-import { getAppLogger } from '@elara/lib'
+// import { getAppLogger } from '@elara/lib'
 import { ReqDataT, Statistics } from "../../interface"
 import { NodeType } from "../../chain"
 import Puber from "../../puber"
 
-const log = getAppLogger('kver')
+// const log = getAppLogger('kver')
 
 export class Kver {
     // static Rpcs: string[] = []

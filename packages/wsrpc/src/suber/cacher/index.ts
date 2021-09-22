@@ -1,7 +1,7 @@
-import { getAppLogger } from '@elara/lib'
+// import { getAppLogger } from '@elara/lib'
 import Dao from '../../dao'
 
-const log = getAppLogger('cacher')
+// const log = getAppLogger('cacher')
 
 export type CacherStat = {
     block: number,
