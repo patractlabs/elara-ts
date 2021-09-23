@@ -553,9 +553,6 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
                 }
                 Puber.updateOrAdd(puber)
                 puber.ws.terminate()
-                // try?
-                await puber.socket.end(`HTTP/1.1 500 ${re.value} \r\n\r\n`, 'ascii')
-                puber.socket.emit('close', true)
                 G.setServerStatus(chain, type, false)
                 log.info(`${chain}-${nodeId} ${type} suber ${subTmp.id} closed: clear subscribe context of puber ${pubId} done`)
             }

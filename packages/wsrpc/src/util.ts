@@ -1,7 +1,8 @@
 import { performance } from 'perf_hooks'
-import { Ok, Err, PResultT } from '@elara/lib'
+import { Ok, Err, PResultT, ResultT } from '@elara/lib'
 import Chain from './chain'
-import { ChainPidT } from './interface'
+import { ChainPidT, ReqDataT } from './interface'
+import { UnsafeMethods } from './matcher/topic'
 
 class Util {
     static reqFastStr(obj: JSON): string {
@@ -67,11 +68,6 @@ class Util {
         return Math.floor(performance.now() - start)
     }
 
-    static globalStat(): string {
-        return ''
-        // return `suber: ${G.suberCnt()}, puber: ${G.puberCnt()}, topic: ${G.topicCnt()}, subMap: ${G.subMapCnt()}, reqMap: ${G.reqMapCnt()}`
-    }
-
     static strBytes(str: string): number {
         return Buffer.byteLength(str, 'utf8')
     }
@@ -82,6 +78,22 @@ class Util {
                 resolve(' enough sleep~')
             }, sec)
         })
+    }
+
+    static rpcCheck(data: string): ResultT<ReqDataT> {
+        try {
+            let dat = JSON.parse(data) as ReqDataT
+            if (!dat.id || !dat.jsonrpc || !dat.method || !dat.params) {
+                return Err('invalid request must be JSON {"id": string, "jsonrpc": "2.0", "method": "your method", "params": []}')
+            }
+
+            if (UnsafeMethods.has(dat.method)) {
+                return Err(`Forbiden Access!`)
+            }
+            return Ok(dat)
+        } catch (err: any) {
+            return Err(err)
+        }
     }
 }
 

@@ -1,5 +1,4 @@
 import WebSocket from 'ws'
-import Net from 'net'
 import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT, isNone } from '@elara/lib'
 import { Option, None, Some } from '@elara/lib'
 import { randomId } from '@elara/lib'
@@ -18,7 +17,6 @@ interface Puber {
     chain: string,
     nodeId: number,
     ws: WebSocket,
-    socket: Net.Socket,     // for puber close
     topics: Set<string>,   // {subscribeId}
     subId: IDT,            // suber id
     kvSubId?: IDT,          // kv 
@@ -74,8 +72,8 @@ class Puber {
         return Puber.reqs[pubId].delete(reqId)
     }
 
-    static create(ws: WebSocket, chain: string, pid: IDT, socket: Net.Socket): Puber {
-        const puber = { id: randomId(), pid, chain, ws, socket, topics: new Set() } as Puber
+    static create(ws: WebSocket, chain: string, pid: IDT): Puber {
+        const puber = { id: randomId(), pid, chain, ws, topics: new Set() } as Puber
         Puber.updateOrAdd(puber)
         Puber.reqs[puber.id] = new Set<string>()
         return puber
@@ -134,9 +132,6 @@ class Puber {
             // clear request cache
             Matcher.delReqCacheByPubStat(dat.id)
             puber.ws.terminate()
-            // try?
-            await puber.socket.end(`HTTP/1.1 500 ${re.value} \r\n\r\n`, 'ascii')
-            puber.socket.emit('close', true)
             return
         }
         const suber: Suber = sre.value

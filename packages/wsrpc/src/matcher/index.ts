@@ -1,5 +1,4 @@
 import WebSocket from 'ws'
-import Net from 'net'
 import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option, PBoolT } from '@elara/lib'
 import GG from '../global'
 import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason, Statistics } from '../interface'
@@ -10,6 +9,7 @@ import { md5, randomId } from '@elara/lib'
 import Conf from '../../config'
 import Topic from './topic'
 import { Stat } from '../statistic'
+import Dao from '../dao'
 
 const log = getAppLogger('matcher')
 
@@ -179,12 +179,12 @@ class Matcher {
         return this.req
     }
 
-    static async regist(ws: WebSocket, chain: string, pid: IDT, socket: Net.Socket): PResultT<Puber> {
+    static async regist(ws: WebSocket, chain: string, pid: IDT): PResultT<Puber> {
         const isOut = await isConnOutOfLimit(ws, chain, pid)
         if (isOut) { return Err(`connection out of limit`) }
 
         // create new puber 
-        const puber = Puber.create(ws, chain, pid, socket)
+        const puber = Puber.create(ws, chain, pid)
         let re = await suberBind(chain, puber, NodeType.Node)
         if (isErr(re)) {
             log.error(`${chain}-${pid} bind node suber error: %o`, re.value)
@@ -314,6 +314,38 @@ class Matcher {
             }
         }
         return false
+    }
+
+    static async resourceLimitOk(chain: string, pid: string): PResultT<boolean> {
+        // const start = Util.traceStart()
+        if (pid === '00000000000000000000000000000000') {
+            return Ok(true)
+        }
+    
+        const pstat = await Dao.getProjectStatus(chain, pid)
+        if (pstat.status !== 'active') {
+            return Err(`project status not valid`)
+        }
+        const userId = parseInt(pstat.user)
+        const ustat = await Dao.getUserStatus(userId)
+    
+        if (ustat.status !== 'active') {
+            return Err(`user status not valid`)
+        }
+        // log.debug(`resource check delay: %o`, Util.traceEnd(start))
+        return Ok(true)
+    }
+
+    static async projectOk(chain: string, pid: string): PBoolT {
+        if (pid === '00000000000000000000000000000000') {
+            return true
+        }
+        const pstat = await Dao.getProjectStatus(chain, pid)
+        log.info(`get ${chain} project[${pid}] status resutl: %o`, pstat)
+        if (pstat.status === undefined) {
+            return false
+        }
+        return true
     }
 }
 
