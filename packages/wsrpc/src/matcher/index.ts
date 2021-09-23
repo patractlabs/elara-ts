@@ -1,4 +1,5 @@
 import WebSocket from 'ws'
+import Net from 'net'
 import { IDT, getAppLogger, Err, Ok, ResultT, PResultT, isErr, PVoidT, isNone, Option, PBoolT } from '@elara/lib'
 import GG from '../global'
 import { WsData, ReqT, ReqTyp, ReqDataT, CloseReason, Statistics } from '../interface'
@@ -178,12 +179,12 @@ class Matcher {
         return this.req
     }
 
-    static async regist(ws: WebSocket, chain: string, pid: IDT): PResultT<Puber> {
+    static async regist(ws: WebSocket, chain: string, pid: IDT, socket: Net.Socket): PResultT<Puber> {
         const isOut = await isConnOutOfLimit(ws, chain, pid)
         if (isOut) { return Err(`connection out of limit`) }
 
         // create new puber 
-        const puber = Puber.create(ws, chain, pid)
+        const puber = Puber.create(ws, chain, pid, socket)
         let re = await suberBind(chain, puber, NodeType.Node)
         if (isErr(re)) {
             log.error(`${chain}-${pid} bind node suber error: %o`, re.value)

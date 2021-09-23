@@ -197,15 +197,16 @@ Server.on('upgrade', async (req: Http.IncomingMessage, socket: Net.Socket, head)
         req['pid'] = pid
         req['stat'] = reqStatis
         req['trace'] = start
+        req['socket'] = socket
         wss.emit('connection', ws, req)
     })
 })
 
 // WebSocket connection event handle
 wss.on('connection', async (ws, req: any) => {
-    const { chain, pid, trace } = req
+    const { chain, pid, trace, socket } = req
     const stat = req['stat']
-    const re = await Matcher.regist(ws, chain, pid)
+    const re = await Matcher.regist(ws, chain, pid, socket)
     if (isErr(re)) {
         log.error(`${chain} pid[${pid}] socket connect error: ${re.value}`)
         if (re.value.includes('suber inactive')) {
