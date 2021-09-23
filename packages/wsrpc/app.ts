@@ -272,6 +272,11 @@ wss.on('connection', async (ws, req: any) => {
     })
 
     ws.on('close', async (code, reason) => {
+        /// puber close
+        /// 1. client closed: clear all request cache, unsubscribe all topics
+        /// 2. node failed: clear non-subscribe request cache, since node won't response anymore,
+        ///     clear subscribe topics on kv, try to unsubscribe.
+        /// 3. kv failed: close the socket connection, clear kv subscribe cache, unsubscribe node subscribe topic.
         log.error(`${chain}-${puber.nodeId} pid[${pid}] puber[${id}] close: code ${code}, reason ${reason}, current total puber connections: %o`, wss.clients.size)
         if (reason === CloseReason.OutOfLimit) {
             return  // out of limit
@@ -304,7 +309,6 @@ async function run(): PVoidT {
     }, 1)
 
     await Service.init(elaraEmiter)
-    
 }
 
 run()

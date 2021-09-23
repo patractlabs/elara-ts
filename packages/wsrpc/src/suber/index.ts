@@ -460,6 +460,9 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
     /// puber connection keep alive while no message response in a certain time.
     /// we have to terminate the puber connection once suber closed
     ws.on('close', async (code: number, reason: string) => {
+
+        /// 1. node suber: clear non-subscribe request cache, unsubscribe kv topics, clear & close pubers.
+        /// 2. kv suber: unsubscribe node topics, clear & close pubers.
         log.error(`${chain}-${nodeId} ${type} suber[${suber.id}] socket closed: %o %o`, code, reason)
         const re = Suber.getSuber(chain, type, suber.id)
         if (isNone(re)) {
