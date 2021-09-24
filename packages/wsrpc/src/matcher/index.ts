@@ -289,6 +289,10 @@ class Matcher {
         /// when puber error or close,
         /// if suber close or error, will emit puber close
 
+
+        // 1. clear puber & puber topics
+        // 2. decrease connection cnount
+        
         let re: Option<any> = Puber.get(pubId)
         if (isNone(re) || !re.value.subId) {
             // SBH
@@ -300,6 +304,14 @@ class Matcher {
         GG.decrConnCnt(puber.chain, puber.pid)
 
         clearSubscribeContext(puber, reason)
+    }
+
+    static newResponse() {
+        // clear non-subscribe request cache
+        // clear puber request cache
+        let reqId = '0'
+        this.delReqCache(reqId)
+        Puber.remReq(0, reqId)
     }
 
     static isSubscribed(chain: string, pid: IDT, data: WsData): boolean {

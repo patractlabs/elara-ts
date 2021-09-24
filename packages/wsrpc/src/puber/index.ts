@@ -2,12 +2,13 @@ import WebSocket from 'ws'
 import { getAppLogger, IDT, ResultT, Err, Ok, isErr, PVoidT, isNone } from '@elara/lib'
 import { Option, None, Some } from '@elara/lib'
 import { randomId } from '@elara/lib'
-import { ReqDataT, Statistics } from '../interface'
+import { ReqDataT, ReqT, ReqTyp, Statistics } from '../interface'
 import Matcher from '../matcher'
 import Suber from '../suber'
 import { Stat } from '../statistic'
 import Util from '../util'
 import { NodeType } from '../chain'
+import Emiter from '../emiter'
 
 const log = getAppLogger('puber')
 
@@ -33,6 +34,8 @@ class Puber {
     private static g: Record<string, Puber> = {}
 
     private static reqs: Record<string, Set<string>> = {}
+
+    private static topics: Record<string, Set<string>> = {}
 
     // pubers cache
     static get(pubId: IDT): Option<Puber> {
@@ -77,6 +80,53 @@ class Puber {
         Puber.updateOrAdd(puber)
         Puber.reqs[puber.id] = new Set<string>()
         return puber
+    }
+
+    static async destroy(chain: string, pid: string, pubId: IDT): PVoidT {
+        // 1. clear puber reqs
+        const re = this.get(pubId)
+        if (isNone(re)) {
+            log.error(`${chain} pid[${pid}] puber[${pubId}] has gone or been cleared`)
+            return
+        }
+        const reqs = this.reqs[pubId]
+        const topics = this.topics[pubId]
+        if (reqs === undefined || reqs.size === 0) { return }
+
+        if (topics !== undefined && topics.size > 0) {
+            new Emiter(`puber-close-${pubId}`, () => {
+                log.info(`${chain} ${pid} puber[${pubId}] unsubscribe all topics done`)
+            }, topics.size)
+        }
+
+        for (let reqId of reqs) {
+            const reqRe = Matcher.getReqCache(reqId)
+            if (isErr(reqRe)) {
+                log.error(`[SBH] destroy ${chain} pid[${pid}] puber[${pubId}] error: %o`, reqRe.value)
+                process.exit(1)
+            }
+
+            const req = reqRe.value as ReqT
+            if (req.type !== ReqTyp.Sub) {
+                Matcher.delReqCache(reqId)
+                this.remReq(pubId, reqId)
+                continue
+            }
+
+            // clear subscribe topic
+            if (req.subsId === undefined) {
+                log.error(`[SBH] clear ${chain} pid[${pid}] puber[${pubId}] subscribe topic error: subscribe ID undefined`)
+                process.exit(1)
+                // Matcher.delReqCache(reqId)
+                // this.remReq(pubId, reqId)
+                // continue
+            }
+
+            // before unsubscribe success, we cannot delete request cache
+            // if suber has been closed, return success
+            Suber.unsubscribe(chain, req.subType, req.subId, req.method, req.subsId)
+        }
+        delete this.g[pubId]
     }
 
     static updateTopics(pubId: IDT, subsId: string): ResultT<Puber> {

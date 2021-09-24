@@ -3,7 +3,7 @@ import { getAppLogger } from "./log"
 const log = getAppLogger('Unexpect')
 
 const errorTypes = ['unhandledRejection', 'uncaughtException']
-const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2']
+const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2', 'SIGKILL']
 
 export function unexpectListener(): void {
     log.debug('unexcept listener start')

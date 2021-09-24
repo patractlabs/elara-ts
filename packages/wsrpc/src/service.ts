@@ -3,7 +3,7 @@ import Cacher from "./suber/cacher"
 import Chain, { NodeType } from "./chain"
 import { getAppLogger, PVoidT, isNone } from '@elara/lib'
 import Dao from "./dao"
-import Suber from './suber'
+import Suber, { SuberStat } from './suber'
 import Emiter from './emiter'
 import Matcher from './matcher'
 import G from './global'
@@ -79,7 +79,7 @@ function suberMoniter(): void {
                 try {
                     // send calls to confirm suber connection
                     // active or not
-                    if (type === NodeType.Kv) {
+                    if (type === NodeType.Kv || sub.stat !== SuberStat.Active) {
                         continue
                     }
                     // check first
