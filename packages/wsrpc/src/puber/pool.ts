@@ -122,9 +122,7 @@ function createPuberServer(chain: string): WebSocket.Server {
             ws.terminate()
             log.error(`${chain}-${puber.nodeId} pid[${pid}] Puber[${id}] Connection error: %o`, err)
         })
-        return
     })
-
     return wss
 }
 

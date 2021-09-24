@@ -146,6 +146,7 @@ async function run(): PVoidT {
 
         Server.listen(conf.port, () => {
             log.info(`Elara server listen on port: ${conf.port}`)
+            process.send?.('ready') 
         })
     }, 1)
 
