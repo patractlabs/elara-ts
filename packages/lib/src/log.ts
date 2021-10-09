@@ -25,7 +25,7 @@ function newRotateFile(filename: string, level: string = 'info', isJson: boolean
         level,
         filename: `logs/${filename}-%DATE%.log`,
         datePattern: 'YYYY-MM-DD',
-        zippedArchive: true,
+        // zippedArchive: true,
         handleExceptions: true,
         json: isJson,
         createSymlink: true,
