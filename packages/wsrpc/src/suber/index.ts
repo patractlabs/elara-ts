@@ -1,7 +1,7 @@
 import { PVoidT, randomId } from '@elara/lib'
 import WebSocket from 'ws'
 import { ReqT, ReqTyp, WsData, CloseReason, ChainSuber, SuberMap, SubscripT } from '../interface'
-import { getAppLogger, isErr, IDT, Err, Ok, ResultT, PResultT, isNone, Option, Some, None } from '@elara/lib'
+import { getAppLogger, isErr, IDT, Err, Ok, isSome, PResultT, isNone, Option, Some, None } from '@elara/lib'
 import GG from '../global'
 import Chain, { ChainInstance, NodeType } from '../chain'
 import Dao from '../dao'
@@ -46,7 +46,7 @@ function isUnsubOnClose(dat: WsData, isSubId: boolean): boolean {
     return isSubId && isBool
 }
 
-function parseReq(dat: WsData, chain: string): ResultT<ReqT | boolean> {
+async function parseReq(dat: WsData, chain: string): PResultT<ReqT | boolean> {
     let reqId = dat.id // maybe null
 
     if (dat.id === null) {
@@ -58,6 +58,7 @@ function parseReq(dat: WsData, chain: string): ResultT<ReqT | boolean> {
         const subsId = dat.params.subscription
         const re = GG.getReqId(subsId)
         if (isErr(re)) {
+            Dao.cacheSubscribeResponse(subsId, dat)
             log.error(`${chain} parse request cache error: ${re.value}, puber has been closed.`)
             return Ok(true)
         }
@@ -139,12 +140,13 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
 
 enum DataT {
     Ping = 'ping',
-    Unsub = 'unsubscribe'
+    Unsub = 'unsubscribe',
 }
 
 type DParT = {
     req?: ReqT,
-    data: string | WebSocket.Data | DataT
+    data: string | WebSocket.Data | DataT,
+    withResponse?: boolean
 }
 
 function updateStatistic(req: ReqT, data: string, isSub: boolean = false): void {
@@ -169,7 +171,7 @@ function updateStatistic(req: ReqT, data: string, isSub: boolean = false): void 
 /// 3. subscribe response non-first
 /// 4. error response
 /// 5. unsubscribe response
-function dataParse(data: WebSocket.Data, chain: string, subType: NodeType, subId: IDT): ResultT<DParT> {
+async function dataParse(data: WebSocket.Data, chain: string, subType: NodeType, subId: IDT): PResultT<DParT> {
     let dat = JSON.parse(data as string)
     // log.debug(`new ${chain} ${subType} data: %o`, dat)
     // health check message
@@ -196,12 +198,14 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType, subId
     }
     // NOTE: if asynclize parseReqId, 
     // subReqMap may uninit, then miss the first data response
-    let re: any = parseReq(dat, chain)
+    let re: any = await parseReq(dat, chain)
     if (isErr(re)) {
         log.error(`parse ${chain} request cache error: %o`, re.value)
         return Err(`${re.value}`)
     }
+
     if (re.value === true) {
+        // we may receive the early response of subscribe
         return Ok({ data: DataT.Unsub })
     }
 
@@ -268,6 +272,15 @@ function dataParse(data: WebSocket.Data, chain: string, subType: NodeType, subId
         re = Matcher.setSubContext(req, subsId)
         if (isErr(re)) {
             return Err(`Set subscribe context of ${req.chain} pid[${req.pid}] puber[${req.pubId}] topic[${req.method}] error: ${re.value}`)
+        }
+
+        const cache = await Dao.fetchSubscribeResponse(subsId)
+        if (isSome(cache)) {
+            log.warn(`${req.chain} pid[${req.pid}] puber[${req.pubId}] has response not sent yet, send now [${subsId}].`)
+            puberSend(req, cache.value)
+            // set expire duration to 1 minute, since high concurrency will
+            // block the subscribe response, once receive response, clear
+            Dao.clearSubscribeResponse(subsId)
         }
         log.info(`${req.chain} pid[${req.pid}] puber[${req.pubId}] subscribe topic[${req.method}] params[${req.params}] successfully: ${subsId}`)
     } else {
@@ -575,7 +588,7 @@ function newSuber(chain: string, nodeId: number, url: string, type: NodeType, pu
     ws.on('message', async (dat: WebSocket.Data) => {
         const start = Util.traceStart()
         // BUG: if parse async, will occur message disorder problem
-        let re = dataParse(dat, chain, type, suber.id)
+        let re = await dataParse(dat, chain, type, suber.id)
         const time = Util.traceEnd(start)
 
         if (isErr(re)) {

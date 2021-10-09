@@ -1,5 +1,6 @@
-import { Err, Ok, PResultT, PVoidT } from '@elara/lib'
+import { Err, Ok, PResultT, Option, None, Some, PVoidT } from '@elara/lib'
 import { ChainInstance } from '../chain'
+import { WsData } from '../interface'
 import Rd from './redis'
 
 class Dao {
@@ -37,6 +38,21 @@ class Dao {
 
     static async clearProjectStatistic(chain: string, pid: string): PVoidT {
         return Rd.clearProjectStatistic(chain, pid)
+    }
+
+    // subscribe response cache
+    static async cacheSubscribeResponse(subsId: string, res: WsData): PVoidT {
+        Rd.cacheSubscribeResponse(subsId, res)
+    }
+
+    static async fetchSubscribeResponse(subsId: string): Promise<Option<string>> {
+        const res = await Rd.fetchSubscribeResponse(subsId)
+        if (res === null) { return None }
+        return Some(res)
+    }
+
+    static async clearSubscribeResponse(subsId: string): PVoidT {
+        Rd.clearSubscribeResponse(subsId)
     }
 }
 

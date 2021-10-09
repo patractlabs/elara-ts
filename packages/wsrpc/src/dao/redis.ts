@@ -1,5 +1,6 @@
 import { Redis, DBT, getAppLogger, KEYS, PVoidT } from '@elara/lib'
 import Conf from '../../config'
+import { WsData } from '../interface'
 
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
@@ -144,6 +145,19 @@ class Rd {
         stream.on('end', () => {
             log.info(`all statistic record be cleared of ${chain} project[${pid}]`)
         })
+    }
+
+    // subscribe response cache
+    static async cacheSubscribeResponse(subsId: string, data: WsData): PVoidT {
+        cacheRd.setex(subsId, 60, JSON.stringify(data))
+    }
+
+    static async fetchSubscribeResponse(subsId: string): Promise<string | null> {
+        return cacheRd.get(subsId)
+    }
+
+    static async clearSubscribeResponse(subsId: string): PVoidT {
+        cacheRd.del(subsId)
     }
 }
 
