@@ -4,10 +4,10 @@ import { Option, None, Some } from '@elara/lib'
 import { randomId } from '@elara/lib'
 import { ReqDataT, Statistics } from '../interface'
 import Matcher from '../matcher'
-import Suber, { SuberTyp } from '../matcher/suber'
-import G from '../global'
+import Suber from '../suber'
 import { Stat } from '../statistic'
 import Util from '../util'
+import { NodeType } from '../chain'
 
 const log = getAppLogger('puber')
 
@@ -15,10 +15,12 @@ interface Puber {
     id: IDT,
     pid: IDT,
     chain: string,
+    nodeId: number,
     ws: WebSocket,
     topics: Set<string>,   // {subscribeId}
     subId: IDT,            // suber id
-    kvSubId?: IDT,          // kv suber
+    kvSubId?: IDT,          // kv 
+    memSubId?: IDT          // memory node
 }
 
 type KvReqT = {
@@ -30,11 +32,18 @@ type KvReqT = {
 class Puber {
     private static g: Record<string, Puber> = {}
 
+    private static reqs: Record<string, Set<string>> = {}
+
+    // pubers cache
     static get(pubId: IDT): Option<Puber> {
         if (!Puber.g[pubId]) {
             return None
         }
         return Some(Puber.g[pubId])
+    }
+
+    static getAll() {
+        return this.g
     }
 
     static updateOrAdd(puber: Puber): void {
@@ -46,9 +55,27 @@ class Puber {
         delete Puber.g[pubId]
     }
 
+    // request cache
+    static getReqs(pubId: IDT): Set<string> {
+        return Puber.reqs[pubId]
+    }
+
+    static getAllReqs() {
+        return Puber.reqs
+    }
+
+    static addReq(pubId: IDT, reqId: string): void {
+        Puber.reqs[pubId].add(reqId)
+    }
+
+    static remReq(pubId: IDT, reqId: string): boolean {
+        return Puber.reqs[pubId].delete(reqId)
+    }
+
     static create(ws: WebSocket, chain: string, pid: IDT): Puber {
         const puber = { id: randomId(), pid, chain, ws, topics: new Set() } as Puber
         Puber.updateOrAdd(puber)
+        Puber.reqs[puber.id] = new Set<string>()
         return puber
     }
 
@@ -72,26 +99,18 @@ class Puber {
         return Ok(puber)
     }
 
-    static async transpond(puber: Puber, type: SuberTyp, data: ReqDataT, stat: Statistics): PVoidT {
+    static async transpond(puber: Puber, type: NodeType, data: ReqDataT, stat: Statistics): PVoidT {
         const start = Util.traceStart()
-        const { id, chain, pid } = puber
-
-        // polkadotapps will subscribe more than once
-        // const res = { id: data.id, jsonrpc: data.jsonrpc } as WsData
-        // topic bind to chain and params 
-        // if (Matcher.isSubscribed(chain, pid, data)) {
-        //     log.warn(`The pid[${puber.pid}] puber[${puber.id}] has subscribed topic [${data.method}], no need to subscribe twice!`)
-        //     res.error = { code: 1000, message: 'No need to subscribe twice' }
-        //     const sres = JSON.stringify(res)
-        //     return puber.ws.send(sres)
-        // }
+        const { chain, pid } = puber
         let subId = puber.subId
-        if (type === SuberTyp.Kv) {
+        if (type === NodeType.Kv) {
             subId = puber.kvSubId!
+        } else if (type === NodeType.Mem) {
+            subId = puber.memSubId!
         }
-        let re = Matcher.newRequest(chain, pid, id, type, subId!, data, stat)
+        let re = await Matcher.newRequest(puber, type, subId, data, stat)
         if (isErr(re)) {
-            log.error(`create new request error: ${re.value}`)
+            log.error(`${type} ${chain}-${pid} create new request error: ${re.value}`)
             stat.code = 500
             // publish statistics
             Stat.publish(stat)
@@ -99,7 +118,7 @@ class Puber {
         }
         const dat = re.value
         let sendData: KvReqT | ReqDataT = dat
-        if (type === SuberTyp.Kv) {
+        if (type === NodeType.Kv) {
             sendData = {
                 id: dat.id,
                 chain: puber.chain,
@@ -107,17 +126,15 @@ class Puber {
             } as KvReqT
         }
 
-        // TODO
         let sre = Suber.getSuber(chain, type, subId!)
         if (isNone(sre)) {
-            log.error(`send message error: invalid suber ${puber.subId} chain ${chain} type ${type}, may closed`)
+            log.error(`send message error: invalid suber ${puber.subId} chain ${chain} type ${type}, suber may closed, close puber[${puber.id}] now`)
             // clear request cache
-            // G.delReqCache(dat.id)
-            G.delReqCacheByPubStatis(dat.id)
+            Matcher.delReqCacheByPubStat(dat.id)
+            puber.ws.terminate()
             return
         }
         const suber: Suber = sre.value
-        log.debug(`ready to send ${type} subscribe request: ${JSON.stringify(sendData)}`)
         // transpond requset
         log.info(`Send new message to ${type} suber[${suber.id}] of chain ${chain} request ID[${dat.id}], transpond delay: ${Util.traceEnd(start)}`)
         return suber.ws.send(JSON.stringify(sendData))

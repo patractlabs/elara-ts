@@ -1,6 +1,5 @@
 {
     "server": {
-        "id": 0,
         "port": 9944,
         "maxReConn": 300,
         "apiHost": "127.0.0.1",

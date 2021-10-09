@@ -11,11 +11,12 @@ const KChain = KEYS.Chain
 const log = getAppLogger('redis')
 const rdConf = Conf.getRedis()
 log.warn(`current env ${process.env.NODE_ENV}, redis configure: ${JSON.stringify(rdConf)}`)
-// TODO redis pool
 
-const chainRd = new Redis(DBT.Chain, {host: rdConf.host, port: rdConf.port, options:{
-    password:rdConf.password
-}})
+const chainRd = new Redis(DBT.Chain, {
+    host: rdConf.host, port: rdConf.port, options: {
+        password: rdConf.password
+    }
+})
 const chainRedis = chainRd.getClient()
 
 chainRd.onError((err: string) => {
@@ -26,9 +27,11 @@ chainRd.onConnect(() => {
     log.info('redis db chain connection open')
 })
 
-const cacheRd = new Redis(DBT.Cache, {host: rdConf.host, port: rdConf.port,options:{
-    password:rdConf.password
-}})
+const cacheRd = new Redis(DBT.Cache, {
+    host: rdConf.host, port: rdConf.port, options: {
+        password: rdConf.password
+    }
+})
 const cacheRedis = cacheRd.getClient()
 
 cacheRd.onConnect(() => {
@@ -39,25 +42,28 @@ cacheRd.onError((err: string) => {
     process.exit(1)
 })
 
-namespace Rd {
+
+type CacheT = {
+    updateTime: number,
+    result: any
+}
+
+class Rd {
     /// chain operation
-    export const getChainList = async () => {
+    static async getChainList() {
         return chainRedis.zrange(KChain.zChainList(), 0, -1)
     }
 
-    export const getChainConfig = async (chain: string) => {
-        return chainRedis.hgetall(KChain.hChain(chain))
+    static async getChainIds(chain: string) {
+        return chainRedis.zrange(KChain.zChainIds(chain), 0, -1)
     }
 
+    static async getChainConfig(chain: string, serverId: number) {
+        return chainRedis.hgetall(KChain.hChain(chain, serverId))
+    }
 
     /// cache operation
-
-    type CacheT = {
-        updateTime: number,
-        result: any
-    }
-
-    export const setLatest = async (chain: string, method: string, result: any) => {
+    static async setLatest(chain: string, method: string, result: any) {
         // TODO whether expiration
         const updateTime = Mom().utcOffset('+08:00', false).valueOf()
         const latest = {
@@ -67,7 +73,7 @@ namespace Rd {
         return cacheRedis.hmset(KCache.hCache(chain, method), latest)
     }
 
-    export const getLatest = async (chain: string, method: string) => {
+    static async getLatest(chain: string, method: string) {
         return cacheRedis.hgetall(KCache.hCache(chain, method))
     }
 }

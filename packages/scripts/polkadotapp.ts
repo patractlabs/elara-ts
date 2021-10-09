@@ -194,7 +194,8 @@ async function run(url: string, options: { mode?: number, batch?: boolean, id?: 
 // run("wss://pub.elara.patract.io/Polkadot/00000000000000000000000000000000")
 // run("wss://pub.elara.patract.io/kusama")
 // 
-const url = "wss://test-pro.pub.elara2.patract.cn/kusama"
+// const url = "wss://test-pro.pub.elara2.patract.cn/kusama"
+const url = "ws://localhost:9944"
 // const url = "wss://test-pro.pub.elara2.patract.cn/kusama/00000000000000000000000000000000"
 
 async function main(url: string, loop: number = 0) {
@@ -207,4 +208,4 @@ async function main(url: string, loop: number = 0) {
     }
 }
 
-main(url, 10)
+main(url, 4000)

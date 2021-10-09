@@ -1,6 +1,6 @@
-import { IDT, RpcMapT, ChainConfig } from '@elara/lib'
-import Suducer
- from './suducer'
+import { IDT } from '@elara/lib'
+import Suducer from './suducer'
+import { ChainConfig } from './chain'
 
 export enum ChainStat {
     Health  = 'health',
@@ -8,13 +8,7 @@ export enum ChainStat {
     Fall    = 'fall',
 }
 
-interface Ext {
-    extends: RpcMapT,
-    excludes: string[]
-}
 export type ChainT = {[key in string]: ChainConfig}
-
-export type ChainExtT = {[key: string]: Ext }
 
 export type ChainPoolT = { [key: string]: WsPool }
 

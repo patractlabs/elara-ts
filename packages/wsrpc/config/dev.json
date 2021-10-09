@@ -4,7 +4,7 @@
     },
 
     "wspool": {
-        "poolSize": 5
+        "poolSize": 50
     },
     
     "server": {

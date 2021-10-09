@@ -1,5 +1,6 @@
 import { Redis, DBT, getAppLogger, KEYS, PVoidT } from '@elara/lib'
 import Conf from '../../config'
+import { WsData } from '../interface'
 
 const KCache = KEYS.Cache
 const KChain = KEYS.Chain
@@ -91,16 +92,18 @@ statRedis.onError((err: string) => {
 })
 
 class Rd {
-
     /// chain operation
     static async getChainList() {
         return chainRd.zrange(KChain.zChainList(), 0, -1)
     }
 
-    static async getChainConfig(chain: string) {
-        return chainRd.hgetall(KChain.hChain(chain))
+    static async getChainIds(chain: string): Promise<string[]> {
+        return chainRd.zrange(KChain.zChainIds(chain), 0, -1)
     }
 
+    static async getChainInstance(chain: string, nodeId: number) {
+        return chainRd.hgetall(KChain.hChain(chain, nodeId))
+    }
 
     /// cache operation
 
@@ -111,12 +114,12 @@ class Rd {
             updateTime,
             result
         }
-        log.error('data to be dump: %o', latest)
         return cacheRd.hmset(KCache.hCache(chain, method), latest)
     }
 
     static async getLatest(chain: string, method: string) {
-        return cacheRd.hgetall(KCache.hCache(chain, method))
+        const re = await cacheRd.hgetall(KCache.hCache(chain, method))
+        return re
     }
 
     // user status
@@ -142,6 +145,19 @@ class Rd {
         stream.on('end', () => {
             log.info(`all statistic record be cleared of ${chain} project[${pid}]`)
         })
+    }
+
+    // subscribe response cache
+    static async cacheSubscribeResponse(subsId: string, data: WsData): PVoidT {
+        cacheRd.setex(subsId, 60, JSON.stringify(data))
+    }
+
+    static async fetchSubscribeResponse(subsId: string): Promise<string | null> {
+        return cacheRd.get(subsId)
+    }
+
+    static async clearSubscribeResponse(subsId: string): PVoidT {
+        cacheRd.del(subsId)
     }
 }
 

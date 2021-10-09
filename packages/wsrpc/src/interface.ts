@@ -1,5 +1,8 @@
 import { IDT } from '@elara/lib'
-import Suber, { SuberTyp } from './matcher/suber'
+import Suber from './suber'
+import { NodeType } from './chain'
+
+type SuberTyp = NodeType
 
 export interface ReqDataT {
     id: IDT,
@@ -35,7 +38,7 @@ export enum ReqTyp {
 }
 
 export interface ReqT {
-    id: IDT,
+    id: string,
     chain: string,
     pid: IDT,
     pubId: IDT,
@@ -93,4 +96,9 @@ export interface Statistics {
     bw?: number,         // bytes
     timeout?: boolean,   // timeout threshold 1s
     reqCnt?: number,     // for subscribe
+}
+
+export interface PingT {
+    subId: IDT,
+    startTime: number
 }

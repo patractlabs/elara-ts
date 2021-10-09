@@ -4,7 +4,7 @@ interface Redis {
     host: string,
     port: number,
     password: string,
-    expire: number, 
+    expire: number,
     statKeep: number,
     expireFactor: number,
     expireUnit: string
@@ -16,12 +16,12 @@ interface ApiServer {
 }
 
 
-namespace Conf {
-    export function getRedis(): Redis {
+class Conf {
+    static getRedis(): Redis {
         return Config.get("redis")
     }
 
-    export function getApiServer(): ApiServer {
+    static getApiServer(): ApiServer {
         return Config.get("apiServer")
     }
 }

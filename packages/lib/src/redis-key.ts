@@ -8,8 +8,12 @@ namespace Chain {
         return `${C}_Num`
     }
 
-    export const hChain = (chain: string): string => {
-        return `H_${C}_${chain.toLowerCase()}`
+    export const hChain = (chain: string, serverId: number): string => {
+        return `H_${C}_${chain.toLowerCase()}_${serverId}`
+    }
+
+    export const zChainIds = (chain: string): string => {
+        return `Z_${C}_${chain.toLowerCase()}_ids`
     }
 
     export const zChainList = (): string => {

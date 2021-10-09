@@ -20,7 +20,7 @@ const newChain = async (chain: string) => {
         kvPort: 9002,
         kvBaseUrl: '127.0.0.1'
     }
-    await cRd.hmset(cKEY.hChain(chain), polkadot)
+    await cRd.hmset(cKEY.hChain(chain, 0), polkadot)
     let cnt = await cRd.incr(cKEY.chainNum())
     await cRd.zadd(cKEY.zChainList(), cnt, chain.toLowerCase())
 }

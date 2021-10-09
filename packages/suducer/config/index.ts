@@ -1,7 +1,6 @@
 import Config from 'config'
 
 interface ServerConf {
-    id: number,     // match the chain configure serverId
     maxReconnTry: number,
     cachePoolSize: number
 }
@@ -12,12 +11,12 @@ interface RedisConf {
     port: number
 }
 
-namespace Conf {
-    export const getServer = (): ServerConf => {
+class Conf {
+    static getServer(): ServerConf {
         return Config.get('server')
     }
 
-    export const getRedis = (): RedisConf => {
+    static getRedis(): RedisConf {
         return Config.get('redis')
     }
 }

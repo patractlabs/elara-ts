@@ -1,6 +1,6 @@
 /// chain list init and handler the chain update
 
-import { ChainConfig, getAppLogger, PVoidT } from '@elara/lib'
+import { getAppLogger, PVoidT } from '@elara/lib'
 import { isErr } from '@elara/lib'
 import Dao from './dao'
 import { G } from './global'
@@ -9,9 +9,11 @@ const log = getAppLogger('chain')
 import { Redis, DBT } from '@elara/lib'
 
 const redisConf = Conf.getRedis()
-const pubsubRd = new Redis(DBT.Pubsub, {host: redisConf.host, port: redisConf.port, options:{
-    password:redisConf.password
-}})
+const pubsubRd = new Redis(DBT.Pubsub, {
+    host: redisConf.host, port: redisConf.port, options: {
+        password: redisConf.password
+    }
+})
 const PSuber = pubsubRd.getClient()
 
 pubsubRd.onConnect(() => {
@@ -24,25 +26,25 @@ pubsubRd.onError((err: string) => {
 })
 
 enum Topic {
-    ChainAdd    = 'chain-add',
-    ChainDel    = 'chain-del',
+    ChainAdd = 'chain-add',
+    ChainDel = 'chain-del',
     ChainUpdate = 'chain-update'
 }
 
 // chain events
-const chainAddHandler = async (chain: string): PVoidT => {
+async function chainAddHandler(chain: string): PVoidT {
     log.info('Into chain add handler: %o', chain)
     // TODO: chain-init logic
     // update G.chain G.chainConf
     // 
 }
 
-const chainDelHandler = async (chain: string): PVoidT => {
+async function chainDelHandler(chain: string): PVoidT {
     log.info('Into chain delete handler: %o', chain)
     // TODO
 }
 
-const chainUpdateHandler = async (chain: string): PVoidT => {
+async function chainUpdateHandler(chain: string): PVoidT {
     log.info('Into chain update handler: %o', chain)
     // TODO
     // update G.chain G.chainConf
@@ -55,7 +57,7 @@ PSuber.psubscribe('*', (err, topicNum) => {
 
 PSuber.on('pmessage', (_pattern, chan, chain: string) => {
     log.info('received new topic message: %o', chan)
-    switch(chan) {
+    switch (chan) {
         case Topic.ChainAdd:
             log.info('Topic chain message: %o', chain)
             chainAddHandler(chain)
@@ -74,23 +76,37 @@ PSuber.on('pmessage', (_pattern, chan, chain: string) => {
     }
 })
 
-namespace Chain {
+export enum NodeType {
+    Node = 'node',
+    Kv = 'kv',
+    Mem = 'memory'
+}
 
-    export const parseConfig = async (chain: string, serverId: number) => {
-        const conf = await Dao.getChainConfig(chain)
-        if (isErr(conf)) { 
+export interface ChainConfig {
+    name: string,
+    nodeId: string,       // default 0, elara node instance id
+    type: NodeType,       
+    baseUrl: string,      // host
+    rpcPort: number,      // default 9933
+    wsPort: number,        // default 9944
+    poolSize: number,      
+    [key: string]: any    // for redis
+}
+
+class Chain {
+
+    static async parseConfig(chain: string, serverId: number): PVoidT {
+        const conf = await Dao.getChainConfig(chain, serverId)
+        if (isErr(conf)) {
             log.error(`Parse config of chain[${chain}] error: %o`, conf.value)
-            return 
+            return
         }
         const chainf = conf.value as ChainConfig
-        if (chainf.serverId != serverId) { 
-            log.warn(`chain ${chain} serveId[${chainf.serverId}] not match, current server ID ${serverId}`)
-            return 
-        }
+        if (chainf.type !== NodeType.Node) { return }
         G.addChain(chainf)
     }
 
-    export const init = async () => {
+    static async init() {
         let re = await Dao.getChainList()
         if (isErr(re)) {
             log.error(`fetch chain list error: ${re.value}`)
@@ -100,12 +116,24 @@ namespace Chain {
         let parses: Promise<void>[] = []
         log.warn('fetch chain list: %o', chains)
 
-        const server = Conf.getServer()
         for (let c of chains) {
-            parses.push(parseConfig(c, server.id))
+            try {
+                const ids = await Dao.getChainIds(c)
+                if (ids.length === 0) {
+                    log.error(`get ${c} id list error: empty`)
+                    process.exit(1)
+                }
+                log.debug(`${c} id list: %o`, ids)
+                for (let id of ids) {
+                    parses.push(Chain.parseConfig(c, parseInt(id)))
+                }
+            } catch (err) {
+                log.error(`catch init ${c} config error: %o`, err)
+                process.exit(2)
+            }
         }
         return Promise.all(parses)
     }
 }
 
-export = Chain
+export default Chain

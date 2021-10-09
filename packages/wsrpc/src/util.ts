@@ -1,10 +1,11 @@
 import { performance } from 'perf_hooks'
-import { Ok, Err, PResultT } from '@elara/lib'
+import { Ok, Err, PResultT, ResultT } from '@elara/lib'
 import Chain from './chain'
-import { ChainPidT } from './interface'
+import { ChainPidT, ReqDataT } from './interface'
+import { UnsafeMethods } from './matcher/topic'
 
-namespace Util {
-    export function reqFastStr(obj: JSON): string {
+class Util {
+    static reqFastStr(obj: JSON): string {
         return JSON.stringify(obj)
     }
     // FastStr({
@@ -18,7 +19,7 @@ namespace Util {
     //     }
     // })
 
-    export function respFastStr(obj: JSON): string {
+    static respFastStr(obj: JSON): string {
         return JSON.stringify(obj)
     }
     // FastStr({
@@ -36,13 +37,12 @@ namespace Util {
     //     }
     // })
 
-    export async function urlParse(url: string): PResultT<ChainPidT> {
+    static async urlParse(url: string): PResultT<ChainPidT> {
         const par = url.split('/')
-        const chain = par[1].toLowerCase()
+        const chain = par[1].toLowerCase()  // maybe empty
         let pid = '00000000000000000000000000000000'    // for public
         // chain check
         if (!Chain.hasChain(chain)) {
-            // return Ok({ chain: 'polkadot', pid})    // for local test
             return Err(`invalid chain[${chain}]`)
         }
         if (par.length === 3) {
@@ -52,36 +52,48 @@ namespace Util {
                 return Err(`Invalid request path: ${url}`)
             }
         }
+        // public url without pid, default 0s
         return Ok({ chain, pid })
     }
 
-    export function traceStart(): number {
+    static traceStart(): number {
         return performance.now()
     }
 
-    export function traceEnd(start: number): string {
+    static traceEnd(start: number): string {
         return (performance.now() - start).toFixed(0) + 'ms'
     }
 
-    export function traceDelay(start: number): number {
+    static traceDelay(start: number): number {
         return Math.floor(performance.now() - start)
     }
 
-    export function globalStat(): string {
-        return ''
-        // return `suber: ${G.suberCnt()}, puber: ${G.puberCnt()}, topic: ${G.topicCnt()}, subMap: ${G.subMapCnt()}, reqMap: ${G.reqMapCnt()}`
-    }
-
-    export function strBytes(str: string): number {
+    static strBytes(str: string): number {
         return Buffer.byteLength(str, 'utf8')
     }
 
-    export async function sleep(sec: number) {
+    static async sleep(sec: number) {
         return new Promise((resolve, _reject) => {
             setTimeout(() => {
                 resolve(' enough sleep~')
             }, sec)
         })
+    }
+
+    static rpcCheck(data: string): ResultT<ReqDataT> {
+        try {
+            let dat = JSON.parse(data) as ReqDataT
+            if (!dat.id || !dat.jsonrpc || !dat.method || !dat.params) {
+                return Err('invalid request must be JSON {"id": string, "jsonrpc": "2.0", "method": "your method", "params": []}')
+            }
+
+            if (UnsafeMethods.has(dat.method)) {
+                return Err(`Forbiden Access!`)
+            }
+            return Ok(dat)
+        } catch (err: any) {
+            return Err(err)
+        }
     }
 }
 

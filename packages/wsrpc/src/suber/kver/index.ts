@@ -1,11 +1,11 @@
-import { getAppLogger } from '@elara/lib'
-import { ReqDataT, Statistics } from "../interface"
-import { SuberTyp } from "../matcher/suber"
-import Puber from "../puber"
+// import { getAppLogger } from '@elara/lib'
+import { ReqDataT, Statistics } from "../../interface"
+import { NodeType } from "../../chain"
+import Puber from "../../puber"
 
-const log = getAppLogger('kver')
+// const log = getAppLogger('kver')
 
-class Kver {
+export class Kver {
     // static Rpcs: string[] = []
 
     static Rpcs: string[] = [
@@ -35,8 +35,8 @@ class Kver {
     ]
 
     static send(puber: Puber, data: ReqDataT, stat: Statistics): void {
-        log.info(`new kv request, chain ${puber.chain} method ${data.method} params `, data.params)
-        Puber.transpond(puber, SuberTyp.Kv, data, stat)
+        // log.info(`new kv request, chain ${puber.chain} method ${data.method} params `, data.params)
+        Puber.transpond(puber, NodeType.Kv, data, stat)
     }
 }
 

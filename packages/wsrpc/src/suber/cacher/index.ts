@@ -1,5 +1,5 @@
 import { getAppLogger } from '@elara/lib'
-import Dao from '../dao'
+import Dao from '../../dao'
 
 const log = getAppLogger('cacher')
 
@@ -8,7 +8,7 @@ export type CacherStat = {
     acc: number         
 }
 
-class Cacher {
+export class Cacher {
 
     private static status: Record<string, boolean> = {}
 

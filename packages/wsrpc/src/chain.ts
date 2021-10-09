@@ -1,6 +1,6 @@
 /// chain list init and handler the chain update
 
-import { ChainConfig, getAppLogger, PVoidT } from '@elara/lib'
+import { getAppLogger, PVoidT } from '@elara/lib'
 import { isErr } from '@elara/lib'
 import Dao from './dao'
 import Conf from '../config'
@@ -28,6 +28,23 @@ enum ChainEvt {
     Add = 'chain-add',
     Del = 'chain-del',
     Update = 'chain-update'
+}
+
+export enum NodeType {
+    Node = 'node',
+    Kv = 'kv',
+    Mem = 'memory'
+}
+
+export interface ChainInstance {
+    name: string,
+    nodeId: number,       // default 0, elara node instance id
+    type: NodeType,       
+    baseUrl: string,      // host
+    rpcPort: number,      // default 9933
+    wsPort: number,        // default 9944
+    poolSize: number,      
+    [key: string]: any    // for redis
 }
 
 // chain events
@@ -81,9 +98,9 @@ chainPSub.on('error', (err) => {
 
 class Chain {
     private static chains: Set<string> = new Set()
-    private static conf: Record<string, ChainConfig> = {}
+    private static conf: Record<string, ChainInstance> = {}
 
-    static addChainConf(chainConf: ChainConfig): void {
+    static addChainConf(chainConf: ChainInstance): void {
         Chain.conf[chainConf.name] = chainConf
     }
 
@@ -103,21 +120,6 @@ class Chain {
     static hasChain(chain: string): boolean {
         return Chain.chains.has(chain)
     }
-    // }
-
-    static parseConfig = async (chain: string, serverId: number) => {
-        const conf = await Dao.getChainConfig(chain)
-        if (isErr(conf)) {
-            log.error(`Parse config of chain[${chain}] error: %o`, conf.value)
-            return
-        }
-        const chainf = conf.value as ChainConfig
-        if (chainf.serverId != serverId) {
-            log.warn(`chain ${chain} serveId[${chainf.serverId}] not match, current server ID ${serverId}`)
-            return
-        }
-        Chain.addChain(chain)
-    }
 
     static init = async () => {
         let re = await Dao.getChainList()
@@ -126,14 +128,11 @@ class Chain {
             process.exit(2)
         }
         const chains = re.value
-        let parses: Promise<void>[] = []
         log.warn('fetch chain list: %o', chains)
 
-        const server = Conf.getServer()
         for (let c of chains) {
-            parses.push(Chain.parseConfig(c, server.id))
+            Chain.addChain(c)
         }
-        return Promise.all(parses)
     }
 }
 
