@@ -88,12 +88,10 @@ class G {
         chain = chain
         ConnCntMap[chain] = ConnCntMap[chain] || {}
         ConnCntMap[chain][pid] = ConnCntMap[chain][pid] || 0
-        log.debug(`increase ${chain} pid[${pid}] connection count: ${ConnCntMap[chain][pid]}`)
         ConnCntMap[chain][pid] += 1
     }
 
     static decrConnCnt(chain: string, pid: IDT) {
-        log.debug(`decrease ${chain} pid[${pid}] connection count: ${ConnCntMap[chain][pid]}`)
         ConnCntMap[chain][pid] -= 1
         if (ConnCntMap[chain][pid] < 1) {
             delete ConnCntMap[chain][pid]

@@ -195,7 +195,6 @@ class Matcher {
         const kvStatOk = GG.getServerStatus(chain, NodeType.Kv)
         const memOpen = GG.getSuberEnable(chain, NodeType.Mem)
         const memStatOk = GG.getServerStatus(chain, NodeType.Mem)
-        log.debug(`puber before bind: kv[%o] mem[%o]`, puber.kvSubId, puber.memSubId)
 
         if (kvOpen && kvStatOk) {
             re = await suberBind(chain, puber, NodeType.Kv)
@@ -203,7 +202,6 @@ class Matcher {
                 log.error(`${chain}-${pid} bind node suber error: %o`, re.value)
                 return Err(`${chain}-${pid} bind node suber error`)
             }
-            log.debug(`puber after bind kv:  kv[%o] mem[%o]`, puber.kvSubId, puber.memSubId)
         }
 
         if (memOpen && memStatOk) {
@@ -229,7 +227,6 @@ class Matcher {
         let type = ReqTyp.Rpc
         let subsId
         if (isUnsubReq(method)) {
-            log.debug(`${chain} pid[${pid}] pre handle unsubscribe request: ${method}: %o`, data.params)
             if (data.params!.length < 1 || !Suber.isSubscribeID(data.params![0])) {
                 return Err(`invalid unsubscribe params: ${data.params![0]}`)
             }
@@ -258,7 +255,7 @@ class Matcher {
         } as ReqT
         Puber.addReq(id, req.id)
         Matcher.addReqCache(req)
-        log.info(`new ${chain} ${pid} ${subType} request cache: ${JSON.stringify(req)}`)
+        log.info(`new ${chain} ${pid} ${subType} request method[${method}] originId[${data.id}] cache id [${req.id}]`)
 
         data.id = req.id as string
         return Ok(data)

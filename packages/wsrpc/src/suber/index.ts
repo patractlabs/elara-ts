@@ -95,8 +95,6 @@ async function parseReq(dat: WsData, chain: string): PResultT<ReqT | boolean> {
 function handleUnsubscribe(req: ReqT, dres: boolean): void {
     // rem subed topic, update puber.topics del submap
     // emit done event when puber.topics.size == 0
-    log.info(`handle ${req.chain} pid[${req.pid}] unsubscribe response subscript id[${req.subsId}] params: %o`, req.params)
-
     const pubId = req.pubId
     const re = Puber.get(pubId)
     let puber
@@ -122,7 +120,6 @@ function handleUnsubscribe(req: ReqT, dres: boolean): void {
         GG.remSubTopic(req.chain, req.pid, subsId)
 
         GG.delSubReqMap(subsId)
-        log.info(`clear ${req.chain} pid[${req.pid}] subscribe context cache: subsId[${subsId}] reqId[${reqId}]`)
 
         if (puber !== undefined) {
             puber.topics.delete(subsId)
@@ -190,14 +187,13 @@ async function dataParse(data: WebSocket.Data, chain: string, subType: NodeType,
             dat = JSON.parse(dat.result)
         }
         // dat.error: no need handle
-        // log.debug(`${chain} new kv ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
-    } else if (subType === NodeType.Mem) {
-        // log.debug(`${chain} new memory node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
-    } else {
-        // log.debug(`${chain} new node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
-    }
-    // NOTE: if asynclize parseReqId, 
-    // subReqMap may uninit, then miss the first data response
+    } 
+    // else if (subType === NodeType.Mem) {
+    //     // log.debug(`${chain} new memory node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
+    // } else {
+    //     // log.debug(`${chain} new node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
+    // }
+
     let re: any = await parseReq(dat, chain)
     if (isErr(re)) {
         log.error(`parse ${chain} request cache error: %o`, re.value)
@@ -232,7 +228,6 @@ async function dataParse(data: WebSocket.Data, chain: string, subType: NodeType,
         Matcher.updateReqCache(req)
         Matcher.delReqCacheByPubStat(req.id)
         Puber.remReq(req.pubId, req.id)
-        log.info(`delete ${req.chain} pid[${req.pid}] non-subscribe cache request ID[${req.id}]: %o`, req.method)
     } else {
         updateStatistic(req, data.toString())
     }
@@ -276,16 +271,13 @@ async function dataParse(data: WebSocket.Data, chain: string, subType: NodeType,
 
         const cache = await Dao.fetchSubscribeResponse(subsId)
         if (isSome(cache)) {
-            log.warn(`${req.chain} pid[${req.pid}] puber[${req.pubId}] has response not sent yet, send now [${subsId}].`)
             puberSend(req, cache.value)
             // set expire duration to 1 minute, since high concurrency will
             // block the subscribe response, once receive response, clear
             Dao.clearSubscribeResponse(subsId)
         }
-        log.info(`${req.chain} pid[${req.pid}] puber[${req.pubId}] subscribe topic[${req.method}] params[${req.params}] successfully: ${subsId}`)
     } else {
         // rpc request
-        log.info(`New web socket response ${req.chain} pid[${req.pid}] puber[${req.pubId}] method[${req.method}] params[${req.params}]`)
         dataToSend = JSON.stringify(dat)    // 
     }
     return Ok({ req, data: dataToSend })

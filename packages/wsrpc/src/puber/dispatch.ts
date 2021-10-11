@@ -106,6 +106,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
             if (Cacher.statusOk(chain)) {// no need to clear puber.subid and suber.pubers
                 const res = { id, jsonrpc } as WsData
                 let tmethod = method
+                // cache for block hash at 0 block number
                 if (method === 'chain_getBlockHash' && (params?.length === 1 && params[0] === 0)) {
                     // log.debug(`${chain}-${nodeId} get ws initial block hash`)
                     tmethod = `${method}_0`
