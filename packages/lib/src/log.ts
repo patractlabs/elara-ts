@@ -25,13 +25,13 @@ function newRotateFile(filename: string, level: string = 'info', isJson: boolean
         level,
         filename: `logs/${filename}-%DATE%.log`,
         datePattern: 'YYYY-MM-DD',
-        // zippedArchive: true,
+        zippedArchive: true,
         handleExceptions: true,
         json: isJson,
         createSymlink: true,
         symlinkName: `${filename}.log`,
-        maxSize: '500m',
-        maxFiles: '3d',
+        maxSize: '100m',
+        maxFiles: 50,
     })
 }
 
