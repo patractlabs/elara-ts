@@ -187,7 +187,7 @@ async function dataParse(data: WebSocket.Data, chain: string, subType: NodeType,
             dat = JSON.parse(dat.result)
         }
         // dat.error: no need handle
-    } 
+    }
     // else if (subType === NodeType.Mem) {
     //     // log.debug(`${chain} new memory node ws response method[${dat.method}] ID[${dat.id || dat.subscription}]: ${dat.error}`)
     // } else {
@@ -694,13 +694,22 @@ class Suber {
             log.error(`Select suber error: no valid ${type} subers of chain ${chain} `)
             return Err(`No valid ${type} suber of chain[${chain}]`)
         }
-        const ind = GG.getID() % keys.length
-        const suber = subers[keys[ind]]
-        if (suber.stat !== SuberStat.Active) {
-            log.error(`${chain} ${type} suber is inactive`)
-            return Err(`${chain} ${type} suber inactive`)
+        // add retry
+        const TRY_CNT = 3
+        let suber: Suber
+        for (let i = 0; i < TRY_CNT; i++) {
+            const ind = GG.getID() % keys.length
+            suber = subers[keys[ind]] as Suber
+            if (suber.stat !== SuberStat.Active) {
+                if (i === 2) {
+                    log.error(`${chain} ${type} suber is inactive`)
+                    return Err(`${chain} ${type} suber inactive`)
+                }
+            } else {
+                break
+            }
         }
-        return Ok(suber)
+        return Ok(suber!)
     }
 
     static async initChainSuber(chain: string, suberEmiter: Emiter) {

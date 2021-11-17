@@ -72,6 +72,7 @@ export interface Noder {
 
 export class Noder {
 
+    // method: parameter length
     static memRpcs: Record<string, number> = {
         "state_getKeysPaged": 4,
         "state_getStorage": 2,
@@ -87,6 +88,10 @@ export class Noder {
     static async sendRpc(chain: string, data: ReqDataT, resp: Http.ServerResponse, stat: Statistics): PVoidT {
 
         const re = await Suber.selectSuber(chain, NodeType.Node)
+        if (isErr(re)) {
+            log.error(`send rpc request error: ${re.value}`)
+            return
+        }
         const noder = await getNoder(chain, (re.value as Suber).nodeId)
 
         log.info(`new node rpc requst, chain ${chain} method ${data.method} params ${data.params}, select noder: ${noder.nodeId}-${noder.host}-${noder.port}`)
