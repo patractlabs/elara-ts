@@ -94,7 +94,7 @@ export async function dispatchRpc(chain: string, data: ReqDataT, resp: Http.Serv
 
 export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, stat: Statistics): PVoidT {
     const { id, jsonrpc, method, params } = data
-    const { nodeId } = puber
+    // const { nodeId } = puber
     const typ = getRpcType(method, params!)
     stat.type = typ
     stat.code = 200
@@ -129,7 +129,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
                 Stat.publish(stat)
                 // return puber.ws.send(JSON.stringify(res))
             }
-            log.error(`${chain}-${nodeId} ws cacher fail, transpond to noder method[${method}] params[${params}]`)
+            // log.error(`${chain}-${nodeId} ws cacher fail, transpond to noder method[${method}] params[${params}]`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Kver:
             isSupport = G.getSuberEnable(chain, NodeType.Kv)
@@ -138,7 +138,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
             if (isSupport && statOk && puber.kvSubId !== undefined) {
                 return Kver.send(puber, data, stat)
             }
-            log.warn(`${chain}-${nodeId} kv support[${isSupport}] suber status ok[${statOk}], transpond to noder`)
+            // log.warn(`${chain}-${nodeId} kv support[${isSupport}] suber status ok[${statOk}], transpond to noder`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Recorder:
             return puber.ws.send(JSON.stringify('ok'))
@@ -149,7 +149,7 @@ export async function dispatchWs(chain: string, data: ReqDataT, puber: Puber, st
             if (isSupport && statOk && puber.memSubId !== undefined) {
                 return Noder.sendMemWs(puber, data, stat)
             }
-            log.warn(`${chain}-${nodeId} memory support[${isSupport}] suber status ok[${statOk}], transpond to noder`)
+            // log.warn(`${chain}-${nodeId} memory support[${isSupport}] suber status ok[${statOk}], transpond to noder`)
             return Noder.sendWs(puber, data, stat)
         case RpcTyp.Noder:
             return Noder.sendWs(puber, data, stat)
