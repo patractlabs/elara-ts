@@ -31,7 +31,7 @@ function newRotateFile(filename: string, level: string = 'info', isJson: boolean
         createSymlink: true,
         symlinkName: `${filename}.log`,
         maxSize: '100m',
-        maxFiles: 100,
+        maxFiles: '1d',
     })
 }
 
