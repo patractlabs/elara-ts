@@ -34,7 +34,6 @@ If you want to deploy your own elara service for node service. **Redis ^5** and 
 
 ```
 nodejs ^14
-ts-node
 yarn
 ```
 

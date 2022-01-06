@@ -1,7 +1,23 @@
-import { Redis, DBT } from '@elara/lib'
-import { ChainConfig, ChainType, KEYS, Network } from '@elara/lib'
+import { Redis, DBT, KEYS } from '@elara/lib'
 
 const cKEY = KEYS.Chain
+
+enum NodeType {
+    Node = 'node',
+    Kv = 'kv',
+    Mem = 'memory'
+}
+
+interface ChainConfig {
+    name: string,
+    nodeId: number,       // default 0, elara node instance id
+    type: NodeType,       
+    baseUrl: string,      // host
+    rpcPort: number,      // default 9933
+    wsPort: number,        // default 9944
+    poolSize: number,
+    [key: string]: any    // for redis
+} 
 
 // default localhost:6379, configure your own connection
 // NOTE: don't change DBT.Chain type
@@ -10,15 +26,12 @@ const cRd = new Redis(DBT.Chain).getClient()
 const newChain = async (chain: string) => {
     const polkadot: ChainConfig = {
         name: chain,
+        type: NodeType.Node,
         baseUrl: '127.0.0.1',           // node url
         wsPort: 19944,                  // websocket port
         rpcPort: 19933,                 // http port
-        network: Network.Live,          // optional
-        chainType: ChainType.Relay,     //  optional
-        serverId: 0,                    // node instance id, when multi node deploy
-        kvEnable: false,                // if true, Elara-kv need
-        kvPort: 9002,
-        kvBaseUrl: '127.0.0.1'
+        nodeId: 0,                      // node instance id, when multi node deploy
+        poolSize: 20
     }
     await cRd.hmset(cKEY.hChain(chain, 0), polkadot)
     let cnt = await cRd.incr(cKEY.chainNum())
