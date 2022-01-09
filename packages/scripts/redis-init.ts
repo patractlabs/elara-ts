@@ -13,7 +13,7 @@ interface ChainConfig {
     nodeId: number,       // default 0, elara node instance id
     type: NodeType,       
     baseUrl: string,      // host
-    rpcPort: number,      // default 9933
+    rpcPort?: number,      // only for Node type. default 9933, 
     wsPort: number,        // default 9944
     poolSize: number,
     [key: string]: any    // for redis

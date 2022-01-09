@@ -71,9 +71,11 @@ It's done. All the service will build into `packages/[service]/dist`.
 
 #### Initiate
 
-Before running Elara service, you should initiate the chain relate resource. see `packages/script/redis_init.ts`
+Before running Elara service, you should initiate the chain db table in redis. Run [redis_init.ts](https://github.com/patractlabs/elara-ts/blob/master/packages/scripts/redis-init.ts) script with your own node config. Keep in mind that the chain name field need to be lowercase(e.g. polkadot not Polkadot).
 
-If you want [Elara-kv](https://github.com/patractlabs/elara-kv-component) support, set `kvEnable` true.
+If you want [Elara-kv](https://github.com/patractlabs/elara-kv-component) support, set  the `type` field of redis chain db table `NodeType.Kv` when you init the chain node config.
+
+[Elara-kv](https://github.com/patractlabs/elara-kv-component) is a service used to host websocket connections, which can effectively reduce the service pressure of nodes. You should deploy elara-kv service for every node(e.g. polkadot) to get better service capability and stability. And you can just regard the Elara-kv as an origin node service.See the repo for more details.
 
 #### Run
 
